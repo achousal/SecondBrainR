@@ -203,6 +203,56 @@ def _overdue_reminders(vault: Path, max_lines: int = 5) -> list[str]:
         return []
 
 
+def _metabolic_dashboard(vault: Path, claim_count: int) -> str:
+    """Build condensed metabolic dashboard line. Never raises."""
+    if claim_count == 0:
+        return ""
+    try:
+        from engram_r.metabolic_history import (
+            compute_trends,
+            format_trend_line,
+            load_latest,
+        )
+        from engram_r.metabolic_indicators import MetabolicState
+
+        latest = load_latest(vault)
+        if latest is None:
+            return ""
+
+        ind = latest.indicators
+        line = (
+            f"  QPR {ind.get('qpr', 0):.1f}d | "
+            f"CMR {ind.get('cmr', 0):.0f}:1 | "
+            f"TPV {ind.get('tpv', 0):.1f}/d | "
+            f"GCR {ind.get('gcr', 1):.2f} | "
+            f"IPR {ind.get('ipr', 0):.1f} | "
+            f"VDR {ind.get('vdr', 0):.0f}%"
+        )
+
+        # Trend line from history
+        from engram_r.metabolic_history import load_history
+
+        history = load_history(vault)
+        if len(history) >= 2:
+            current_state = MetabolicState(
+                qpr=ind.get("qpr", 0),
+                cmr=ind.get("cmr", 0),
+                tpv=ind.get("tpv", 0),
+                hcr=ind.get("hcr", 0),
+                gcr=ind.get("gcr", 1),
+                ipr=ind.get("ipr", 0),
+                vdr=ind.get("vdr", 0),
+            )
+            trends = compute_trends(current_state, history[:-1])
+            trend_str = format_trend_line(trends)
+            if trend_str:
+                line += f"\n  {trend_str}"
+
+        return line
+    except Exception:
+        return ""
+
+
 def _slack_inbound(vault: Path) -> str:
     """Fetch inbound Slack messages for orientation. Never raises."""
     try:
@@ -301,6 +351,13 @@ def main() -> None:
         f"Observations: {counts['observations']} | "
         f"Tensions: {counts['tensions']}"
     )
+
+    # Metabolic dashboard (condensed, only when enabled + vault non-empty)
+    metabolic_line = _metabolic_dashboard(vault, counts["claims"])
+    if metabolic_line:
+        parts.append("")
+        parts.append("### Metabolic")
+        parts.append(metabolic_line)
 
     # Maintenance signals
     if counts["inbox"] > 0:

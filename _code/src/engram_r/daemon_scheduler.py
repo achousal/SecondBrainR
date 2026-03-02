@@ -843,6 +843,21 @@ def scan_vault(vault_path: Path, config: DaemonConfig) -> VaultState:
         )
         state.goals.append(gs)
 
+    # Stale note count (notes not updated in stale_notes_days)
+    notes_dir = vault_path / "notes"
+    if notes_dir.is_dir():
+        stale_cutoff = time.time() - (config.thresholds.stale_notes_days * 86400)
+        stale = 0
+        for nf in notes_dir.iterdir():
+            if nf.suffix != ".md" or nf.name == "_index.md":
+                continue
+            try:
+                if nf.stat().st_mtime < stale_cutoff:
+                    stale += 1
+            except OSError:
+                pass
+        state.stale_note_count = stale
+
     # Metabolic indicators
     if config.metabolic.enabled:
         from engram_r.metabolic_indicators import compute_metabolic_state
@@ -858,10 +873,13 @@ def scan_vault(vault_path: Path, config: DaemonConfig) -> VaultState:
             vault_path,
             queue_data=queue_json,
             lookback_days=config.metabolic.lookback_days,
+            orphan_count=state.orphan_count,
             qpr_critical=config.metabolic.qpr_critical,
             cmr_hot=config.metabolic.cmr_hot,
+            tpv_stalled=config.metabolic.tpv_stalled,
             hcr_redirect=config.metabolic.hcr_redirect,
-            swr_archive=config.metabolic.swr_archive,
+            gcr_fragmented=config.metabolic.gcr_fragmented,
+            ipr_overflow=config.metabolic.ipr_overflow,
         )
 
     return state
@@ -962,11 +980,12 @@ def select_task_audited(state: VaultState, config: DaemonConfig) -> SelectionRes
     # Build vault summary for audit
     audit.vault_summary = vault_summary_dict(state)
 
-    # Metabolic governor: suppress generative P1 if system running hot
+    # Metabolic governor: suppress generative P1 if tier 1 alarm active
     metabolic_suppress_p1 = False
     if state.metabolic and config.metabolic.enabled:
         alarms = getattr(state.metabolic, "alarm_keys", [])
-        if "qpr_critical" in alarms or "cmr_hot" in alarms:
+        tier1_alarms = {"qpr_critical", "cmr_hot", "tpv_stalled"}
+        if tier1_alarms & set(alarms):
             metabolic_suppress_p1 = True
     audit.metabolic_suppressed = metabolic_suppress_p1
 
@@ -1435,9 +1454,9 @@ def build_tier3_entries(state: VaultState, config: DaemonConfig) -> list[str]:
         m = state.metabolic
         alarm_str = ", ".join(m.alarm_keys) if m.alarm_keys else "none"
         entries.append(
-            f"- Metabolic: QPR={m.qpr:.1f}d VDR={m.vdr:.0f}% "
-            f"CMR={m.cmr:.0f}:1 HCR={m.hcr:.0f}% SWR={m.swr:.1f} "
-            f"[ALARM: {alarm_str}]"
+            f"- Metabolic: QPR={m.qpr:.1f}d CMR={m.cmr:.0f}:1 "
+            f"TPV={m.tpv:.1f}/d GCR={m.gcr:.2f} IPR={m.ipr:.1f} "
+            f"VDR={m.vdr:.0f}% [ALARM: {alarm_str}]"
         )
 
     # Task stack active items first

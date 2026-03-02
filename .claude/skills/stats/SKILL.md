@@ -199,8 +199,8 @@ OBS_PENDING=$(grep -rl '^status: pending' ops/observations/ 2>/dev/null | wc -l 
 # Tensions pending
 TENSION_PENDING=$(grep -rl '^status: open\|^status: pending' ops/tensions/ 2>/dev/null | wc -l | tr -d ' ')
 
-# Sessions captured
-SESSION_COUNT=$(ls -1 ops/sessions/*.md 2>/dev/null | wc -l | tr -d ' ')
+# Sessions captured (JSON format)
+SESSION_COUNT=$(ls -1 ops/sessions/*.json 2>/dev/null | wc -l | tr -d ' ')
 ```
 
 Adapt all directory names to domain vocabulary. Skip checks for directories that do not exist — report "N/A" instead of errors.
@@ -209,13 +209,16 @@ Adapt all directory names to domain vocabulary. Skip checks for directories that
 
 ```bash
 # Metabolic indicators (daemon self-regulation metrics)
+# 7 indicators in 3 tiers: QPR/CMR/TPV (governance), HCR/GCR/IPR (awareness), VDR (observational)
 METABOLIC_JSON=$(cd _code && uv run python -m engram_r.metabolic_indicators "$PWD/.." 2>/dev/null)
 if [[ -n "$METABOLIC_JSON" && "$METABOLIC_JSON" != *"error"* ]]; then
   MET_QPR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['qpr'])")
-  MET_VDR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['vdr'])")
   MET_CMR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['cmr'])")
+  MET_TPV=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['tpv'])")
   MET_HCR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['hcr'])")
-  MET_SWR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['swr'])")
+  MET_GCR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['gcr'])")
+  MET_IPR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['ipr'])")
+  MET_VDR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['vdr'])")
   MET_ALARMS=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)['alarm_keys']) or 'none')")
   METABOLIC_AVAILABLE="true"
 else
@@ -256,11 +259,16 @@ Progress bar calculation:
 
   Metabolic Health          (if METABOLIC_AVAILABLE)
   ================
-  QPR   [MET_QPR]d   [OK|ALARM]   Queue pressure (days of backlog)
-  VDR   [MET_VDR]%   INFO         Verification debt
-  CMR   [MET_CMR]:1  [OK|ALARM]   Creation:Maintenance ratio
-  HCR   [MET_HCR]%   [OK|ALARM]   Hypothesis conversion rate
-  SWR   [MET_SWR]    [OK|ALARM]   Sessions per artifact
+  Tier 1 (Governance)
+  QPR   [MET_QPR]d    [OK|ALARM]   Queue pressure (days of backlog)
+  CMR   [MET_CMR]:1   [OK|ALARM]   Creation:Maintenance ratio
+  TPV   [MET_TPV]/d   [OK|ALARM]   Throughput velocity (claims/day)
+  Tier 2 (Awareness)
+  HCR   [MET_HCR]%    [OK|ALARM]   Hypothesis conversion rate
+  GCR   [MET_GCR]     [OK|ALARM]   Graph connectivity ratio
+  IPR   [MET_IPR]     [OK|ALARM]   Inbox pressure ratio
+  Tier 3 (Observational)
+  VDR   [MET_VDR]%    INFO         Verification debt
 
   Pipeline
   ========
@@ -298,7 +306,7 @@ After the stats block, add brief interpretation for any notable findings:
 | DENSITY < 0.02 | "Graph density is low — connections are thin. Run /reflect to strengthen the network" |
 | PROCESSED_PCT < 50 | "More content in inbox than in notes/ — consider processing backlog" |
 | THIS_WEEK_NOTES == 0 | "No new claims this week" |
-| MET_ALARMS != "none" | "Metabolic alarms active ([MET_ALARMS]) -- daemon is suppressing generation. Run `/next` for recommended action." |
+| MET_ALARMS != "none" | "Metabolic alarms active ([MET_ALARMS]) -- tier 1 alarms suppress daemon generation. Run `/next` for recommended action." |
 
 Only show interpretation notes when conditions are notable. A healthy vault gets just the stats, no warnings.
 
