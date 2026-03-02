@@ -190,7 +190,7 @@ documentation with arguments and I/O details.
 | [User Manual](docs/manual/manual.md) | Hub page linking all reference docs |
 | [Getting Started](docs/manual/getting-started.md) | First session walkthrough |
 | [Setup Guide](docs/manual/setup-guide.md) | Installation, env vars, Slack, MCP servers |
-| [Skills Reference](docs/manual/skills.md) | Full command reference |
+| [Skills Reference](docs/manual/skills.md) | Full command reference with example session |
 | [Workflows](docs/manual/workflows.md) | Processing pipeline and session rhythm |
 | [Configuration](docs/manual/configuration.md) | ops/config.yaml, dimensions, domain profiles |
 | [Architecture](docs/manual/architecture.md) | Knowledge + hypothesis layers, Elo system |
@@ -199,7 +199,6 @@ documentation with arguments and I/O details.
 | [Security](docs/manual/security.md) | Write validation, tamper detection, PII filtering |
 | [Integrations](docs/manual/integrations.md) | Slack, Obsidian, MCP servers, domain profiles |
 | [Administration](docs/manual/administration.md) | Daemon, hooks, decision engine, scripts |
-| [Co-Scientist Guide](docs/manual/co-scientist-guide.md) | Hypothesis pipeline deep-dive |
 | [Inter-Lab Collaboration](docs/manual/inter-lab.md) | Federation and multi-vault setup |
 | [Querying](docs/manual/querying.md) | YAML frontmatter query patterns |
 | [Troubleshooting](docs/manual/troubleshooting.md) | Common failure modes and fixes |

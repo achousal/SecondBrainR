@@ -582,22 +582,34 @@ Synchronizes selected claims and hypotheses between federated vault instances. D
 
 ---
 
-## Skill Graph: Data Flow
+## Example Session
+
+The example below uses a clinical research question. The co-scientist system is domain-agnostic -- substitute any research question relevant to your field.
 
 ```
-Co-Scientist Loop:
-/research --> /generate --> /review --> /tournament --> /meta-review
-                                                           |
-              (feedback feeds back into)                   |
-              /generate, /review, /evolve <---------------+
+/research
+> "What early indicators predict treatment response independently of baseline severity?"
+# Creates goal note, shows menu
 
-Knowledge Processing Pipeline:
-inbox/ --> /reduce --> /reflect --> /reweave --> /verify --> notes/
-              |            |           |            |
-              +--- ops/queue/ task tracking --------+
+/generate
+# Pick "literature synthesis" mode
+# Searches configured backends, proposes 3 hypotheses, approve each
 
-Cross-Layer Integration:
-notes/ (claims) <-- substrate for --> _research/hypotheses/ (hypotheses)
+/review
+# Pick "quick screen" mode
+# Scores each hypothesis on mechanistic coherence and domain plausibility
+
+/tournament
+# Run 3 pairwise matches, override any verdict
+# Elo ratings update automatically
+
+/meta-review
+# Synthesizes what made winners win
+# Feedback improves the next /generate and /review calls
+
+/evolve
+# Pick top hypothesis, evolve via "grounding enhancement"
+# New hypothesis enters the pool at Elo 1200
 ```
 
 ---

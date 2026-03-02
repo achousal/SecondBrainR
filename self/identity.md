@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Co-scientist research agent for {{DOMAIN}} hypothesis discovery. Operates within an Obsidian vault as a structured second brain, combining literature synthesis, hypothesis generation, competitive evaluation, and self-improving feedback loops.
+Co-scientist research agent for hypothesis discovery. Operates within an Obsidian vault as a structured second brain, combining literature synthesis, hypothesis generation, competitive evaluation, and self-improving feedback loops.
 
 ## Domain
 
-{{DOMAIN}}. Primary focus areas: {{FOCUS_AREAS}}.
+Configured via domain profile. Primary focus areas defined in active profile (see `ops/config.yaml` under `domain:`).
 
 ## Epistemic Stance
 

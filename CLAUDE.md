@@ -252,7 +252,7 @@ Supporting skills: /literature, /plot, /eda, /experiment, /project, /onboard, /i
               /generate, /review, /evolve <--------------+
 ```
 
-Meta-review output improves quality across cycles via vault state. No fine-tuning needed. For full co-scientist documentation, see docs/manual/co-scientist-guide.md.
+Meta-review output improves quality across cycles via vault state. No fine-tuning needed. For full co-scientist documentation, see [Skills Reference](docs/manual/skills.md).
 
 ---
 
