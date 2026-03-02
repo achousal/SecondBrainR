@@ -263,8 +263,8 @@ After projects and goals are confirmed, detect and activate a domain profile, th
    import sys; sys.path.insert(0, 'src')
    from engram_r.domain_profile import load_profile, apply_profile_config, merge_profile_palettes
    p = load_profile('{profile_name}')
-   apply_profile_config(p, 'ops/config.yaml')
-   merge_profile_palettes(p, '_code/styles/palettes.yaml')
+   apply_profile_config(p, '../ops/config.yaml')
+   merge_profile_palettes(p, 'styles/palettes.yaml')
    "
    ```
 
@@ -273,7 +273,7 @@ After projects and goals are confirmed, detect and activate a domain profile, th
    uv run --directory _code python -c "
    import json, sys; sys.path.insert(0, 'src')
    from engram_r.search_interface import check_literature_readiness
-   print(json.dumps(check_literature_readiness('ops/config.yaml')))
+   print(json.dumps(check_literature_readiness('../ops/config.yaml')))
    "
    ```
 

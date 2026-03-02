@@ -81,7 +81,7 @@ After writing keys (or on explicit "check" request), re-run `check_literature_re
 set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import check_literature_readiness
-print(json.dumps(check_literature_readiness('ops/config.yaml')))
+print(json.dumps(check_literature_readiness('../ops/config.yaml')))
 "
 ```
 

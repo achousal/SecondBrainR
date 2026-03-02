@@ -1,270 +1,157 @@
-# ops/config.yaml -- Knowledge system configuration
-#
-# This file controls how the arscontexta knowledge processing layer and
-# co-scientist pipeline behave. Edit values here to tune your system.
-#
-# For WHY each dimension was chosen, see: ops/derivation.md
-# For all valid values and detailed descriptions, see: ops/config-reference.yaml
-# For daemon-specific settings, see: ops/daemon-config.yaml
-
-# ---------------------------------------------------------------------------
-# Knowledge Architecture Dimensions
-# These define the structural properties of your vault. Changing a dimension
-# after the vault has content may require /refactor to restructure.
-# ---------------------------------------------------------------------------
 dimensions:
-  granularity: atomic       # atomic: one claim per file (recommended)
-                            # composite: multiple claims per file (not recommended)
-
-  organization: flat        # flat: notes/ is a single flat directory, no subdirs
-                            # hierarchical: notes organized in topic subdirectories
-
-  linking: explicit+implicit  # explicit: wiki links only where you place them
-                              # implicit: auto-suggested links from content similarity
-                              # explicit+implicit: both (recommended for heavy processing)
-
-  processing: heavy         # heavy: full reduce+reflect+reweave+verify pipeline
-                            # light: reduce only, minimal connection-finding
-
-  navigation: 3-tier        # 3-tier: Hub > Domain map > Topic map (recommended)
-                            # 2-tier: Hub > Topic map
-                            # flat: no navigation hierarchy
-
-  maintenance: condition-based  # condition-based: triggered by thresholds (10+ obs, etc.)
-                                # scheduled: periodic regardless of thresholds
-                                # manual: only when you ask
-
-  schema: moderate          # moderate: required fields enforced, optional fields suggested
-                            # strict: all fields required, validation blocks writes
-                            # minimal: only description required
-
-  automation: full          # full: daemon + hooks + auto-commit (recommended)
-                            # partial: hooks only, no daemon
-                            # manual: no automation
-
-# ---------------------------------------------------------------------------
-# Feature Flags
-# ---------------------------------------------------------------------------
+  granularity: atomic
+  organization: flat
+  linking: explicit+implicit
+  processing: heavy
+  navigation: 3-tier
+  maintenance: condition-based
+  schema: moderate
+  automation: full
 features:
-  semantic-search: true     # Enable semantic similarity for /reflect connections
-  processing-pipeline: true # Enable the reduce->reflect->reweave->verify pipeline
-
-# ---------------------------------------------------------------------------
-# Processing Configuration
-# Controls how /reduce, /reflect, /reweave, and /verify behave.
-# ---------------------------------------------------------------------------
-processing_tier: auto       # auto: depth adapts to source complexity
-                            # fixed: always use the depth setting below
-
+  semantic-search: true
+  processing-pipeline: true
+processing_tier: auto
 processing:
-  depth: standard           # deep: exhaustive extraction, all claims
-                            # standard: comprehensive but selective (recommended)
-                            # quick: key claims only, fast processing
-
-  chaining: suggested       # manual: each pipeline phase requires explicit command
-                            # suggested: agent suggests next phase, you approve
-                            # automatic: phases chain without approval
-
+  depth: standard
+  chaining: suggested
   extraction:
-    selectivity: moderate   # strict: only high-confidence, well-sourced claims
-                            # moderate: reasonable claims with clear provenance
-                            # permissive: extract broadly, filter later
-
+    selectivity: moderate
     categories:
-      - name: "claims"
-        what_to_find: "Testable assertions about mechanisms, effects, or relationships"
-        output_type: "claim"
-      - name: "evidence"
-        what_to_find: "Data points, measurements, statistical results"
-        output_type: "claim"
-      - name: "methodology-comparisons"
-        what_to_find: "How different studies approached similar questions"
-        output_type: "claim"
-      - name: "contradictions"
-        what_to_find: "Results or interpretations that conflict with existing claims"
-        output_type: "claim"
-      - name: "open-questions"
-        what_to_find: "Gaps in evidence, unresolved mechanisms, future directions"
-        output_type: "claim"
-      - name: "design-patterns"
-        what_to_find: "Reusable experimental designs, analytical approaches"
-        output_type: "claim"
-
+    - name: claims
+      what_to_find: Testable assertions about mechanisms, effects, or relationships
+      output_type: claim
+    - name: evidence
+      what_to_find: Data points, measurements, statistical results
+      output_type: claim
+    - name: methodology-comparisons
+      what_to_find: How different studies approached similar questions
+      output_type: claim
+    - name: contradictions
+      what_to_find: Results or interpretations that conflict with existing claims
+      output_type: claim
+    - name: open-questions
+      what_to_find: Gaps in evidence, unresolved mechanisms, future directions
+      output_type: claim
+    - name: design-patterns
+      what_to_find: Reusable experimental designs, analytical approaches
+      output_type: claim
   verification:
-    description_test: true  # Verify descriptions add info beyond the title
-    schema_check: true      # Validate frontmatter against templates
-    link_check: true        # Check for dangling wiki links
-
+    description_test: true
+    schema_check: true
+    link_check: true
   reweave:
-    scope: related          # related: only notes in the same topic map
-                            # broad: notes within 2 hops in the graph
-                            # full: all notes (expensive, use sparingly)
-
-    frequency: after_create # after_create: reweave after every /reduce
-                            # periodic: reweave on a schedule (daemon handles)
-                            # manual: only when you run /reweave
-
-# ---------------------------------------------------------------------------
-# Provenance Tracking
-# ---------------------------------------------------------------------------
-provenance: full            # full: record source query, inbox path, processing chain
-                            # minimal: record source only
-                            # off: no provenance tracking
-
-# ---------------------------------------------------------------------------
-# Agent Personality (experimental)
-# ---------------------------------------------------------------------------
+    scope: related
+    frequency: after_create
+provenance: full
 personality:
-  enabled: false            # true: agent uses a distinctive communication style
-                            # false: neutral, professional tone (recommended)
-
-# ---------------------------------------------------------------------------
-# Research Tool Configuration
-# Controls which search backends /learn and /literature use.
-# ---------------------------------------------------------------------------
+  enabled: false
 research:
-  primary: web-search       # Primary search tool: web-search | exa | pubmed | arxiv
-  fallback: web-search      # Fallback if primary fails
-  last_resort: web-search   # Last resort search
-  default_depth: moderate   # light: 1-2 sources | moderate: 3-5 | deep: 5-10
-
-# ---------------------------------------------------------------------------
-# Literature Source Configuration
-# Controls which backends /literature uses for structured searches.
-# ---------------------------------------------------------------------------
+  primary: pubmed
+  fallback: arxiv
+  last_resort: web-search
+  default_depth: moderate
 literature:
-  sources: [arxiv, semantic_scholar, openalex]
-  default: all              # all: query every enabled source
-                            # Or a single source name from the list above
-
-# ---------------------------------------------------------------------------
-# Co-Scientist Automation Toggles
-# These control hooks and automated behaviors.
-# ---------------------------------------------------------------------------
-vault_root: .               # Vault root relative to repo root
-                            # Override with VAULT_PATH env var or vault registry
-
-git_auto_commit: true       # Auto-commit vault changes after note writes
-schema_validation: true     # Validate note schema on Write/Edit hooks
-pipeline_compliance: true   # Enforce provenance checks on notes/ writes
-session_capture: true       # Save session metadata to ops/sessions/
-
-# ---------------------------------------------------------------------------
-# Health Check Scope
-# Controls which directories /health scans. Must match the knowledge graph
-# boundaries -- operational artifacts (ops/, .claude/) are not graph nodes.
-# Canonical reference: ops/scripts/dangling-links.sh
-# ---------------------------------------------------------------------------
+  sources:
+  - pubmed
+  - arxiv
+  - semantic_scholar
+  - openalex
+  default: all
+  enrichment:
+    enabled:
+    - crossref
+    - unpaywall
+    timeout_per_doi: 5
+vault_root: .
+git_auto_commit: true
+schema_validation: true
+pipeline_compliance: true
+session_capture: true
 health:
-  # Directories containing graph content (wiki links checked here)
   graph_directories:
-    - notes
-    - _research
-    - self
-    - projects
-
-  # Directories excluded from all scans (artifacts, templates, infrastructure)
+  - notes
+  - _research
+  - self
+  - projects
   exclude_directories:
-    - ops
-    - .claude
-    - _code/templates
-    - _dev
-    - docs
-    - inbox/archive
-
-  # Topics field convention: "body" means check for a Topics: markdown section,
-  # not a topics: YAML frontmatter field. Matches _code/templates/claim-note.md.
-  topics_convention: body    # body: Topics: section in markdown body (current)
-                             # yaml: topics: field in YAML frontmatter
-
-# ---------------------------------------------------------------------------
-# Onboard Scan Configuration
-# Controls how /onboard discovers and filters project documentation.
-# For detailed descriptions of each key, see: ops/config-reference.yaml
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# Data Layer Configuration
-# Defines the data types tracked in the data inventory coverage matrix.
-# Domain-specific layers should be defined in the domain profile
-# (e.g., _code/profiles/{domain}/profile.yaml). Leave empty for generic use.
-# /onboard reads this list to build coverage matrix columns and detection.
-# ---------------------------------------------------------------------------
-data_layers: []
-
+  - ops
+  - .claude
+  - _code/templates
+  - _dev
+  - docs
+  - inbox/archive
+  topics_convention: body
+data_layers:
+- Genomics
+- Transcriptomics
+- Proteomics
+- Metabolomics
+- Epigenomics
+- Metagenomics
+- Clinical/EHR
+- scRNA-seq
 onboard:
-  scan_depth: 5              # Max find -maxdepth for doc discovery
-
-  # Directories excluded from find traversal (matched with -not -path)
+  scan_depth: 5
   exclude_dirs:
-    - .git
-    - __pycache__
-    - .venv
-    - venv
-    - .tox
-    - renv
-    - packrat
-    - .Rproj.user
-    - node_modules
-    - .snakemake
-    - .nextflow
-    - .github
-    - .gitlab
-    - .circleci
-    - .claude
-    - .serena
-    - .cursor
-    - dist-info
-    - _build
-    - _site
-    - site
-    - docs/_build
-    - build
-    - dist
-    - site-packages
-    - .mypy_cache
-    - .ruff_cache
-    - .pytest_cache
-    - .eggs
-    - rsconnect
-    - work
-
-  # Filenames excluded from discovery results (exact basename match)
+  - .git
+  - __pycache__
+  - .venv
+  - venv
+  - .tox
+  - renv
+  - packrat
+  - .Rproj.user
+  - node_modules
+  - .snakemake
+  - .nextflow
+  - .github
+  - .gitlab
+  - .circleci
+  - .claude
+  - .serena
+  - .cursor
+  - dist-info
+  - _build
+  - _site
+  - site
+  - docs/_build
+  - build
+  - dist
+  - site-packages
+  - .mypy_cache
+  - .ruff_cache
+  - .pytest_cache
+  - .eggs
+  - rsconnect
+  - work
   exclude_files:
-    - NEWS.md
-    - CHANGELOG.md
-    - CHANGES.md
-    - CONTRIBUTING.md
-    - CONTRIBUTORS.md
-    - CODE_OF_CONDUCT.md
-    - SECURITY.md
-    - LICENSE.md
-    - SUPPORT.md
-    - PULL_REQUEST_TEMPLATE.md
-    - ISSUE_TEMPLATE.md
-
-# ---------------------------------------------------------------------------
-# Co-Scientist Configuration
-# Controls hypothesis generation, review, tournament, and orchestration.
-# Used by /research, /generate, /review, /tournament, /evolve, /landscape,
-# /meta-review, and /literature skills.
-# ---------------------------------------------------------------------------
+  - NEWS.md
+  - CHANGELOG.md
+  - CHANGES.md
+  - CONTRIBUTING.md
+  - CONTRIBUTORS.md
+  - CODE_OF_CONDUCT.md
+  - SECURITY.md
+  - LICENSE.md
+  - SUPPORT.md
+  - PULL_REQUEST_TEMPLATE.md
+  - ISSUE_TEMPLATE.md
 co_scientist:
-  default_generation_count: 3   # Hypotheses per /generate invocation
-  default_match_count: 5        # Matches per /tournament round
-
+  default_generation_count: 3
+  default_match_count: 5
   elo:
-    starting: 1200              # New hypothesis Elo rating
-    k_factor: 32                # Elo sensitivity per match
-
+    starting: 1200
+    k_factor: 32
   review:
     aggregate_weights:
-      correctness: 0.30
+      correctness: 0.3
       testability: 0.25
       novelty: 0.25
-      impact: 0.20
-
+      impact: 0.2
   tournament:
-    top_tier_threshold: 0.25    # Top N% get multi-turn debate
-
+    top_tier_threshold: 0.25
   handoff:
-    mode: suggested             # manual | suggested | automatic
+    mode: suggested
+domain:
+  name: bioinformatics
+  profile: /Users/andreschousal/EngramR/_code/profiles/bioinformatics

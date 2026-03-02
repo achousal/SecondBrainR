@@ -94,7 +94,7 @@ After infrastructure check, run a lightweight readiness nudge:
 uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import check_literature_readiness
-print(json.dumps(check_literature_readiness('ops/config.yaml')))
+print(json.dumps(check_literature_readiness('../ops/config.yaml')))
 "
 ```
 
@@ -357,7 +357,7 @@ After generating the summary, run readiness check:
 uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import check_literature_readiness
-print(json.dumps(check_literature_readiness('ops/config.yaml')))
+print(json.dumps(check_literature_readiness('../ops/config.yaml')))
 "
 ```
 
