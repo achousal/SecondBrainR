@@ -30,9 +30,9 @@ Read these files to configure runtime behavior:
 2. **`_research/goals/`** -- active research goal (if `--goal` provided)
    - Parse `project_tag` from goal frontmatter for tag inheritance on literature notes
 
-3. **Preflight readiness check** (always run):
+3. **Preflight readiness check** (always run -- source `.env` so keys are visible):
 ```
-uv run --directory {vault_root}/_code python -c "
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import check_literature_readiness
 print(json.dumps(check_literature_readiness('ops/config.yaml')))
