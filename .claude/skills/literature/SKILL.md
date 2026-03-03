@@ -172,8 +172,10 @@ print(f'Total: {len(results)} results saved to ops/queue/.literature_results.jso
 ```
 
 ### Step 4: Display Results
-Table columns: **#**, **Title**, **Authors**, **Year**, **Source**, **Journal**, **DOI/ID**, **Citations**, **Abstract** (yes/no).
-Source column shows backend name (PubMed, Semantic Scholar, etc.). Citations shows count or "--" when unavailable. Abstract column shows "yes" or "MISSING" to flag gaps.
+Always render results as an ASCII box-drawing table. Use Unicode box characters (e.g., `+-|` or `┌┬┐├┼┤└┴┘│─`).
+
+Columns: **#**, **Title**, **Year**, **Source**, **DOI**, **Cites**, **Abstract** (yes/MISSING).
+Source column shows backend name (PubMed, Semantic Scholar, etc.). Cites shows count or "--" when unavailable. Abstract column shows "yes" or "MISSING" to flag gaps. Wrap long titles within the cell rather than truncating.
 
 ### Step 5: User Selection
 Ask which papers to save as notes. Accept comma-separated numbers or "all".
