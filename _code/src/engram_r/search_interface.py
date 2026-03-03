@@ -11,8 +11,13 @@ code that imports from here.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
+import urllib.parse
+import urllib.request
+from dataclasses import asdict
 from pathlib import Path
 
 import yaml
@@ -385,6 +390,60 @@ def _enrich_results(
     return results
 
 
+def _fill_missing_abstracts(
+    results: list[ArticleResult],
+    timeout: int = 5,
+) -> list[ArticleResult]:
+    """Fill empty abstracts via Semantic Scholar DOI lookup.
+
+    For each result that has a DOI but no abstract, queries the S2 paper
+    detail endpoint. Only fills missing abstracts -- never overwrites.
+
+    Args:
+        results: Deduplicated list of ArticleResult.
+        timeout: Per-DOI timeout in seconds.
+
+    Returns:
+        The same list, mutated in place (also returned for convenience).
+    """
+    candidates = [r for r in results if not r.abstract and r.doi]
+    if not candidates:
+        return results
+
+    headers: dict[str, str] = {"Accept": "application/json"}
+    api_key = os.environ.get("S2_API_KEY")
+    if api_key:
+        headers["x-api-key"] = api_key
+
+    s2_base = "https://api.semanticscholar.org/graph/v1/paper"
+    filled = 0
+
+    for result in candidates:
+        encoded_doi = urllib.parse.quote(result.doi, safe="")
+        url = f"{s2_base}/DOI:{encoded_doi}?fields=abstract"
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read())
+            abstract = data.get("abstract") or ""
+            if abstract:
+                result.abstract = abstract
+                filled += 1
+                logger.info(
+                    "Filled abstract for DOI %s via S2 fallback", result.doi
+                )
+        except Exception:
+            logger.debug(
+                "S2 abstract fallback failed for DOI %s", result.doi
+            )
+            continue
+
+    if filled:
+        logger.info("Filled %d/%d missing abstracts via S2", filled, len(candidates))
+
+    return results
+
+
 def search_all_sources(
     query: str,
     max_results_per_source: int = 5,
@@ -435,6 +494,9 @@ def search_all_sources(
     if enricher_list:
         _enrich_results(deduped, enricher_list, timeout=enrich_timeout)
 
+    # Fill missing abstracts via Semantic Scholar DOI lookup
+    _fill_missing_abstracts(deduped, timeout=enrich_timeout)
+
     # Sort by citation count descending, nulls last
     def _sort_key(r: ArticleResult) -> tuple[bool, int]:
         return (r.citation_count is not None, r.citation_count or 0)
@@ -442,3 +504,200 @@ def search_all_sources(
     deduped.sort(key=_sort_key, reverse=True)
 
     return deduped
+
+
+# -- Result persistence and note creation ------------------------------------
+
+
+def save_results_json(
+    results: list[ArticleResult],
+    output_path: Path | str,
+) -> Path:
+    """Serialize search results to JSON, preserving full abstracts.
+
+    The agent should call this immediately after ``search_all_sources()``
+    and BEFORE displaying any results table. Downstream note creation
+    reads from this JSON to avoid abstract truncation in agent context.
+
+    Args:
+        results: List of ArticleResult from search_all_sources().
+        output_path: Path to write JSON file.
+
+    Returns:
+        The output path (as Path).
+    """
+    output_path = Path(output_path)
+    data = [asdict(r) for r in results]
+    output_path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    logger.info("Saved %d search results to %s", len(results), output_path)
+    return output_path
+
+
+def _make_literature_filename(result_dict: dict) -> str:
+    """Derive a literature note filename from a result dict.
+
+    Format: ``{year}-{first_author_last}-{title_slug}.md``
+    Falls back gracefully when year or authors are missing.
+    """
+    from engram_r.schema_validator import sanitize_title
+
+    year = result_dict.get("year") or "unknown"
+    authors = result_dict.get("authors") or []
+    title = result_dict.get("title") or "untitled"
+
+    # First author last name -- handle mixed formats:
+    #   "Philip B. Gorelick"  -> last token "Gorelick"
+    #   "Wolters F"           -> first token "Wolters" (last is initial)
+    #   "Marta Segarra"       -> last token "Segarra"
+    if authors:
+        first_author = authors[0]
+        parts = first_author.strip().split()
+        last_token = parts[-1].rstrip(",.")
+        # If last token is a single char (initial like "J" or "G"), use first token
+        if len(last_token) <= 1 and len(parts) > 1:
+            last_name = parts[0].lower().rstrip(",.")
+        else:
+            last_name = last_token.lower()
+    else:
+        last_name = "unknown"
+
+    # Title slug: first ~10 words, strip trailing stopwords, sanitize
+    _TRAILING_STOPS = {"a", "an", "and", "as", "at", "by", "for", "from",
+                       "in", "into", "of", "on", "or", "the", "to", "with"}
+    title_words = re.sub(r"[^\w\s-]", "", title.lower()).split()[:10]
+    while title_words and title_words[-1] in _TRAILING_STOPS:
+        title_words.pop()
+    slug = "-".join(title_words) if title_words else "untitled"
+    slug = sanitize_title(slug)
+
+    # Assemble and truncate to reasonable length
+    stem = f"{year}-{last_name}-{slug}"
+    if len(stem) > 120:
+        stem = stem[:120].rstrip("-")
+
+    return f"{stem}.md"
+
+
+def create_notes_from_results(
+    results_json: str | Path,
+    indices: list[int],
+    output_dir: str | Path,
+    goal_tag: str = "",
+) -> list[dict]:
+    """Build and write literature notes from saved search results.
+
+    Reads full results from JSON (preserving complete abstracts),
+    builds notes via ``build_literature_note()``, writes to output_dir.
+
+    Args:
+        results_json: Path to JSON from ``save_results_json()``.
+        indices: 1-based indices of results to save.
+        output_dir: Directory for literature notes (e.g. _research/literature/).
+        goal_tag: Optional project tag to add to note tags.
+
+    Returns:
+        List of dicts with keys: index, path, title, doi, status.
+    """
+    from engram_r.note_builder import build_literature_note
+
+    results_json = Path(results_json)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    data = json.loads(results_json.read_text())
+
+    created: list[dict] = []
+    for idx in indices:
+        if idx < 1 or idx > len(data):
+            created.append({
+                "index": idx,
+                "path": "",
+                "title": "",
+                "doi": "",
+                "status": f"error: index {idx} out of range (1-{len(data)})",
+            })
+            continue
+
+        result = data[idx - 1]  # 1-based to 0-based
+
+        # Check for DOI duplicate in output_dir
+        doi = result.get("doi", "")
+        if doi:
+            duplicate = _check_doi_duplicate(doi, output_dir)
+            if duplicate:
+                created.append({
+                    "index": idx,
+                    "path": str(duplicate),
+                    "title": result.get("title", ""),
+                    "doi": doi,
+                    "status": f"skipped: duplicate DOI in {duplicate.name}",
+                })
+                continue
+
+        tags = [goal_tag] if goal_tag else None
+        content = build_literature_note(
+            title=result.get("title", ""),
+            doi=doi,
+            authors=result.get("authors", []),
+            year=result.get("year") or "",
+            journal=result.get("journal", ""),
+            abstract=result.get("abstract", ""),
+            tags=tags,
+            source_type=result.get("source_type", ""),
+        )
+
+        filename = _make_literature_filename(result)
+        filepath = output_dir / filename
+
+        # Avoid overwrites
+        if filepath.exists():
+            stem = filepath.stem
+            counter = 2
+            while filepath.exists():
+                filepath = output_dir / f"{stem}-{counter}.md"
+                counter += 1
+
+        filepath.write_text(content)
+        logger.info("Created literature note: %s", filepath)
+
+        created.append({
+            "index": idx,
+            "path": str(filepath),
+            "title": result.get("title", ""),
+            "doi": doi,
+            "status": "created",
+        })
+
+    return created
+
+
+def _check_doi_duplicate(doi: str, literature_dir: Path) -> Path | None:
+    """Check if a DOI already exists in any literature note's frontmatter.
+
+    Args:
+        doi: The DOI to check.
+        literature_dir: Directory containing literature notes.
+
+    Returns:
+        Path to the existing note if duplicate found, None otherwise.
+    """
+    doi_lower = doi.lower().strip()
+    for md_file in literature_dir.glob("*.md"):
+        if md_file.name.startswith("_"):
+            continue
+        try:
+            text = md_file.read_text(errors="replace")
+            if not text.startswith("---"):
+                continue
+            end = text.find("---", 3)
+            if end == -1:
+                continue
+            fm_text = text[3:end]
+            fm = yaml.safe_load(fm_text)
+            if isinstance(fm, dict):
+                existing_doi = fm.get("doi", "")
+                if isinstance(existing_doi, str) and existing_doi.lower().strip() == doi_lower:
+                    return md_file
+        except Exception:
+            continue
+    return None

@@ -59,10 +59,10 @@ Parse immediately:
 2. Run preflight readiness check. If not ready: enter setup flow.
 3. Present available sources to user: sources from config plus **all**. Default is `literature.default`.
 4. Ask for search query (if not provided in arguments) and source selection.
-5. Execute search via `search_all_sources()` with appropriate parameters.
-6. Display results table: #, Title, Authors, Year, Source, Journal, DOI/ID, Citations.
-7. Ask user which papers to save as literature notes.
-8. For each selected paper: build note via `build_literature_note()`, save to `_research/literature/`.
+5. Execute search via `search_all_sources()` with appropriate parameters. **CRITICAL**: Immediately save results to JSON via `save_results_json()` BEFORE displaying anything. This preserves full abstracts in Python memory. Use path `ops/queue/.literature_results.json`.
+6. Display results table: #, Title, Authors, Year, Source, Journal, DOI/ID, Citations. (Show abstract preview in table but DO NOT use these previews for note creation.)
+7. Ask user which papers to save as literature notes. Accept comma-separated numbers or "all".
+8. Create notes via `create_notes_from_results()` passing the saved JSON path, selected indices, output_dir=`_research/literature/`, and goal_tag if applicable. **NEVER manually construct abstract text or pass abstracts as arguments** -- the function reads full abstracts from the JSON file.
 9. Update `_research/literature/_index.md` (create if missing).
 10. Execute pipeline chaining per `processing.chaining` mode.
 11. Present saved note paths. If `--handoff`: emit CO-SCIENTIST HANDOFF block.
@@ -88,7 +88,7 @@ Implements the Literature agent supporting the co-scientist system (arXiv:2502.1
 
 ## Code
 
-- `_code/src/engram_r/search_interface.py` -- unified search interface, `check_literature_readiness()`, `resolve_literature_sources()`, `search_all_sources()`
+- `_code/src/engram_r/search_interface.py` -- unified search interface, `check_literature_readiness()`, `resolve_literature_sources()`, `search_all_sources()`, `save_results_json()`, `create_notes_from_results()`
 - `_code/src/engram_r/pubmed.py` -- PubMed search via NCBI EUTILS
 - `_code/src/engram_r/arxiv.py` -- arXiv Atom API search
 - `_code/src/engram_r/semantic_scholar.py` -- Semantic Scholar Graph API search
@@ -141,25 +141,57 @@ Select numbers (comma-separated), type your own query, or "all" to run all sugge
 
 Present available sources plus **all** option. Default is `literature.default` from config. If query provided in arguments, skip all suggestion logic.
 
-### Step 3: Execute Search
+### Step 3: Execute Search and Persist Results
 Always call `search_all_sources()` from `search_interface.py`:
 - **Single source**: `search_all_sources(query, sources=[chosen_source], config_path="ops/config.yaml")`
 - **All sources**: `search_all_sources(query, config_path="ops/config.yaml")`
 
-Both paths deduplicate by DOI, apply enrichment if configured, sort by citation count descending.
+Both paths deduplicate by DOI, apply enrichment if configured, fill missing abstracts via S2 DOI fallback, sort by citation count descending.
+
+**CRITICAL**: Immediately after search, call `save_results_json(results, "ops/queue/.literature_results.json")` to persist full results including complete abstracts. All downstream note creation MUST read from this JSON -- never from agent-rendered text.
+
+Example (single Python call):
+```python
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
+import json, sys; sys.path.insert(0, 'src')
+from engram_r.search_interface import search_all_sources, save_results_json
+results = search_all_sources('{query}', config_path='../ops/config.yaml')
+save_results_json(results, '../ops/queue/.literature_results.json')
+# Print summary for display (abstracts may be truncated here -- that is OK)
+for i, r in enumerate(results, 1):
+    abs_preview = (r.abstract[:80] + '...') if len(r.abstract) > 80 else r.abstract
+    print(f'{i}. {r.title[:60]} | {r.year} | {r.source_type} | {r.doi} | {r.citation_count or \"--\"} | abstract: {\"yes\" if r.abstract else \"MISSING\"}')
+print(f'Total: {len(results)} results saved to ops/queue/.literature_results.json')
+"
+```
 
 ### Step 4: Display Results
-Table columns: **#**, **Title**, **Authors**, **Year**, **Source**, **Journal**, **DOI/ID**, **Citations**.
-Source column shows backend name (PubMed, Semantic Scholar, etc.). Citations shows count or "--" when unavailable.
+Table columns: **#**, **Title**, **Authors**, **Year**, **Source**, **Journal**, **DOI/ID**, **Citations**, **Abstract** (yes/no).
+Source column shows backend name (PubMed, Semantic Scholar, etc.). Citations shows count or "--" when unavailable. Abstract column shows "yes" or "MISSING" to flag gaps.
 
 ### Step 5: User Selection
 Ask which papers to save as notes. Accept comma-separated numbers or "all".
 
-### Step 6: Build Notes
-For each selected paper:
-1. Build literature note via `build_literature_note()`, passing `source_type=result.source_type`.
-2. Save to `_research/literature/{year}-{first_author_last_name}-{slug}.md`.
-3. If `project_tag` inherited from `--goal`: add to note tags.
+### Step 6: Build Notes via Python (preserves full abstracts)
+Call `create_notes_from_results()` to build and write notes entirely in Python:
+
+```python
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
+import json, sys; sys.path.insert(0, 'src')
+from engram_r.search_interface import create_notes_from_results
+created = create_notes_from_results(
+    results_json='../ops/queue/.literature_results.json',
+    indices=[{comma_separated_indices}],
+    output_dir='../_research/literature/',
+    goal_tag='{goal_tag_or_empty}',
+)
+print(json.dumps(created, indent=2))
+"
+```
+
+**NEVER manually call `build_literature_note()` with abstract text from agent context.** The `create_notes_from_results()` function reads the full abstract from the JSON file, builds the note, handles filename generation, and checks for DOI duplicates.
+
+The function returns a list of dicts with keys: `index`, `path`, `title`, `doi`, `status` (created/skipped/error).
 
 ### Step 7: Update Index
 Update `_research/literature/_index.md` under "Recent Additions" with wiki-link to new note.
