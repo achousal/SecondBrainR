@@ -1424,6 +1424,71 @@ class TestCreateNotesFromResults:
         content_2 = Path(created[1]["path"]).read_text()
         assert "## Key Points\n-\n" in content_2
 
+    def test_enrichments_from_file(self, results_json: Path, tmp_path: Path):
+        """Enrichments loaded from a JSON file populate note sections."""
+        import json as _json
+
+        output_dir = tmp_path / "literature"
+        output_dir.mkdir()
+        enrichment_data = {
+            "1": {
+                "key_points": [
+                    "Plasma p-tau217 discriminates AD from controls",
+                    "NfL correlates with neurodegeneration severity",
+                ],
+                "relevance": "Directly supports [[biomarker-validation]] cutpoint work.",
+            }
+        }
+        enrich_file = tmp_path / ".literature_enrichments.json"
+        enrich_file.write_text(_json.dumps(enrichment_data))
+
+        created = create_notes_from_results(
+            results_json, [1], str(output_dir), enrichments_path=enrich_file,
+        )
+        assert created[0]["status"] == "created"
+        assert created[0]["enriched"] is True
+
+        content = Path(created[0]["path"]).read_text()
+        assert "- Plasma p-tau217 discriminates AD from controls" in content
+        assert "- NfL correlates with neurodegeneration severity" in content
+        assert "Directly supports [[biomarker-validation]]" in content
+
+    def test_enrichments_path_overrides_dict(self, results_json: Path, tmp_path: Path):
+        """When both enrichments dict and enrichments_path are given, path wins."""
+        import json as _json
+
+        output_dir = tmp_path / "literature"
+        output_dir.mkdir()
+        dict_enrichments = {
+            1: {
+                "key_points": ["From dict -- should be overridden"],
+                "relevance": "Dict relevance -- should be overridden.",
+            }
+        }
+        file_enrichments = {
+            "1": {
+                "key_points": ["From file -- this should win"],
+                "relevance": "File relevance -- this should win.",
+            }
+        }
+        enrich_file = tmp_path / ".literature_enrichments.json"
+        enrich_file.write_text(_json.dumps(file_enrichments))
+
+        created = create_notes_from_results(
+            results_json,
+            [1],
+            str(output_dir),
+            enrichments=dict_enrichments,
+            enrichments_path=enrich_file,
+        )
+        assert created[0]["status"] == "created"
+        assert created[0]["enriched"] is True
+
+        content = Path(created[0]["path"]).read_text()
+        assert "From file -- this should win" in content
+        assert "File relevance -- this should win." in content
+        assert "From dict" not in content
+
 
 # ---------------------------------------------------------------------------
 # _fill_missing_abstracts -- PubMed fallback

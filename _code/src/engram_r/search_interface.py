@@ -621,6 +621,7 @@ def create_notes_from_results(
     output_dir: str | Path,
     goal_tag: str = "",
     enrichments: dict[int, dict] | None = None,
+    enrichments_path: str | Path | None = None,
 ) -> list[dict]:
     """Build and write literature notes from saved search results.
 
@@ -636,6 +637,9 @@ def create_notes_from_results(
             Each value may contain ``key_points`` (list[str]) and/or
             ``relevance`` (str). When provided, these populate the
             Key Points and Relevance sections at creation time.
+        enrichments_path: Optional path to a JSON file containing enrichments.
+            JSON keys are stringified 1-based indices (converted to int on load).
+            Takes precedence over ``enrichments`` dict if both are provided.
 
     Returns:
         List of dicts with keys: index, path, title, doi, status, enriched.
@@ -645,6 +649,12 @@ def create_notes_from_results(
     results_json = Path(results_json)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load enrichments from file if provided (takes precedence over dict)
+    if enrichments_path is not None:
+        enrichments_path = Path(enrichments_path)
+        raw = json.loads(enrichments_path.read_text())
+        enrichments = {int(k): v for k, v in raw.items()}
 
     data = json.loads(results_json.read_text())
 
