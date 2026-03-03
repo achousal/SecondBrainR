@@ -190,21 +190,18 @@ For each selected paper, generate enrichment content before note creation:
 3. Build a Python dict: `enrichments = {1: {"key_points": ["...", "..."], "relevance": "..."}, 2: {...}}` (1-based indices matching selected papers).
 
 ### Step 6: Build Notes via Python (preserves full abstracts)
-Call `create_notes_from_results()` to build and write notes entirely in Python. Pass enrichments as a JSON string:
+Call `create_notes_from_results()` to build and write notes entirely in Python. Enrichments are loaded from a file -- no shell-escaping needed:
 
 ```python
 set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import create_notes_from_results
-enrichments = json.loads('{enrichments_json_string}')
-# Convert string keys back to int (JSON serialization turns int keys to strings)
-enrichments = {int(k): v for k, v in enrichments.items()}
 created = create_notes_from_results(
     results_json='../ops/queue/.literature_results.json',
     indices=[{comma_separated_indices}],
     output_dir='../_research/literature/',
     goal_tag='{goal_tag_or_empty}',
-    enrichments=enrichments,
+    enrichments_path='../ops/queue/.literature_enrichments.json',
 )
 print(json.dumps(created, indent=2))
 "
@@ -265,14 +262,12 @@ Alternatively, combine note creation and queue entry creation in a single Python
 set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import create_notes_from_results, create_queue_entries
-enrichments = json.loads('{enrichments_json_string}')
-enrichments = {int(k): v for k, v in enrichments.items()}
 created = create_notes_from_results(
     results_json='../ops/queue/.literature_results.json',
     indices=[{comma_separated_indices}],
     output_dir='../_research/literature/',
     goal_tag='{goal_tag_or_empty}',
-    enrichments=enrichments,
+    enrichments_path='../ops/queue/.literature_enrichments.json',
 )
 entries = create_queue_entries(
     created_notes=created,

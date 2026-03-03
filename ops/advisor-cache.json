@@ -1,15 +1,8 @@
 {
-  "session_key": "49043-2026-03-03",
+  "session_key": "93844-2026-03-03",
   "context": "literature",
   "max_suggestions": 4,
   "suggestions": [
-    {
-      "channel": "goal_frontier",
-      "query": "Establish clinical-grade p-tau217, NfL, and GFAP cutpoints and AD biomarkers",
-      "rationale": "Goal 'biomarker-validation' has missing key literature; search can fill this gap",
-      "priority": 1,
-      "goal_ref": "biomarker-validation"
-    },
     {
       "channel": "goal_frontier",
       "query": "Establish clinical-grade p-tau217, NfL, and GFAP cutpoints and AD biomarkers",
@@ -20,16 +13,23 @@
     {
       "channel": "goal_frontier",
       "query": "Integrate cognitive, proteomic, single-cell, and CSF biomarker data Neurology / Immunology",
-      "rationale": "Goal 'cadasil-phenotyping' has missing key literature; search can fill this gap",
-      "priority": 11,
+      "rationale": "Goal 'cadasil-phenotyping' has missing background; search can fill this gap",
+      "priority": 12,
       "goal_ref": "cadasil-phenotyping"
     },
     {
       "channel": "goal_frontier",
-      "query": "Integrate cognitive, proteomic, single-cell, and CSF biomarker data Neurology / Immunology",
-      "rationale": "Goal 'cadasil-phenotyping' has missing background; search can fill this gap",
-      "priority": 12,
-      "goal_ref": "cadasil-phenotyping"
+      "query": "Develop disease-agnostic ML frameworks for incident disease risk Proteomics / ML",
+      "rationale": "Goal 'proteomic-risk-prediction' has missing background; search can fill this gap",
+      "priority": 22,
+      "goal_ref": "proteomic-risk-prediction"
+    },
+    {
+      "channel": "goal_frontier",
+      "query": "Identify vascular signaling pathways (sFLT1/VEGF axis, neuroinflammation) linking Vascular biology / Neuroscience",
+      "rationale": "Goal 'vascular-neurodegeneration' has missing background; search can fill this gap",
+      "priority": 32,
+      "goal_ref": "vascular-neurodegeneration"
     }
   ]
 }
