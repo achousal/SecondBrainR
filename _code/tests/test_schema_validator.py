@@ -59,6 +59,7 @@ class TestValidNotes:
             [
                 "type: literature",
                 "title: Some paper",
+                'description: "A short description."',
                 "doi: 10.1234/test",
                 "status: unread",
                 "created: 2026-01-01",
@@ -96,6 +97,7 @@ class TestValidNotes:
             [
                 "type: research-goal",
                 "title: Find markers",
+                'description: "Identify novel biomarkers."',
                 "status: active",
                 "created: 2026-01-01",
             ]
@@ -132,6 +134,7 @@ class TestValidNotes:
             [
                 "type: project",
                 "title: TestProject",
+                'description: "ML pipeline for risk prediction."',
                 "project_tag: test-project",
                 "lab: TestLab",
                 "status: active",
@@ -367,6 +370,7 @@ class TestTypeHandling:
             [
                 "type: literature",
                 "title: Paper",
+                'description: "A paper description."',
                 "doi: 10.1234/test",
                 "status: unread",
                 "created: 2026-01-01",

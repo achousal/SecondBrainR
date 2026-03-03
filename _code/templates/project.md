@@ -1,6 +1,7 @@
 ---
 type: project
 title: "{{title}}"
+description: ""
 project_tag: ""
 lab: ""
 pi: ""
@@ -34,3 +35,7 @@ tags: [project]
 
 ## Status Log
 - {{date}}: Created
+
+---
+
+Topics:

@@ -25,9 +25,17 @@ def _render_note(frontmatter: dict[str, Any], body: str) -> str:
 # -- Literature note ----------------------------------------------------------
 
 
+def _format_key_points(points: list[str] | None) -> str:
+    """Format key points as a bulleted list, or a single dash if empty."""
+    if not points:
+        return "-"
+    return "\n".join(f"- {p}" for p in points)
+
+
 def build_literature_note(
     *,
     title: str,
+    description: str = "",
     doi: str = "",
     authors: list[str] | None = None,
     year: int | str = "",
@@ -35,12 +43,15 @@ def build_literature_note(
     abstract: str = "",
     tags: list[str] | None = None,
     source_type: str = "",
+    key_points: list[str] | None = None,
+    relevance: str = "",
     today: date | None = None,
 ) -> str:
     """Build a literature note.
 
     Args:
         title: Paper title.
+        description: Short description for frontmatter.
         doi: DOI identifier.
         authors: List of author names.
         year: Publication year.
@@ -49,6 +60,10 @@ def build_literature_note(
         tags: Additional tags.
         source_type: Backend name (e.g. "pubmed", "semantic_scholar").
             Appended as a tag when non-empty.
+        key_points: Pre-populated key findings from the abstract.
+            When None or empty, renders a single dash placeholder.
+        relevance: Pre-populated relevance paragraph connecting to
+            active research goals. When empty, renders an empty section.
         today: Date override for testing.
 
     Returns:
@@ -59,6 +74,7 @@ def build_literature_note(
     fm = {
         "type": "literature",
         "title": title,
+        "description": description,
         "doi": doi,
         "authors": authors or [],
         "year": str(year),
@@ -71,13 +87,13 @@ def build_literature_note(
 {abstract}
 
 ## Key Points
--
+{_format_key_points(key_points)}
 
 ## Methods Notes
 
 
 ## Relevance
-
+{relevance}
 
 ## Citations
 
@@ -306,6 +322,7 @@ def build_eda_report_note(
 def build_research_goal_note(
     *,
     title: str,
+    description: str = "",
     objective: str = "",
     constraints: list[str] | None = None,
     evaluation_criteria: list[str] | None = None,
@@ -331,6 +348,7 @@ def build_research_goal_note(
     fm = {
         "type": "research-goal",
         "title": title,
+        "description": description,
         "status": "active",
         "constraints": constraints or [],
         "evaluation_criteria": evaluation_criteria or [],
@@ -602,7 +620,7 @@ def build_project_note(
     Returns:
         Complete note content string.
     """
-    valid_statuses = {"active", "maintenance", "archived"}
+    valid_statuses = {"active", "maintenance", "archived", "tool"}
     if status not in valid_statuses:
         msg = f"status must be one of {valid_statuses}, got {status!r}"
         raise ValueError(msg)
@@ -611,6 +629,7 @@ def build_project_note(
     fm = {
         "type": "project",
         "title": title,
+        "description": description,
         "project_tag": project_tag,
         "lab": lab,
         "pi": pi,

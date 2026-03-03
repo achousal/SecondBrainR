@@ -1365,6 +1365,65 @@ class TestCreateNotesFromResults:
         created = create_notes_from_results(json_path, [1], str(output_dir))
         assert created[0]["abstract_status"] == "short"
 
+    def test_enrichments_populated_in_note(self, results_json: Path, tmp_path: Path):
+        """Enrichment data populates Key Points and Relevance in note."""
+        output_dir = tmp_path / "literature"
+        output_dir.mkdir()
+        enrichments = {
+            1: {
+                "key_points": [
+                    "Blood biomarkers predict dementia onset",
+                    "p-tau217 is the top performer",
+                ],
+                "relevance": "Supports [[biomarker-validation]] cutpoint work.",
+            }
+        }
+        created = create_notes_from_results(
+            results_json, [1], str(output_dir), enrichments=enrichments,
+        )
+        assert created[0]["status"] == "created"
+        assert created[0]["enriched"] is True
+
+        content = Path(created[0]["path"]).read_text()
+        assert "- Blood biomarkers predict dementia onset" in content
+        assert "- p-tau217 is the top performer" in content
+        assert "Supports [[biomarker-validation]]" in content
+
+    def test_enrichments_none_backward_compat(self, results_json: Path, tmp_path: Path):
+        """Omitting enrichments produces identical output to previous behavior."""
+        output_dir = tmp_path / "literature"
+        output_dir.mkdir()
+        created = create_notes_from_results(results_json, [1], str(output_dir))
+        assert created[0]["status"] == "created"
+        assert created[0]["enriched"] is False
+
+        content = Path(created[0]["path"]).read_text()
+        assert "## Key Points\n-\n" in content
+
+    def test_enrichments_partial(self, results_json: Path, tmp_path: Path):
+        """Only some indices enriched -- others get default empty sections."""
+        output_dir = tmp_path / "literature"
+        output_dir.mkdir()
+        enrichments = {
+            1: {
+                "key_points": ["Finding A"],
+                "relevance": "Relevant to goals.",
+            }
+            # index 2 has no enrichment
+        }
+        created = create_notes_from_results(
+            results_json, [1, 2], str(output_dir), enrichments=enrichments,
+        )
+        assert created[0]["enriched"] is True
+        assert created[1]["enriched"] is False
+
+        content_1 = Path(created[0]["path"]).read_text()
+        assert "- Finding A" in content_1
+        assert "Relevant to goals." in content_1
+
+        content_2 = Path(created[1]["path"]).read_text()
+        assert "## Key Points\n-\n" in content_2
+
 
 # ---------------------------------------------------------------------------
 # _fill_missing_abstracts -- PubMed fallback

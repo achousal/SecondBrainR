@@ -1,6 +1,7 @@
 ---
 type: research-goal
 title: "{{title}}"
+description: ""
 status: active
 linked_labs: []
 constraints: []
@@ -19,3 +20,8 @@ created: {{date}}
 ## Desired Properties
 
 ## Key Literature
+
+---
+
+Topics:
+

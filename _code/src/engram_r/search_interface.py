@@ -620,6 +620,7 @@ def create_notes_from_results(
     indices: list[int],
     output_dir: str | Path,
     goal_tag: str = "",
+    enrichments: dict[int, dict] | None = None,
 ) -> list[dict]:
     """Build and write literature notes from saved search results.
 
@@ -631,9 +632,13 @@ def create_notes_from_results(
         indices: 1-based indices of results to save.
         output_dir: Directory for literature notes (e.g. _research/literature/).
         goal_tag: Optional project tag to add to note tags.
+        enrichments: Optional dict mapping 1-based index to enrichment data.
+            Each value may contain ``key_points`` (list[str]) and/or
+            ``relevance`` (str). When provided, these populate the
+            Key Points and Relevance sections at creation time.
 
     Returns:
-        List of dicts with keys: index, path, title, doi, status.
+        List of dicts with keys: index, path, title, doi, status, enriched.
     """
     from engram_r.note_builder import build_literature_note
 
@@ -712,8 +717,17 @@ def create_notes_from_results(
             )
 
         tags = [goal_tag] if goal_tag else None
+        paper_enrichment = (enrichments or {}).get(idx, {})
+        # Derive description from abstract: first sentence, capped at 150 chars
+        desc = ""
+        if abstract:
+            first_sentence = abstract.split(". ")[0]
+            if not first_sentence.endswith("."):
+                first_sentence += "."
+            desc = first_sentence[:150]
         content = build_literature_note(
             title=result.get("title", ""),
+            description=desc,
             doi=doi,
             authors=result.get("authors", []),
             year=result.get("year") or "",
@@ -721,6 +735,8 @@ def create_notes_from_results(
             abstract=abstract,
             tags=tags,
             source_type=result.get("source_type", ""),
+            key_points=paper_enrichment.get("key_points"),
+            relevance=paper_enrichment.get("relevance", ""),
         )
 
         filename = _make_literature_filename(result)
@@ -745,6 +761,7 @@ def create_notes_from_results(
                 "doi": doi,
                 "status": "created",
                 "abstract_status": abstract_status,
+                "enriched": bool(paper_enrichment),
             }
         )
 

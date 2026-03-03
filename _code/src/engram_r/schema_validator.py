@@ -251,6 +251,7 @@ _SCHEMAS: dict[str, list[str]] = {
     ],
     "literature": [
         "title",
+        "description",
         "status",
         "created",
     ],
@@ -266,6 +267,7 @@ _SCHEMAS: dict[str, list[str]] = {
     ],
     "research-goal": [
         "title",
+        "description",
         "status",
         "created",
     ],
@@ -281,6 +283,7 @@ _SCHEMAS: dict[str, list[str]] = {
     ],
     "project": [
         "title",
+        "description",
         "project_tag",
         "lab",
         "status",

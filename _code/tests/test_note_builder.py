@@ -104,6 +104,54 @@ class TestBuildLiteratureNote:
         fm = _parse_frontmatter(note)
         assert fm["tags"] == ["literature", "custom"]
 
+    def test_key_points_populated(self):
+        note = build_literature_note(
+            title="Enriched Paper",
+            key_points=[
+                "p-tau217 outperforms other plasma biomarkers",
+                "GFAP correlates with amyloid PET",
+                "NfL predicts cognitive decline",
+            ],
+            today=date(2026, 3, 3),
+        )
+        assert "- p-tau217 outperforms other plasma biomarkers" in note
+        assert "- GFAP correlates with amyloid PET" in note
+        assert "- NfL predicts cognitive decline" in note
+
+    def test_key_points_none_gives_empty_dash(self):
+        note = build_literature_note(
+            title="Plain Paper",
+            key_points=None,
+            today=date(2026, 3, 3),
+        )
+        assert "## Key Points\n-\n" in note
+
+    def test_key_points_empty_list_gives_empty_dash(self):
+        note = build_literature_note(
+            title="Plain Paper",
+            key_points=[],
+            today=date(2026, 3, 3),
+        )
+        assert "## Key Points\n-\n" in note
+
+    def test_relevance_populated(self):
+        note = build_literature_note(
+            title="Relevant Paper",
+            relevance="Directly supports [[biomarker-validation]] by providing "
+            "cutpoint data for p-tau217 across multiple cohorts.",
+            today=date(2026, 3, 3),
+        )
+        assert "Directly supports [[biomarker-validation]]" in note
+        assert "cutpoint data for p-tau217" in note
+
+    def test_relevance_empty_gives_empty_section(self):
+        note = build_literature_note(
+            title="No Relevance",
+            relevance="",
+            today=date(2026, 3, 3),
+        )
+        assert "## Relevance\n\n" in note
+
 
 class TestBuildHypothesisNote:
     def test_full_structure(self):

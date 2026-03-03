@@ -62,8 +62,12 @@ Parse immediately:
 5. Execute search via `search_all_sources()` with appropriate parameters. **CRITICAL**: Immediately save results to JSON via `save_results_json()` BEFORE displaying anything. This preserves full abstracts in Python memory. Use path `ops/queue/.literature_results.json`.
 6. Display results table: #, Title, Authors, Year, Source, Journal, DOI/ID, Citations. (Show abstract preview in table but DO NOT use these previews for note creation.)
 7. Ask user which papers to save as literature notes. Accept comma-separated numbers or "all".
-8. Create notes via `create_notes_from_results()` passing the saved JSON path, selected indices, output_dir=`_research/literature/`, and goal_tag if applicable. **NEVER manually construct abstract text or pass abstracts as arguments** -- the function reads full abstracts from the JSON file.
-9. Update `_research/literature/_index.md` (create if missing).
+8. **Enrich selected papers.** For each selected paper, generate enrichment content from its abstract and active research goals:
+   - **Key Points**: Extract 3-5 key factual findings from the abstract as concise bullet strings (no leading dash -- the renderer adds it).
+   - **Relevance**: Write 2-4 sentences connecting the paper to active research goals. Use wiki-links to goal slugs (e.g. `[[biomarker-validation]]`). If `--goal` was provided, prioritize that goal. If no goals match, write a generic scientific contribution statement.
+   - Build an `enrichments` dict mapping 1-based index to `{"key_points": [...], "relevance": "..."}`.
+9. Create notes via `create_notes_from_results()` passing the saved JSON path, selected indices, output_dir=`_research/literature/`, goal_tag if applicable, and the `enrichments` dict. Pass enrichments as a JSON string that Python `json.loads()` parses. **NEVER manually construct abstract text or pass abstracts as arguments** -- the function reads full abstracts from the JSON file.
+10. Update `_research/literature/_index.md` (create if missing).
 10. Execute pipeline chaining per `processing.chaining` mode.
 11. Present saved note paths. If `--handoff`: emit CO-SCIENTIST HANDOFF block.
 

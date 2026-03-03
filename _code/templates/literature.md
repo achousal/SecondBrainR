@@ -1,6 +1,7 @@
 ---
 type: literature
 title: "{{title}}"
+description: ""
 doi: ""
 authors: []
 year: ""
@@ -19,4 +20,10 @@ created: {{date}}
 
 ## Relevance
 
+
 ## Citations
+
+---
+
+Topics:
+
