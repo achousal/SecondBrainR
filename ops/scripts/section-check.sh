@@ -9,8 +9,9 @@
 #   section-check.sh --affected core-lib  # section + its dependents
 #   section-check.sh --changed          # auto-detect from git diff
 #   section-check.sh --validate-skills  # internal: validate skill structure
-#   section-check.sh --check-skill-refs # internal: check skill module references
-#   section-check.sh --check-doc-links  # internal: check doc internal links
+#   section-check.sh --check-skill-refs  # internal: check skill module references
+#   section-check.sh --check-skill-tools # internal: check skill allowed-tools validity
+#   section-check.sh --check-doc-links   # internal: check doc internal links
 #   section-check.sh --check-templates  # internal: validate template files
 #
 # Exit codes:
@@ -101,6 +102,46 @@ check_skill_refs() {
     return "$fail"
 }
 
+check_skill_tools() {
+    # Check that tools listed in allowed-tools frontmatter actually exist
+    local known_tools="Read Write Edit Grep Glob Bash Agent Skill WebFetch WebSearch AskUserQuestion TaskCreate TaskUpdate TaskList TaskGet EnterPlanMode ExitPlanMode NotebookEdit EnterWorktree ToolSearch ListMcpResourcesTool ReadMcpResourceTool TaskOutput TaskStop"
+    local pass=0 fail=0 info=0
+    while IFS= read -r -d '' skill_file; do
+        local name
+        name=$(basename "$(dirname "$skill_file")")
+        # Extract allowed-tools line from frontmatter
+        local tools_line
+        tools_line=$(grep '^allowed-tools:' "$skill_file" 2>/dev/null || true)
+        [[ -z "$tools_line" ]] && continue
+        # Parse comma-separated tool names
+        local tools_str="${tools_line#allowed-tools:}"
+        local tool_array=()
+        IFS=',' read -ra tool_array <<< "$tools_str"
+        [[ ${#tool_array[@]} -eq 0 ]] && continue
+        for tool in "${tool_array[@]}"; do
+            tool=$(echo "$tool" | xargs)  # trim whitespace
+            [[ -z "$tool" ]] && continue
+            if [[ "$tool" == mcp__* ]]; then
+                info=$((info + 1))
+            elif echo "$known_tools" | grep -qw "$tool"; then
+                pass=$((pass + 1))
+            else
+                echo "FAIL: $name references unknown tool '$tool' in allowed-tools"
+                fail=$((fail + 1))
+            fi
+        done
+    done < <(find .claude/skills -name 'SKILL.md' -print0 2>/dev/null)
+    if [[ "$info" -gt 0 ]]; then
+        echo "INFO: $info MCP tool references (runtime-dependent, not validated)"
+    fi
+    if [[ "$fail" -eq 0 ]]; then
+        echo "PASS: all skill tool references are valid ($pass tools checked)"
+    else
+        echo "FAIL: $fail unknown tool references found"
+    fi
+    return "$fail"
+}
+
 check_doc_links() {
     # Check that markdown links between docs resolve
     local pass=0 fail=0
@@ -149,9 +190,10 @@ check_templates() {
 # Handle internal subcommands
 case "${1:-}" in
     --validate-skills)  validate_skills; exit $? ;;
-    --check-skill-refs) check_skill_refs; exit $? ;;
-    --check-doc-links)  check_doc_links; exit $? ;;
-    --check-templates)  check_templates; exit $? ;;
+    --check-skill-refs)  check_skill_refs; exit $? ;;
+    --check-skill-tools) check_skill_tools; exit $? ;;
+    --check-doc-links)   check_doc_links; exit $? ;;
+    --check-templates)   check_templates; exit $? ;;
 esac
 
 # -----------------------------------------------------------------------

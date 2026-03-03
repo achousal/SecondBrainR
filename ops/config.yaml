@@ -66,6 +66,7 @@ vault_root: .
 git_auto_commit: true
 schema_validation: true
 pipeline_compliance: true
+enrichment_target_validation: true
 session_capture: true
 health:
   graph_directories:

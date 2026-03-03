@@ -393,16 +393,17 @@ If qmd CLI is unavailable, fall back to keyword grep duplicate checks.
 
 **MANDATORY protocol when semantic search finds overlap:**
 
-1. **READ the existing claim fully** (not just title/description)
-2. Ask: "What does source ADD that existing claim LACKS?"
+1. **VERIFY the target note exists** — use `Glob` with `notes/**/[target title]*` or `Read` the file path. If the note does NOT exist as a file in `notes/` or as a topic map, the candidate is NOT a near-duplicate. Extract it as a NEW claim instead. **Never create an enrichment task targeting a note you cannot confirm exists on disk.**
+2. **READ the existing claim fully** (not just title/description)
+3. Ask: "What does source ADD that existing claim LACKS?"
    - New examples -> ENRICHMENT
    - Deeper framing -> ENRICHMENT
    - Citations/evidence -> ENRICHMENT
    - Different angle -> ENRICHMENT
    - Concrete implementation -> ENRICHMENT
    - Literally identical -> skip (RARE)
-3. If source adds ANYTHING: **CREATE ENRICHMENT TASK**
-4. Only skip if source adds literally NOTHING new (verify this claim)
+4. If source adds ANYTHING: **CREATE ENRICHMENT TASK**
+5. Only skip if source adds literally NOTHING new (verify this claim)
 
 **Near-duplicates are opportunities, not rejections.** Creating enrichment tasks is CORRECT behavior. If you are skipping near-duplicates without enrichment tasks, you are probably wrong.
 
@@ -591,25 +592,33 @@ When processing in chunks:
 
 When source content adds value to an EXISTING claim rather than creating a new one, create an enrichment task instead.
 
+### Target Existence Gate (MANDATORY)
+
+**Before creating ANY enrichment task, verify the target note exists on disk.** Use `Glob` with `notes/**/[target title]*` or an equivalent file check. If the file does not exist, the candidate is NOT enrichment — it is a new claim. Extract it as a new claim instead.
+
+**Why this gate exists:** Without it, the agent can infer that a claim "should" exist based on domain knowledge and create enrichment tasks targeting phantom notes. These orphaned tasks block downstream processing and cannot be executed. This has happened in practice — the fix is mechanical verification, not inference.
+
+**The rule:** Enrichment targets MUST be confirmed files. No exceptions. If semantic search returns a high-similarity score but the note file cannot be found, treat the candidate as a new claim.
+
 ### When to Create Enrichment Tasks
 
-| Signal | Action |
-|--------|--------|
-| Source has better examples for an existing claim | Enrichment: add examples |
-| Source has deeper framing or context | Enrichment: strengthen reasoning |
-| Source has citations or evidence | Enrichment: add evidence base |
-| Source has a different angle on the same claim | Enrichment: add perspective |
-| Source has concrete implementation details | Enrichment: add actionable specifics |
+| Signal | Action | Prerequisite |
+|--------|--------|-------------|
+| Source has better examples for an existing claim | Enrichment: add examples | Target file verified |
+| Source has deeper framing or context | Enrichment: strengthen reasoning | Target file verified |
+| Source has citations or evidence | Enrichment: add evidence base | Target file verified |
+| Source has a different angle on the same claim | Enrichment: add perspective | Target file verified |
+| Source has concrete implementation details | Enrichment: add actionable specifics | Target file verified |
 
 ### Enrichment Task Format
 
 Each enrichment task specifies:
-- **Target:** Which existing claim to enrich (by title)
+- **Target:** Which existing claim to enrich (by title) — **must be a verified existing file**
 - **What to add:** Specific content from the source
 - **Why:** What the existing claim lacks that this adds
 - **Source lines:** Where in the source the enrichment content is found
 
-**The enrichment default:** When in doubt between "new claim" and "enrichment to existing claim", lean toward enrichment. The existing claim already has connections, topic map placement, and integration. Adding to it compounds existing value.
+**The enrichment default:** When in doubt between "new claim" and "enrichment to existing claim", lean toward enrichment — BUT only after confirming the target exists. If the target does not exist, the default flips: extract as a new claim.
 
 ---
 
@@ -645,6 +654,11 @@ Each enrichment task specifies:
    - WRONG: "Similar to existing note, skip"
    - RIGHT: Create enrichment task to add source's details to existing claim
    - WHY: Near-duplicates almost always add framing, examples, or evidence.
+
+6. **Creating enrichment tasks targeting notes that do not exist on disk**
+   - WRONG: Inferring a claim "should exist" and creating an enrichment task for it
+   - RIGHT: Verify the target file exists via Glob/Read BEFORE creating the enrichment task. If it does not exist, extract as a new claim instead.
+   - WHY: Phantom enrichment targets create orphaned queue tasks that block processing and cannot be executed.
 
 #### Other Red Flags
 
@@ -1083,14 +1097,14 @@ After creating task files, update `ops/queue/queue.json`:
 }
 ```
 
-3. For EACH enrichment, add ONE queue entry:
+3. For EACH enrichment, add ONE queue entry. **Before writing the entry, verify the target note exists on disk** (Glob or Read). If the target cannot be found, do NOT create the enrichment entry — convert the candidate to a new claim instead.
 
 ```json
 {
   "id": "enrich-EEE",
   "type": "enrichment",
   "status": "pending",
-  "target": "[existing note title]",
+  "target": "[existing note title — MUST be verified file]",
   "source_detail": "[what to add]",
   "batch": "[source-basename]",
   "file": "[source-basename]-EEE.md",

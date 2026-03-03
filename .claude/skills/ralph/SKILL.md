@@ -5,7 +5,7 @@ version: "1.0"
 generated_from: "arscontexta-v1.6"
 user-invocable: true
 context: fork
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Task
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 argument-hint: "N [--parallel] [--batch id] [--type extract] [--dry-run] — N = number of tasks to process"
 ---
 
@@ -50,14 +50,14 @@ Recommended order: /literature (populate stubs) -> /ralph (reduce) -> /ralph (re
 
 ## MANDATORY CONSTRAINT: SUBAGENT SPAWNING IS NOT OPTIONAL
 
-**You MUST use the Task tool to spawn a subagent for EVERY task. No exceptions.**
+**You MUST use the Agent tool to spawn a subagent for EVERY task. No exceptions.**
 
 This is not a suggestion. This is not an optimization you can skip for "simple" tasks. The entire architecture depends on fresh context isolation per phase. Executing tasks inline in the lead session:
 - Contaminates context (later tasks run on degraded attention)
 - Skips the handoff protocol (learnings are not captured)
 - Violates the ralph pattern (one phase per context window)
 
-**If you catch yourself about to execute a task directly instead of spawning a subagent, STOP.** Call the Task tool. Every time. For every task. Including create tasks. Including "simple" tasks.
+**If you catch yourself about to execute a task directly instead of spawning a subagent, STOP.** Call the Agent tool. Every time. For every task. Including create tasks. Including "simple" tasks.
 
 The lead session's ONLY job is: read queue, spawn subagent, evaluate return, update queue, repeat.
 
@@ -65,7 +65,7 @@ The lead session's ONLY job is: read queue, spawn subagent, evaluate return, upd
 
 ## Phase Configuration
 
-Each phase maps to specific Task tool parameters. Use these EXACTLY when spawning subagents.
+Each phase maps to specific Agent tool parameters. Use these EXACTLY when spawning subagents.
 
 | Phase | Skill Invoked | Purpose |
 |-------|---------------|---------|
@@ -217,6 +217,9 @@ ONE PHASE ONLY. Do NOT run reflect.
 ```
 
 For **enrich** phase:
+
+**Pre-dispatch validation:** Before spawning the subagent, verify the target note exists on disk using `Glob` with `notes/**/[TARGET]*`. If the target note does not exist, do NOT dispatch the enrichment. Instead, mark the task as blocked with a note: `"blocked": "target note does not exist"`. Report it in the summary as a blocked task. This prevents wasted subagent work on phantom targets created by reduce-phase hallucination.
+
 ```
 Read the task file at ops/queue/{FILE} for context.
 
@@ -289,16 +292,17 @@ Final phase for this claim. ONE PHASE ONLY.
 
 ### 4c. Spawn Subagent (MANDATORY — NEVER SKIP)
 
-Call the Task tool with the constructed prompt:
+Call the Agent tool with the constructed prompt:
 
 ```
-Task(
+Agent(
+  subagent_type = "general-purpose",
   prompt = {the constructed prompt from 4b},
   description = "{current_phase}: {short target}" (5 words max)
 )
 ```
 
-**REPEAT: You MUST call the Task tool here.** Do NOT execute the prompt yourself. Do NOT "optimize" by running the task inline. The Task tool call is the ONLY acceptable action at this step.
+**REPEAT: You MUST call the Agent tool here.** Do NOT execute the prompt yourself. Do NOT "optimize" by running the task inline. The Agent tool call is the ONLY acceptable action at this step.
 
 Wait for the subagent to complete and capture its return value.
 
@@ -355,7 +359,8 @@ After advancing a task to "done" (Step 4e), check if ALL tasks in that batch now
 
 2. **Spawn ONE subagent** for cross-connect validation:
 ```
-Task(
+Agent(
+  subagent_type = "general-purpose",
   prompt = "You are running post-batch cross-connect validation for batch '{BATCH}'.
 
 Notes created in this batch:
@@ -449,15 +454,16 @@ When complete, update the queue entry to status "done" and report the created
 claim title, path, and claim ID. The lead needs this for cross-connect.
 ```
 
-Spawn via Task tool:
+Spawn via Agent tool:
 ```
-Task(
+Agent(
+  subagent_type = "general-purpose",
   prompt = {the constructed prompt},
   description = "claim: {short target}" (5 words max)
 )
 ```
 
-**Spawn workers in PARALLEL** — launch all Task tool calls in a single message, not sequentially.
+**Spawn workers in PARALLEL** — launch all Agent tool calls in a single message, not sequentially.
 
 ### 6c. Monitor Workers (Phase A)
 
@@ -490,7 +496,8 @@ Do NOT proceed to Phase B while any worker is still running.
 Spawn ONE subagent for cross-connect validation:
 
 ```
-Task(
+Agent(
+  subagent_type = "general-purpose",
   prompt = "You are running post-batch cross-connect validation for batch '{BATCH}'.
 
 Notes created in this batch:
@@ -620,7 +627,7 @@ Subagents spawned by ralph also apply this fallback. If a subagent's `/reduce --
 ## Quality Gates
 
 ### Gate 1: Subagent Spawned
-Every task MUST be processed via Task tool. If the lead detects it executed a task inline, log this as an error and flag it in the final report.
+Every task MUST be processed via Agent tool. If the lead detects it executed a task inline, log this as an error and flag it in the final report.
 
 ### Gate 2: Handoff Present
 Every subagent SHOULD return a RALPH HANDOFF block. If missing: log warning, mark task done, continue.
@@ -636,7 +643,7 @@ After each phase, the task file's corresponding section (Create, Reflect, Reweav
 ## Critical Constraints
 
 **Never:**
-- Execute tasks inline in the lead session (USE THE TASK TOOL)
+- Execute tasks inline in the lead session (USE THE AGENT TOOL)
 - Process more than one phase per subagent (context contamination)
 - Retry failed tasks automatically without human input
 - Skip queue phase advancement (breaks pipeline state)
@@ -645,7 +652,7 @@ After each phase, the task file's corresponding section (Create, Reflect, Reweav
 - In parallel mode: combine with --type (incompatible)
 
 **Always:**
-- Spawn a subagent via Task tool for EVERY task (the lead ONLY orchestrates)
+- Spawn a subagent via Agent tool for EVERY task (the lead ONLY orchestrates)
 - Include sibling claim titles in reflect and reweave prompts
 - Re-read queue after extract tasks (subagent adds new entries)
 - Re-filter tasks between iterations (phase advancement creates new eligibility)

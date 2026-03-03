@@ -21,6 +21,15 @@
         ]
       },
       {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo \"$PROJECT_DIR\") && cd \"$ROOT/_code\" && uv run python scripts/hooks/validate_queue.py"
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {

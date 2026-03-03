@@ -73,6 +73,10 @@ sections:
         cmd: "ops/scripts/section-check.sh --check-skill-refs 2>&1"
         pass_pattern: "PASS"
         fail_pattern: "FAIL"
+      - name: tool-refs
+        cmd: "ops/scripts/section-check.sh --check-skill-tools 2>&1"
+        pass_pattern: "PASS"
+        fail_pattern: "FAIL"
     depends_on:
       - core-lib
 

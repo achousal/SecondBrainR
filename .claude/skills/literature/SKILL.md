@@ -111,33 +111,39 @@ Read `ops/config.yaml` `literature:` section via `resolve_literature_sources()`.
 
 **Context-aware suggestions (when no query provided):**
 
-Before prompting, read vault state to offer targeted suggestions:
+Before prompting, call the vault advisor for goal-aware query suggestions:
 
-1. Read `self/goals.md` -- extract active research goals (title, scope, status)
-2. Count existing literature notes: `ls _research/literature/*.md 2>/dev/null | grep -cv '_index' || echo 0`
-3. For each active goal, read `_research/goals/{slug}.md` -- check `Key Literature` section
+1. Count existing literature notes: `ls _research/literature/*.md 2>/dev/null | grep -cv '_index' || echo 0`
+2. Run the advisor:
+```bash
+VAULT_PATH="$(pwd)"
+ADVISOR=$(cd _code && uv run python -m engram_r.vault_advisor "$VAULT_PATH" \
+    --context literature --max 4 2>/dev/null)
+ADVISOR_EXIT=$?
+```
 
-**Condition for showing suggestions:** Only show goal-based search suggestions when the total literature note count (step 2) is below 5. If >= 5 literature notes already exist, the vault has literature -- even if individual goal files have empty `Key Literature` sections. Empty `Key Literature` sections with existing literature is a wiring gap (fix with linking), not a search gap.
+**Condition for showing suggestions:** Only show goal-based search suggestions when the total literature note count (step 1) is below 5. If >= 5 literature notes already exist, the vault has literature -- even if individual goal files have empty `Key Literature` sections. Empty `Key Literature` sections with existing literature is a wiring gap (fix with linking), not a search gap.
 
-**If total literature count < 5 AND active goals exist** (true post-init state):
-- Derive 1-2 specific search queries per goal from the goal's Objective and domain
+**If total literature count < 5 AND advisor returned suggestions** (`$ADVISOR_EXIT` is 0):
+- Parse the JSON `suggestions` array from `$ADVISOR`
 - Present as a numbered menu with goal context:
 
 ```
 Your active goals need literature grounding:
 
-  1. goal-slug: "domain-specific search query targeting primary facet"
-  2. goal-slug: "domain-specific search query targeting secondary facet"
+  1. goal-slug: "query" -- rationale
+  2. goal-slug: "query" -- rationale
   ...
 
 Select numbers (comma-separated), type your own query, or "all" to run all suggestions.
 ```
 
-- Queries should use domain-specific terms from the goal's Objective, not generic phrases
-- Each query targets a distinct facet of the goal (e.g., primary biomarkers vs confounders)
-- If `--goal [slug]` was provided, only suggest queries for that goal
+- If `--goal [slug]` was provided, filter suggestions to only that goal_ref
+- Each suggestion targets a distinct gap in a goal (key literature, background, objective depth)
 
-**Otherwise:** fall back to standard prompt: "What is your search query?"
+**Advisor fallback:** If the advisor CLI fails (`$ADVISOR_EXIT` != 0 or Python unavailable), fall back to manual goal reading: read `self/goals.md` for active goals, read `_research/goals/{slug}.md` for each, derive 1-2 queries per goal from the Objective and domain.
+
+**Otherwise (>= 5 lit notes or no goals):** fall back to standard prompt: "What is your search query?"
 
 Present available sources plus **all** option. Default is `literature.default` from config. If query provided in arguments, skip all suggestion logic.
 

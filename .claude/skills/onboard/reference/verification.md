@@ -42,6 +42,32 @@ If `institution_profile` is set (non-empty) in the lab entity node, verify `ops/
 WARN: Lab references institution profile [[{slug}]] but ops/institutions/{slug}.md not found.
 ```
 
+### 6g. Compute reference consistency
+
+If the lab entity node references named compute resources (in the institution profile's `compute:` field):
+
+1. For each compute resource with a slug, verify `ops/{slug}.md` exists:
+   ```bash
+   test -f ops/{slug}.md
+   ```
+   If missing:
+   ```
+   WARN: Compute resource "{name}" referenced but ops/{slug}.md not found. Run /onboard --update to generate.
+   ```
+
+2. Verify the institution profile contains a practical reference link `[[{slug}]]`:
+   ```bash
+   grep -q "{slug}" ops/institutions/{institution-slug}.md
+   ```
+   If missing:
+   ```
+   WARN: Institution profile ops/institutions/{institution-slug}.md missing practical reference link [[{slug}]].
+   ```
+
+These are WARN level (not FAIL) -- the compute reference is useful but not structurally required.
+
+---
+
 Report any issues found. If all pass:
 ```
 Verification: all checks passed.

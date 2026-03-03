@@ -75,6 +75,30 @@ Parse the JSON output. The engine returns:
 
 ---
 
+### Step 2: Enrich with Advisor Suggestions
+
+When the engine recommendation action contains `/literature` or `/generate`, call the vault advisor for goal-aware content suggestions:
+
+```bash
+ADVISOR=$(cd _code && uv run python -m engram_r.vault_advisor "$VAULT_PATH" \
+    --context literature --max 4 2>/dev/null)
+ADVISOR_EXIT=$?
+```
+
+If `$ADVISOR_EXIT` is 0 and `$ADVISOR` contains valid JSON, parse `suggestions` array and append to the output block:
+
+```
+  Suggested queries:
+    1. [query] (goal: [goal_ref]) -- [rationale]
+    2. ...
+```
+
+If the advisor fails or returns no suggestions (`exit 2`), proceed without them. This enrichment is optional -- it provides content-specific guidance but the recommendation is valid without it.
+
+For `/generate` recommendations, use `--context generate` instead of `--context literature`.
+
+---
+
 ### Step 1-fallback: Manual Signal Collection
 
 If the decision engine CLI fails (Python not available, import error, missing config), fall back to manual bash-based signal collection:

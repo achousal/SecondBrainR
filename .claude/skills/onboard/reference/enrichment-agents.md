@@ -197,3 +197,88 @@ RESOURCES:
 
 If web search returns no useful results, return the categories with "none found".
 ```
+
+---
+
+## B2: Compute Resource Reference
+
+**Agent config:** subagent_type: "general-purpose", model: "sonnet"
+**Condition:** A3 returned COMPUTE entries. Runs in Phase B (sequential after Phase A). Cap: 2 resources.
+
+**Prompt template:**
+
+```
+You are building a practical compute resource reference during /onboard. Your job:
+
+CONTEXT (from scan):
+  Cluster name: {cluster_name}
+  Resource type: {resource_type}
+  Scheduler: {scheduler}
+  Institution: {institution_name}
+  Detected allocation names: {alloc_names}
+  Detected HPC paths: {hpc_paths}
+  Username: {username}
+
+1. Run WebSearch calls to find official documentation:
+   WebSearch query: "{cluster_name} {institution_name} HPC user guide documentation"
+   WebSearch query: "{cluster_name} {scheduler} queues filesystems GPU resources"
+
+2. If a result page looks especially informative (e.g., a user guide or getting started page),
+   use WebFetch to get the full content.
+
+3. From the official docs and search results, extract information for each section below.
+   Merge scan-detected facts (allocation names, HPC paths, username) into the output
+   even if web search returns limited results.
+
+4. Return EXACTLY this format (no extra text):
+
+ACCESS:
+  hostname: [login hostname]
+  auth: [authentication method]
+  login_nodes: [comma-separated list or "unknown"]
+  support: [support email or URL]
+  docs_url: [official documentation URL]
+
+FILESYSTEM:
+- path: [filesystem path]
+  quota: [quota limit]
+  backup: [yes|no]
+  purge: [purge policy or "none"]
+  use: [intended purpose]
+
+COMMANDS:
+- command: [command name]
+  purpose: [what it does]
+
+QUEUES:
+- name: [queue name]
+  max_walltime: [max walltime]
+  notes: [usage notes]
+
+TEMPLATES:
+  interactive: |
+    [interactive session command]
+  batch: |
+    [batch script template with scheduler directives]
+  gpu: |
+    [GPU job template with scheduler directives]
+
+ENVIRONMENT:
+  module_system: [lmod|modules|none|unknown]
+  package_manager: [conda|mamba|pip|spack|unknown]
+  notes: [environment management notes]
+
+GPU_FLEET:
+- model: [GPU model name]
+  queue: [associated queue(s)]
+  notes: [count or other details]
+
+BEST_PRACTICES:
+- [practical tip or important caveat]
+
+SOURCE: [docs_url|search|both]
+
+If web search returns no useful results for a section, populate it with scan-detected
+facts where possible and mark unknown fields as "unknown". Always include detected
+allocation names in TEMPLATES and detected paths in FILESYSTEM.
+```

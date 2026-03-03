@@ -169,6 +169,13 @@ Launch all available enrichment steps simultaneously via a single message with m
 
 - **B1. Department-specific resources** (only if A2 returned NEW departments not in existing profile): Parse department names from A2 output. Launch agent(s) using B1 template from `reference/enrichment-agents.md`. Limit to 2 most relevant departments. Run in parallel if multiple.
 
+- **B2. Compute resource reference** (only if A3 returned COMPUTE entries): Parse COMPUTE entries from A3 output. For each resource (cap 2), launch agent using B2 template from `reference/enrichment-agents.md`. Substitute `{cluster_name}`, `{resource_type}`, `{scheduler}`, `{institution_name}`, `{alloc_names}`, `{hpc_paths}`, `{username}`. Run in parallel if multiple resources.
+
+  After B2 returns, for each compute resource:
+  1. Write `ops/{cluster-slug}.md` using the `_code/templates/compute-reference.md` structure populated with B2 output + scan-local facts.
+  2. Write `memory/{cluster-slug}.md` -- condensed version: access, filesystem table, key commands, one batch template, best practices. Omit GPU fleet details and extended job templates.
+  3. Update institution profile: add `Practical reference: [[{cluster-slug}]]` line under the Compute Resources section if not already present.
+
 #### Merge and Present
 
 Merge enrichment results into scan data. Deduplicate against filesystem-detected infrastructure and existing institution profile.
@@ -185,6 +192,7 @@ If an existing institution profile was loaded and new departments or resources w
 {if external}: External affiliations: {list}.
 {if institutional NEW}: Infrastructure: {N} compute, {N} core facilities, {N} platforms, {N} shared resources.
 {if dept-specific}: Department resources: {summary per department}.
+{if compute-ref}: Compute reference: ops/{slug}.md created ({scheduler} scheduler, {N} queues, {N} GPU types). Memory copy: memory/{slug}.md.
 {if cross-lab}: Cross-lab: {other labs at same institution}.
 
 Enriched fields will inform project registration and goal creation.
@@ -301,6 +309,8 @@ Ready to create:
 - projects/_index.md updates
 - _research/data-inventory.md entries
 - self/goals.md thread updates
+{if compute-ref}: - ops/{cluster-slug}.md (compute reference -- already created during enrichment)
+{if compute-ref}: - memory/{cluster-slug}.md (condensed compute reference -- already created during enrichment)
 
 Proceed?
 ```
@@ -409,4 +419,4 @@ Invoked by: user (standalone), /ralph (delegation)
 Invokes: onboard-scan, onboard-generate, onboard-verify (via Agent tool)
 Suggests next: /init (primary), /literature, /reduce, /reflect
 Reads: projects/, _research/data-inventory.md, _research/goals/, self/goals.md, ops/reminders.md, ops/config.yaml, filesystem
-Writes: projects/, _research/data-inventory.md, _research/goals/, self/goals.md, ops/reminders.md, projects/_index.md, _dev/ symlinks, ops/institutions/, ops/config.yaml
+Writes: projects/, _research/data-inventory.md, _research/goals/, self/goals.md, ops/reminders.md, projects/_index.md, _dev/ symlinks, ops/institutions/, ops/config.yaml, ops/{cluster-slug}.md, memory/{cluster-slug}.md
