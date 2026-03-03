@@ -8,6 +8,7 @@ Pure Python -- no network I/O. Uses only stdlib + yaml.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import tempfile
@@ -83,10 +84,8 @@ def _atomic_write_yaml(path: Path, data: list[dict]) -> None:
         os.replace(tmp_path, str(path))
     except Exception:
         # Clean up temp file on failure
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp_path)
-        except OSError:
-            pass
         raise
 
 
@@ -210,9 +209,7 @@ def load_latest(vault_path: Path) -> MetabolicSnapshot | None:
     )
 
 
-def _direction_for(
-    indicator: str, current: float, previous: float
-) -> str:
+def _direction_for(indicator: str, current: float, previous: float) -> str:
     """Determine trend direction based on indicator semantics.
 
     For "lower is better" indicators (qpr, cmr, ipr, vdr): decrease = improving.

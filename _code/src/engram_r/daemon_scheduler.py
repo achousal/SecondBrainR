@@ -333,8 +333,7 @@ def _count_queue_pending(queue_file: Path) -> int:
         raw = json.loads(queue_file.read_text())
         tasks = raw if isinstance(raw, list) else raw.get("tasks", [])
         return sum(
-            1 for t in tasks
-            if t.get("status") not in ("done", "archived", "blocked")
+            1 for t in tasks if t.get("status") not in ("done", "archived", "blocked")
         )
     except (json.JSONDecodeError, OSError):
         return 0
@@ -357,9 +356,10 @@ def _is_literature_stub(text: str) -> bool:
         elif stripped.startswith("## "):
             current_section = ""
             continue
-        if current_section == "key_points" and stripped and not stripped.startswith("---"):
+        is_content = stripped and not stripped.startswith("---")
+        if current_section == "key_points" and is_content:
             has_key_points = True
-        if current_section == "relevance" and stripped and not stripped.startswith("---"):
+        if current_section == "relevance" and is_content:
             has_relevance = True
     return not (has_key_points and has_relevance)
 

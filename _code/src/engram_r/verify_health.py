@@ -17,13 +17,11 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Sequence
 
 import yaml
 
 from engram_r.schema_validator import (
     ValidationResult,
-    check_notes_provenance,
     detect_unicode_issues,
     detect_yaml_safety_issues,
     validate_note,
@@ -191,7 +189,11 @@ def check_description_quality(
         )
     else:
         checks.append(
-            CheckItem("desc_length", "PASS", f"Description length ok ({desc_len} chars)")
+            CheckItem(
+                "desc_length",
+                "PASS",
+                f"Description length ok ({desc_len} chars)",
+            )
         )
 
     # Trailing period
@@ -310,7 +312,8 @@ def check_topic_map_connection(
             CheckItem(
                 "topic_connection",
                 "WARN",
-                "No Topics section found -- claim should reference at least one topic map",
+                "No Topics section found -- claim should reference"
+                " at least one topic map",
             )
         )
         return checks

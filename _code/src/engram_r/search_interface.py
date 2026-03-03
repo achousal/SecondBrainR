@@ -432,14 +432,10 @@ def _fill_missing_abstracts(
             if abstract:
                 result.abstract = abstract
                 filled_s2 += 1
-                logger.info(
-                    "Filled abstract for DOI %s via S2 fallback", result.doi
-                )
+                logger.info("Filled abstract for DOI %s via S2 fallback", result.doi)
                 continue
         except Exception:
-            logger.debug(
-                "S2 abstract fallback failed for DOI %s", result.doi
-            )
+            logger.debug("S2 abstract fallback failed for DOI %s", result.doi)
 
         # Fall back to PubMed EFetch
         try:
@@ -454,9 +450,7 @@ def _fill_missing_abstracts(
                 )
                 continue
         except Exception:
-            logger.debug(
-                "PubMed abstract fallback failed for DOI %s", result.doi
-            )
+            logger.debug("PubMed abstract fallback failed for DOI %s", result.doi)
 
     total_filled = filled_s2 + filled_pubmed
     if total_filled:
@@ -589,10 +583,26 @@ def _make_literature_filename(result_dict: dict) -> str:
         last_name = "unknown"
 
     # Title slug: first ~10 words, strip trailing stopwords, sanitize
-    _TRAILING_STOPS = {"a", "an", "and", "as", "at", "by", "for", "from",
-                       "in", "into", "of", "on", "or", "the", "to", "with"}
+    trailing_stops = {
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "by",
+        "for",
+        "from",
+        "in",
+        "into",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "with",
+    }
     title_words = re.sub(r"[^\w\s-]", "", title.lower()).split()[:10]
-    while title_words and title_words[-1] in _TRAILING_STOPS:
+    while title_words and title_words[-1] in trailing_stops:
         title_words.pop()
     slug = "-".join(title_words) if title_words else "untitled"
     slug = sanitize_title(slug)
@@ -636,13 +646,15 @@ def create_notes_from_results(
     created: list[dict] = []
     for idx in indices:
         if idx < 1 or idx > len(data):
-            created.append({
-                "index": idx,
-                "path": "",
-                "title": "",
-                "doi": "",
-                "status": f"error: index {idx} out of range (1-{len(data)})",
-            })
+            created.append(
+                {
+                    "index": idx,
+                    "path": "",
+                    "title": "",
+                    "doi": "",
+                    "status": f"error: index {idx} out of range (1-{len(data)})",
+                }
+            )
             continue
 
         result = data[idx - 1]  # 1-based to 0-based
@@ -652,13 +664,15 @@ def create_notes_from_results(
         if doi:
             duplicate = _check_doi_duplicate(doi, output_dir)
             if duplicate:
-                created.append({
-                    "index": idx,
-                    "path": str(duplicate),
-                    "title": result.get("title", ""),
-                    "doi": doi,
-                    "status": f"skipped: duplicate DOI in {duplicate.name}",
-                })
+                created.append(
+                    {
+                        "index": idx,
+                        "path": str(duplicate),
+                        "title": result.get("title", ""),
+                        "doi": doi,
+                        "status": f"skipped: duplicate DOI in {duplicate.name}",
+                    }
+                )
                 continue
 
         # Abstract quality gate: warn and attempt fallback if empty/short
@@ -723,14 +737,16 @@ def create_notes_from_results(
         filepath.write_text(content)
         logger.info("Created literature note: %s", filepath)
 
-        created.append({
-            "index": idx,
-            "path": str(filepath),
-            "title": result.get("title", ""),
-            "doi": doi,
-            "status": "created",
-            "abstract_status": abstract_status,
-        })
+        created.append(
+            {
+                "index": idx,
+                "path": str(filepath),
+                "title": result.get("title", ""),
+                "doi": doi,
+                "status": "created",
+                "abstract_status": abstract_status,
+            }
+        )
 
     return created
 
@@ -760,7 +776,10 @@ def _check_doi_duplicate(doi: str, literature_dir: Path) -> Path | None:
             fm = yaml.safe_load(fm_text)
             if isinstance(fm, dict):
                 existing_doi = fm.get("doi", "")
-                if isinstance(existing_doi, str) and existing_doi.lower().strip() == doi_lower:
+                if (
+                    isinstance(existing_doi, str)
+                    and existing_doi.lower().strip() == doi_lower
+                ):
                     return md_file
         except Exception:
             continue
@@ -804,9 +823,7 @@ def create_queue_entries(
         queue = []
 
     # Collect existing source paths for dedup
-    existing_sources = {
-        e.get("source", "") for e in queue if isinstance(e, dict)
-    }
+    existing_sources = {e.get("source", "") for e in queue if isinstance(e, dict)}
 
     now = datetime.now(UTC).isoformat()
     new_entries: list[dict] = []

@@ -41,6 +41,7 @@ def _normalize_queue_data(raw: dict | list | None) -> dict:
         return raw
     return {"tasks": []}
 
+
 # Tier classification for alarm keys
 ALARM_TIERS: dict[str, int] = {
     "qpr_critical": 1,
@@ -435,9 +436,7 @@ def _count_notes(notes_dir: Path) -> int:
     if not notes_dir.is_dir():
         return 0
     return sum(
-        1
-        for f in notes_dir.iterdir()
-        if f.suffix == ".md" and f.name != "_index.md"
+        1 for f in notes_dir.iterdir() if f.suffix == ".md" and f.name != "_index.md"
     )
 
 
