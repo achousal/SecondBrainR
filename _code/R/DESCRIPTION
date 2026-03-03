@@ -1,0 +1,13 @@
+Package: engramr
+Title: EngramR Research Theme and Plot Utilities
+Version: 0.7.0
+Description: Shared research theme, palettes, statistical helpers, and plot
+    builders for EngramR vault analyses.
+License: MIT
+Imports:
+    ggplot2,
+    rlang,
+    dplyr
+Suggests:
+    yaml,
+    testthat

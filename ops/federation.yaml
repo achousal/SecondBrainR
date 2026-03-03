@@ -1,0 +1,83 @@
+# ops/federation.yaml -- Cross-vault federation configuration
+#
+# Controls how this vault exchanges claims and hypotheses with peer vaults.
+# Federation uses shared directories (git repos, shared drives) for exchange.
+# No server infrastructure required.
+#
+# See ops/config-reference.yaml for all valid values.
+
+# ---------------------------------------------------------------------------
+# Vault Identity
+# Unique identifier for this vault in the federation.
+# ---------------------------------------------------------------------------
+identity:
+  vault_id: ""                     # Unique ID (e.g., UUID or slug). Required.
+  display_name: ""                 # Human-readable name (e.g., "Research Lab Vault")
+  institution: ""                  # Institution name (e.g., "University of Example")
+
+# ---------------------------------------------------------------------------
+# Federation Settings
+# ---------------------------------------------------------------------------
+enabled: false                     # Master switch. Set true to enable federation.
+
+sync:
+  frequency_hours: 24              # How often the daemon runs federation sync
+  exchange_dir: ""                 # Shared directory for claim/hypothesis exchange
+                                   # e.g., ~/shared/federation/ or a mounted drive
+
+# ---------------------------------------------------------------------------
+# Export Policy
+# Controls what this vault shares with peers.
+# ---------------------------------------------------------------------------
+export:
+  claims:
+    enabled: true                  # Export claims to peers
+    filter_confidence:             # Only export claims at these confidence levels
+      - established
+      - supported
+    max_per_sync: 50               # Max claims to export per sync cycle
+
+  hypotheses:
+    enabled: true                  # Export hypotheses to peers
+    min_elo: 1250                  # Only export hypotheses above this Elo
+    max_per_sync: 20               # Max hypotheses to export per sync cycle
+
+# ---------------------------------------------------------------------------
+# Import Policy
+# Controls what this vault accepts from peers.
+# Default policy applies to unlisted peers.
+# ---------------------------------------------------------------------------
+import:
+  default_trust: untrusted         # Trust level for unknown peers
+                                   # full: auto-accept, no quarantine
+                                   # verified: accept with quarantine
+                                   # untrusted: reject all imports
+
+  quarantine:
+    enabled: true                  # Add quarantine: true to imported notes
+    auto_accept_after_days: 0      # 0 = manual review required
+                                   # >0 = auto-accept after N days
+
+  hypotheses:
+    allow_federated_tournament: true   # Allow imported hypotheses in tournaments
+    starting_elo: 1200                 # Starting federated Elo for imports
+
+# ---------------------------------------------------------------------------
+# Peers
+# Named peer vaults with trust levels and overrides.
+#
+# Trust levels:
+#   full      -- auto-accept claims and hypotheses, no quarantine
+#   verified  -- accept with quarantine, eligible for federated tournaments
+#   untrusted -- reject all imports (peer must be upgraded to share)
+#
+# Example:
+#   peers:
+#     collab-lab:
+#       vault_id: "collab-lab-uuid"
+#       display_name: "Collaborator Lab Vault"
+#       institution: "Partner University"
+#       trust: verified
+#       notes: "Established collaboration since 2025"
+# ---------------------------------------------------------------------------
+peers: {}

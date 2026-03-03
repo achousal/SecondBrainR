@@ -1,0 +1,158 @@
+{
+  "id": "vascbrain",
+  "name": "VascBrain Panel",
+  "version": "1.0.0",
+  "description": "Vascular and neurodegenerative biomarker panel using SIMOA platform reference ranges",
+  "biomarkers": [
+    {
+      "id": "ptau217",
+      "name": "p-tau 217",
+      "unit": "pg/mL",
+      "aliases": ["ptau217", "p-tau217", "ptau_217", "p_tau_217", "plasma_ptau217"],
+      "zones": [
+        {
+          "label": "Normal",
+          "min": 0,
+          "max": 0.5,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range."
+        },
+        {
+          "label": "Elevated",
+          "min": 0.5,
+          "max": 1.5,
+          "color": "#d4a24e",
+          "interpretation": "Mildly elevated. May warrant monitoring."
+        },
+        {
+          "label": "High",
+          "min": 1.5,
+          "max": 100,
+          "color": "#c75a4a",
+          "interpretation": "Significantly elevated. Tau pathology likely."
+        }
+      ],
+      "source": "SIMOA platform norms"
+    },
+    {
+      "id": "ab40",
+      "name": "Ab40",
+      "unit": "pg/mL",
+      "aliases": ["ab40", "abeta40", "amyloid_beta_40"],
+      "zones": [
+        {
+          "label": "Low",
+          "min": 0,
+          "max": 150,
+          "color": "#d4a24e",
+          "interpretation": "Below expected range. Consider retest."
+        },
+        {
+          "label": "Normal",
+          "min": 150,
+          "max": 450,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range."
+        },
+        {
+          "label": "High",
+          "min": 450,
+          "max": 10000,
+          "color": "#d4a24e",
+          "interpretation": "Above expected range."
+        }
+      ],
+      "source": "SIMOA platform norms"
+    },
+    {
+      "id": "ab42",
+      "name": "Ab42",
+      "unit": "pg/mL",
+      "aliases": ["ab42", "abeta42", "amyloid_beta_42"],
+      "zones": [
+        {
+          "label": "Low",
+          "min": 0,
+          "max": 8,
+          "color": "#c75a4a",
+          "interpretation": "Low Ab42 may indicate amyloid sequestration in plaques."
+        },
+        {
+          "label": "Normal",
+          "min": 8,
+          "max": 25,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range."
+        },
+        {
+          "label": "High",
+          "min": 25,
+          "max": 1000,
+          "color": "#d4a24e",
+          "interpretation": "Above expected range."
+        }
+      ],
+      "source": "SIMOA platform norms"
+    },
+    {
+      "id": "gfap",
+      "name": "GFAP",
+      "unit": "pg/mL",
+      "aliases": ["gfap", "glial_fibrillary", "gfap_plasma"],
+      "zones": [
+        {
+          "label": "Normal",
+          "min": 0,
+          "max": 100,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range."
+        },
+        {
+          "label": "Elevated",
+          "min": 100,
+          "max": 250,
+          "color": "#d4a24e",
+          "interpretation": "Mildly elevated. Astrocyte activation detected."
+        },
+        {
+          "label": "High",
+          "min": 250,
+          "max": 50000,
+          "color": "#c75a4a",
+          "interpretation": "Significantly elevated astrocyte activation."
+        }
+      ],
+      "source": "SIMOA platform norms"
+    },
+    {
+      "id": "nfl",
+      "name": "NfL",
+      "unit": "pg/mL",
+      "aliases": ["nfl", "neurofilament", "nfl_plasma", "neurofilament_light"],
+      "zones": [
+        {
+          "label": "Normal",
+          "min": 0,
+          "max": 16.3,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range for age."
+        },
+        {
+          "label": "Elevated",
+          "min": 16.3,
+          "max": 50,
+          "color": "#d4a24e",
+          "interpretation": "Mildly elevated. May indicate neurodegeneration."
+        },
+        {
+          "label": "High",
+          "min": 50,
+          "max": 10000,
+          "color": "#c75a4a",
+          "interpretation": "Significantly elevated. Active neurodegeneration likely."
+        }
+      ],
+      "source": "Simren et al., 2022"
+    }
+  ]
+}

@@ -1,0 +1,1184 @@
+---
+name: onboard
+description: "Bootstrap EngramR integration for a lab. Hybrid scan + interview creates project notes, data inventory, research goals, and vault wiring. Triggers on /onboard, /onboard [path], /onboard --update."
+version: "1.0"
+generated_from: "arscontexta-v1.6"
+user-invocable: true
+context: fork
+model: sonnet
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - Bash
+  - AskUserQuestion
+  - Skill
+  - WebFetch
+argument-hint: "[lab-path] -- path to lab directory; --update for incremental mode"
+---
+
+## EXECUTE NOW
+
+**Target: $ARGUMENTS**
+
+Bootstrap or update EngramR vault integration for a research lab. Scan filesystem, mine conventions, generate vault artifacts -- all with minimal user interaction.
+
+### Interaction Enforcement (MANDATORY)
+
+Every user-facing review point in this skill MUST use `AskUserQuestion` -- never present findings as plain text and move on. The user interacts through structured options, not by reading walls of text. If a step says "use AskUserQuestion", that is a hard requirement, not a suggestion. Skipping AskUserQuestion at any GATE-marked step is a skill execution failure.
+
+### Step 0: Read Vocabulary and Vault State
+
+Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for domain vocabulary mapping. Then read current vault state:
+
+1. `projects/_index.md` -- existing registered projects. If missing, create from `_code/templates/data-inventory.md` header pattern (see Bootstrap below).
+2. `_research/data-inventory.md` -- existing data entries (read Summary Table only, first 60 lines). If missing, create from `_code/templates/data-inventory.md` with today's date.
+3. `self/goals.md` -- current Active Threads and Research Goals. If missing, create with `## Active Threads` and `## Active Research Goals` sections.
+4. `ops/reminders.md` -- current reminders. If missing, create from `_code/templates/reminders.md`.
+5. `ops/config.yaml` -- read the `onboard:` section (`scan_depth`, `exclude_dirs`, `exclude_files`). Store as ONBOARD_CONFIG. For `--update` mode, also read existing project note `scan_dirs`/`scan_exclude` from frontmatter.
+
+**Bootstrap (fresh vault):** If any of these files do not exist, create them before proceeding. Use these minimal structures:
+
+- `projects/_index.md`: frontmatter (`description`, `type: moc`, `created: {today}`), body with `# Projects` heading and a `## Maintenance` section at the end.
+- `_research/data-inventory.md`: copy structure from `_code/templates/data-inventory.md`, replacing `YYYY-MM-DD` with today's date.
+- `self/goals.md`: frontmatter (`description`, `type: moc`, `created: {today}`), body with `# Goals`, `## Active Threads`, and `## Active Research Goals` sections.
+- `ops/reminders.md`: copy from `_code/templates/reminders.md`.
+
+Collect the set of already-registered project tags from `projects/_index.md` wiki-links and from `projects/` subdirectory filenames:
+
+```bash
+ls projects/*/*.md 2>/dev/null | xargs basename -a | sed 's/\.md$//'
+```
+
+Store this as REGISTERED_TAGS for Step 3 diffing.
+
+**Note:** All relative paths in Bash commands are relative to the vault root (repository root).
+
+**START NOW.** Parse arguments and begin onboarding.
+
+---
+
+## Step 1: Argument Parse, Mode Selection, and Path Validation
+
+Parse `$ARGUMENTS` to determine mode:
+
+| Input | Mode | Behavior |
+|-------|------|----------|
+| (empty) | interactive | AskUserQuestion for lab path, then full onboard |
+| `~/projects/Lab_Name/` | full | Scan directory, full onboard for that lab |
+| `~/projects/` (root with multiple labs) | multi-lab | Detect lab subdirs, run full onboard for each |
+| `--update` | incremental | Re-scan all registered lab paths for new projects |
+| `~/projects/Lab_Name/NewProject/` | single-add | Add one project to existing lab |
+| `--handoff` (appended) | any + handoff | Run chosen mode, output RALPH HANDOFF at end |
+
+### Mode: interactive
+
+Use AskUserQuestion:
+- question: "Which lab directory should I scan? Paste the path below (e.g. ~/projects/My_Lab/ for a single lab, or ~/projects/ for all labs). Tip: point to a root and each subdirectory becomes a separate lab."
+- header: "Lab path"
+- options:
+  - label: "Single lab directory", description: "Path to one lab folder (e.g. ~/projects/My_Lab/)"
+  - label: "Multi-lab root", description: "Path to a root containing multiple lab folders (e.g. ~/projects/)"
+- multiSelect: false
+
+The user will typically type their actual path via "Other". Parse the selected option or free-text response to get the lab path.
+
+### Process Roadmap
+
+Before scanning, display the roadmap so the user knows what to expect:
+```
+=== Onboarding Roadmap ===
+
+This process has 5 phases (~3-4 interactions from you).
+Setup scales with your existing documentation -- well-organized
+projects with READMEs onboard almost automatically.
+
+  1. SCAN        Discover projects, extract metadata, mine code conventions,
+                 detect infrastructure signals.
+                 (Automatic -- no input needed.)
+
+  2. REVIEW      Present scan results, lab infrastructure profile, and
+                 per-project data availability for your correction.
+                 (Your main interaction -- confirm, adjust, fill gaps.)
+
+  3. STRATEGY    One open question about research directions, upcoming data,
+                 or cross-project connections. (Optional -- skip if nothing.)
+
+  4. GENERATE    Create all vault artifacts in one batch after your approval.
+                 (Project notes, symlinks, data inventory, goals, index.)
+
+  5. VERIFY      Validate schemas, links, and index consistency.
+                 (Automatic -- issues reported if any.)
+
+You'll get a full summary at the end. After onboarding, the natural next
+step is /init -- which seeds your knowledge graph with foundational claims:
+
+  /init phases:
+    - Goal Selection            Pick which research goals to seed
+    - Domain Orientation        Define 3-5 core questions per goal as testable claims
+    - Methodological Seeding    Seed confounders, analytical methods, data realities
+    - Assumption Inversions     Generate falsification conditions for each claim
+
+  /onboard builds the project infrastructure; /init builds the knowledge
+  foundation that /generate, /literature, and /research operate on.
+
+=== Let's begin ===
+```
+
+### Documentation quality message
+
+After the roadmap, display:
+```
+Onboarding effort scales with your existing documentation and organization:
+
+  Well-documented     CLAUDE.md, README, docstrings, clear directory
+  (mostly automatic)  structure -> auto-detected with minimal input.
+
+  Partially documented  Some READMEs or comments but inconsistent
+  (light interview)     structure -> scan finds what it can, short
+                        follow-up questions fill gaps.
+
+  Undocumented          Bare scripts, flat directories, no metadata
+  (guided interview)    -> more manual answers needed, but onboarding
+                        builds that structure as we go.
+
+The more structure already exists, the faster this goes. Either way,
+you end up with the same complete project profiles.
+```
+
+### Flat structure detection
+
+After receiving the path, check the directory structure:
+
+```
+Case A: ~/projects/Lab_Name/ProjectA/   -> standard (lab > projects)
+Case B: ~/projects/ProjectA/            -> flat (projects at root, no lab grouping)
+Case C: ~/projects/Lab_A/Lab_B/         -> multi-lab root
+```
+
+**Detection heuristic:** List immediate subdirectories. If none exist, go directly to the "No projects detected" error handler. Check whether those subdirectories contain project indicators (Step 2a signals) directly. If >50% do (including N=1), the path is flat (Case B) -- unless the user invoked single-add mode. If most contain their own subdirectories that have project indicators, it is Case A or C.
+
+For Case B (flat -- projects found directly under the given path with no lab-level grouping):
+
+Display the detected projects as context, then use AskUserQuestion:
+- question: "Projects found directly under {path} without lab-level grouping: {ProjectA/, ProjectB/, ...}. How should these be organized?"
+- header: "Structure"
+- options:
+  - label: "Organize into lab folders (Recommended)", description: "Walk through grouping projects by lab, then onboard each. Creates ~/projects/Smith_Lab/ProjectA/ etc."
+  - label: "Treat everything as one lab", description: "All projects register under a single lab entity."
+  - label: "Continue as-is", description: "Ask which lab each project belongs to during onboarding."
+- multiSelect: false
+
+**If Option 1 (restructure):**
+1. Present ALL projects in a single table with a "Lab" column. Ask the user to name their labs and assign each project in one response (one interaction, not per-project):
+   ```
+   Projects found -- name your labs and assign each project:
+     | Project      | Lab (fill in) |
+     |--------------|---------------|
+     | ProjectA/    | ________      |
+     | ProjectB/    | ________      |
+     | ProjectC/    | ________      |
+   ```
+2. Show the proposed moves and get confirmation via AskUserQuestion:
+   - question: "Proposed moves:\n{list of mv old -> new}\nProceed with these moves?"
+   - header: "Confirm moves"
+   - options:
+     - label: "Proceed", description: "Execute the listed moves"
+     - label: "Cancel", description: "Do not move anything; keep current structure"
+   - multiSelect: false
+3. Execute moves only if user selects "Proceed". If "Cancel" or custom response, adjust accordingly.
+4. Proceed with standard onboard flow per lab.
+
+**If Option 2:** Use AskUserQuestion to get the lab name:
+   - question: "What should this lab be called?"
+   - header: "Lab name"
+   - options:
+     - label: "Use directory name", description: "Derive lab name from the parent directory basename"
+     - label: "I'll name it", description: "Provide a custom lab name via free text"
+   - multiSelect: false
+   Then proceed as standard mode with all projects under that lab.
+
+**If Option 3:** During Step 3 presentation, include a "Lab" column and ask user to assign labs per project in the same table review.
+
+### Mode: multi-lab (Case C)
+
+When detected (immediate subdirectories contain their own project subdirectories):
+1. List all immediate subdirectories as candidate labs.
+2. Use AskUserQuestion to confirm which are labs to onboard:
+   - question: "Found these candidate lab directories: {list}. Which should I onboard?"
+   - header: "Select labs"
+   - options: one option per candidate lab (label: lab name, description: "{N} subdirectories detected")
+   - multiSelect: true
+3. Run Steps 2-7 sequentially for each confirmed lab, reusing the same vault state across iterations.
+4. The summary report (Step 7) covers all labs processed in that run.
+
+### Mode: incremental (`--update`)
+
+Read all registered project notes from `projects/*/*.md`. Extract unique `project_path` values from frontmatter. Derive lab root directories (parent of each project_path). Re-scan each lab root for new subdirectories not yet registered. Skip Step 4 strategic questions. Only present NEW discoveries in the Step 3 table.
+
+### Mode: single-add
+
+If the path points to a single project directory (contains .git/, CLAUDE.md, data/, analysis/, *.R, *.py, or similar), treat it as adding one project. Infer lab from parent directory name. Skip to Step 2 scanning just that directory.
+
+---
+
+## Step 2: Scan Everything
+
+Given a lab path, perform a single comprehensive pass: discover projects, extract metadata, mine conventions, and auto-detect per-project fields. No separate user prompts during this step.
+
+### 2a. Discover project directories
+
+List immediate subdirectories. For each, check for project indicators:
+
+```bash
+# List candidate directories (depth 1)
+ls -d {lab_path}/*/ 2>/dev/null
+```
+
+A directory is a **project candidate** if it contains ANY of:
+- `CLAUDE.md` (strong signal)
+- `.git/` (strong signal)
+- `data/` directory
+- `analysis/` or `results/` directory
+- `*.R`, `*.py`, `*.sh` files (check with ls, not deep find)
+- `Snakefile`, `Nextflow`, `Makefile`
+- `*.lsf`, `*.slurm`, `*.pbs` files (HPC job scripts)
+
+Skip directories that are clearly not projects: `.git`, `__pycache__`, `node_modules`, `.Rproj.user`, `renv`, `.snakemake`.
+
+### 2b. Extract project metadata
+
+For each candidate project, collect:
+
+| Field | Detection Method |
+|-------|-----------------|
+| name | Directory basename |
+| project_tag | Lowercase, hyphens for spaces/underscores |
+| languages | File extensions: .R -> R, .py -> Python, .sh -> Bash, .nf -> Nextflow |
+| has_claude_md | Test `{path}/CLAUDE.md` exists |
+| has_git | Test `{path}/.git/` exists |
+| has_tests | Test `{path}/tests/` or `{path}/analysis/tests/` exists |
+| data_files | `ls {path}/data/ 2>/dev/null \| head -10` (sample, not exhaustive) |
+| hpc_indicators | Presence of .lsf/.slurm/.pbs files, or HPC paths in CLAUDE.md |
+
+### 2c. Read CLAUDE.md for auto-population
+
+If `CLAUDE.md` exists in a project, read it (first 100 lines) and extract:
+- **Description**: first paragraph or "## Overview" section
+- **Language**: from documented tech stack or dependencies
+- **HPC path**: any HPC/cluster paths mentioned
+- **Scheduler**: LSF, SLURM, PBS if mentioned
+- **Key data files**: from "## Data" or similar section
+
+Do NOT read CLAUDE.md files that are excessively large (>500 lines). Read first 100 lines only.
+
+### 2d. Mine conventions from code
+
+Absorbs the old Step 4a auto-detect. Runs in the same pass as 2b/2c -- no separate user prompt.
+
+**Identity signals:**
+- PI name: grep CLAUDE.md files for "PI:", "Principal Investigator", author fields
+- Institution: grep for university/hospital/institute names, email domains
+- Research focus: extract from CLAUDE.md overview sections, README.md first paragraphs
+
+**HPC signals:**
+- Cluster name: grep for Minerva, O2, Biowulf, Sherlock, etc. in CLAUDE.md, .lsf, .slurm, .pbs files
+- Scheduler: infer from file extensions (.lsf -> LSF, .slurm -> SLURM, .pbs -> PBS) or keywords
+- HPC paths: grep CLAUDE.md and job scripts for `/hpc/`, `/sc/`, `/n/`, `/data/` patterns
+
+**Convention signals (silent collection)** -- detected but NOT presented at GATE 3a. These are auto-populated in the lab entity node (Step 5b2) and editable later. Sample up to 5 R/Python analysis files per project (prefer files in `analysis/`, `scripts/`, `src/`):
+
+| Convention | Detection method |
+|-----------|-----------------|
+| Multiple testing | grep for `p.adjust`, `method=`, `"BH"`, `"fdr"`, `"bonferroni"`, `multipletests`, `fdrcorrection` |
+| Significance threshold | grep for `alpha`, `p.value <`, `padj <`, `pvalue_threshold`, common thresholds (0.05, 0.01, 0.1) |
+| Effect size metrics | grep for `log2FoldChange`, `logFC`, `cohen`, `odds.ratio`, `hazard.ratio`, `effect_size` |
+| Statistical framework | grep for `brms`, `stan`, `rstanarm`, `pymc`, `bambi` (Bayesian); `lm(`, `glm(`, `t.test`, `wilcox` (frequentist); domain-specific packages from project code |
+| Power analysis | grep for `pwr::`, `power.t.test`, `samplesize`, `power_analysis` |
+| Accent palette | grep for `scale_color_`, `scale_fill_`, palette definitions, hex color arrays in R/Python plot code |
+| Figure dimensions | grep for `ggsave`, `width=`, `height=`, `fig.width`, `fig.height`, `figsize` |
+| Journal targets | grep CLAUDE.md for journal names (Nature, Cell, PNAS, JCI, etc.) |
+| Containers | presence of `Dockerfile`, `Singularity`, `singularity.def`, `*.sif` files |
+
+**Infrastructure signals** -- detect compute, platform, and facility references beyond HPC:
+
+| Resource type | Detection method |
+|--------------|-----------------|
+| Cloud compute | grep CLAUDE.md, configs for `aws`, `s3://`, `gcp`, `gs://`, `azure`, `blob.core` |
+| Platforms | grep CLAUDE.md, scripts for data management and research platform references |
+| Core facilities | grep CLAUDE.md for shared facility and instrumentation references |
+| Public data | grep for public data repository accessions and dataset identifiers |
+| Shared resources | grep CLAUDE.md for shared resource references (biobanks, registries, archives, etc.) |
+
+```bash
+# Example: detect infrastructure signals across lab
+grep -rli 's3://\|Singularity\|Dockerfile' {lab_path}/*/CLAUDE.md {lab_path}/*/README.md 2>/dev/null | head -10
+```
+
+```bash
+# Example: sample R/Python files for statistical patterns
+find {project_path} -name '*.R' -path '*/analysis/*' -o -name '*.R' -path '*/scripts/*' | head -5 | while read f; do
+  grep -n 'p.adjust\|method=\|brms\|stan\|pwr::' "$f" 2>/dev/null | head -10
+done
+```
+
+### 2e. Auto-detect per-project fields
+
+Absorbs parts of old Step 4b. Runs during the same scan pass -- no separate user prompt.
+
+For each project, attempt to infer:
+
+| Field | Detection Method |
+|-------|-----------------|
+| Research domain | From CLAUDE.md overview, directory names, data file types |
+| Data source | From data/ contents, CLAUDE.md references to datasets, accession patterns |
+| Data layers | Match against `data_layers` list in `ops/config.yaml`. Infer from file types, tool references, and project descriptions. Domain-specific heuristics apply (e.g., in bioinformatics: DESeq2 -> Transcriptomics, `.bam` -> Genomics). |
+| Key research question | From CLAUDE.md overview section, first paragraph of README.md |
+
+Store inferred values with their evidence source (e.g., "{Layer} (from {tool/file} in {path})").
+
+### 2f. Diff against vault
+
+Compare discovered projects against REGISTERED_TAGS from Step 0.
+
+Classify each discovered project:
+
+| Status | Condition | Action |
+|--------|-----------|--------|
+| **NEW** | project_tag not in REGISTERED_TAGS | Full onboard |
+| **CHANGED** | project_tag exists but path or key metadata differs | Update |
+| **CURRENT** | project_tag exists and matches | Skip |
+
+### 2g. Institution Resource Lookup
+
+Use /learn to fetch the institution's full resource catalog (HPC, core facilities, platforms, shared resources). This supplements filesystem-based detection with publicly available institutional information.
+
+**Determine institution:**
+1. Check Step 2d identity signals for institution name (from CLAUDE.md, email domains, HPC cluster names).
+2. If not detected, use AskUserQuestion:
+   - question: "Which institution is this lab affiliated with? (e.g. MIT, Stanford, Max Planck, Johns Hopkins)"
+   - header: "Institution"
+   - options:
+     - label: "Skip", description: "Fill in resources manually later"
+     - label: "I'll type it", description: "Provide institution name via free text"
+   - multiSelect: false
+   The user will typically type the institution name via "Other". If they select "Skip", skip this entire step.
+3. If user skips, skip this entire step.
+
+**Determine departments and affiliations:**
+
+After institution is confirmed, look up the PI's faculty profile to populate departments, center affiliations, and external affiliations.
+
+1. Invoke `/learn "{PI Name} {Institution Name} faculty profile departments" --light` via the Skill tool.
+2. Parse the /learn output for:
+   - **Department names** -- formal department affiliations (e.g., "Department of Neurology", "Department of Oncological Sciences").
+   - **Center affiliations** -- research centers, institutes, or programs (e.g., "Tisch Cancer Institute", "Alzheimer's Disease Research Center").
+   - **External affiliations** -- institutions outside the primary one (e.g., "James J. Peters VA Medical Center").
+3. For each department found, infer the department `type` at the institution level using these categories:
+   - `basic_science` -- fundamental research departments (e.g., Oncological Sciences, Neuroscience, Microbiology)
+   - `clinical` -- patient-facing or clinical departments (e.g., Neurology, Dermatology, Pathology)
+   - `translational` -- bridging basic and clinical (e.g., Translational Medicine)
+   - `computational` -- computational or data science (e.g., Artificial Intelligence and Human Health)
+4. Present the parsed results to the user for confirmation via AskUserQuestion:
+   ```
+   Departments: {list of parsed departments}
+   Centers:     {list of parsed centers}
+   External:    {list of external affiliations, or "none detected"}
+   ```
+   Options: "Confirm", "Correct" (user provides corrections via free-text "Other").
+5. If /learn fails or returns no useful results, fall back to AskUserQuestion:
+   - question: "Could not find faculty profile for {PI Name}. Please provide department(s) at {Institution}, center/institute affiliations, and external affiliations via free text."
+   - header: "Departments"
+   - options:
+     - label: "I'll provide details", description: "Type departments, centers, and affiliations via free text"
+     - label: "Skip for now", description: "Leave empty; fill in manually later"
+   - multiSelect: false
+   Parse the free-text response for department names, center affiliations, and external affiliations.
+
+Store confirmed values as DEPARTMENTS, CENTER_AFFILIATIONS, and EXTERNAL_AFFILIATIONS for use in lab entity node and institution profile updates.
+
+**Confirm detected values:**
+
+If institution was auto-detected (not directly provided by the user in the prompts above), present the inferred values with evidence sources and confirm before proceeding:
+
+Use AskUserQuestion with these fields:
+
+```
+Institution: {detected or provided value}
+  (Evidence: {source -- e.g., "CLAUDE.md in atac-seq-ko", "Minerva HPC cluster name", "user provided"})
+Departments: {detected departments or "not yet determined"}
+  (Evidence: {source or "pending faculty lookup"})
+```
+
+Options:
+1. Confirm and proceed
+2. Correct (user provides the right institution via free-text "Other")
+
+If the institution was directly provided by the user in the prompts above (not auto-detected), skip this confirmation -- the user already stated it explicitly.
+
+Store confirmed institution as INSTITUTION_NAME for use in slug generation and /learn invocation.
+
+**Lab website lookup (optional):**
+
+After institution is confirmed and PI name is known, prompt for the lab's website URL.
+
+1. Ask the user via AskUserQuestion (free-text, optional):
+   ```
+   Does this lab have a website? Paste the URL if available.
+   Example: https://labs.institution.edu/pi-name/
+
+   (Skip if none or you'd rather not share.)
+   ```
+2. If user provides a URL, invoke WebFetch:
+   ```
+   WebFetch URL={user URL}
+   Prompt: "Extract the following from this lab website:
+   1. Research focus areas and themes
+   2. Current group members (faculty, postdocs, students)
+   3. Active projects or research programs
+   4. Key publications or highlighted papers
+   5. Lab resources, tools, or databases
+   6. Collaborations mentioned
+   Return as structured sections. Omit any section with no content."
+   ```
+3. Parse WebFetch output into onboard-relevant categories:
+   - `research_themes` -- feeds into project registration context and goal creation
+   - `group_members` -- enriches lab profile (future: collaboration graph)
+   - `active_projects` -- cross-reference against filesystem scan from Step 2a-2f
+   - `resources` -- merge with institutional resources from /learn
+4. Store parsed results as LAB_WEBSITE_DATA for Step 3a presentation.
+5. Store the URL itself as `lab_website_url` for the lab entity node (Step 5b2).
+
+**Relationship to /learn:** Lab website fetch and /learn always both run. WebFetch captures the lab's self-presentation (themes, members, active projects). /learn captures institutional context (HPC, core facilities, platforms, department resources). Results are merged in Step 3a.
+
+**Skip conditions (WebFetch only -- /learn always proceeds):**
+- User provides no URL or says skip: skip WebFetch, proceed to /learn.
+- WebFetch fails (timeout, 403, etc.): warn the user, proceed to /learn.
+
+**Generate institution slug:** Lowercase, hyphens for spaces, no special characters. Example: `mount-sinai`, `memorial-sloan-kettering`.
+
+**Check for existing profile:**
+1. Check if `ops/institutions/{institution-slug}.md` already exists.
+2. If yes: read it, feed into Step 3 presentation. Inform user:
+   ```
+   Loaded existing institution profile: ops/institutions/{slug}.md
+   To refresh from web: rerun with --refresh
+   ```
+   Skip to Step 3.
+3. If no: proceed with /learn lookup.
+
+**Invoke /learn:**
+1. Primary lookup via Skill tool:
+   ```
+   /learn "{Institution Name} research infrastructure core facilities HPC computing platforms shared resources" --light
+   ```
+2. If department was specified, invoke a second lookup:
+   ```
+   /learn "{Institution Name} {Department} research resources laboratories" --light
+   ```
+
+**Parse /learn output:**
+1. Read the /learn output file(s) from `inbox/` (filename pattern: `YYYY-MM-DD-*{institution-slug}*.md`).
+2. Extract Key Findings into infrastructure schema categories:
+   - `compute`: HPC clusters, GPU resources, cloud accounts
+   - `core_facilities`: shared instrumentation and service labs relevant to the domain
+   - `platforms`: data management, clinical, and research platforms
+   - `shared_resources`: repositories, archives, registries, or other shared assets relevant to the domain
+3. Extract `source_urls` from the Sources section of the /learn output.
+
+**Create institution profile:**
+Write `ops/institutions/{institution-slug}.md` using `_code/templates/institution.md`:
+
+```yaml
+---
+type: "institution"
+name: "{Institution Full Name}"
+slug: "{institution-slug}"
+departments:
+  - name: "{department name}"
+    type: "{basic_science|clinical|translational|computational}"
+centers:
+  - "{center or institute name}"
+compute:
+  - name: "{cluster name}"
+    type: "{HPC|cloud|GPU}"
+    scheduler: "{LSF|SLURM|PBS|...}"
+    notes: "{access notes}"
+core_facilities: ["{parsed facilities}"]
+platforms: ["{parsed platforms}"]
+shared_resources: ["{parsed shared resources -- repositories, archives, registries, etc.}"]
+source_urls: ["{urls from /learn sources}"]
+last_fetched: "{today}"
+created: "{today}"
+updated: "{today}"
+tags: ["institution"]
+---
+```
+
+Department type enum: `basic_science` (fundamental research), `clinical` (patient-facing), `translational` (bridging), `computational` (data/AI). Centers are flat strings -- research centers, institutes, or programs affiliated with the institution.
+
+Populate body sections with details from /learn output, organized under the template headings (Compute Resources, Core Facilities, Platforms and Databases, Biobanks and Cohorts).
+
+**Skip conditions:**
+- Institution cannot be determined and user skips the question: skip entirely.
+- User says "I'll fill in manually": skip the lookup, create empty profile for manual editing.
+- `--refresh` flag not present and profile already exists: load existing, skip lookup.
+
+---
+
+## Step 3: Present Findings (Progressive Disclosure)
+
+Present findings in focused stages. Each stage gets its own AskUserQuestion. Do NOT combine all stages into one output. This prevents review overload and ensures the user actually validates each section rather than rubber-stamping a wall of information.
+
+**ENFORCEMENT:** Steps 3a, 3b, and 3c are each a GATE. At each GATE, you MUST call AskUserQuestion and WAIT for the user's response before proceeding to the next sub-step. You MUST NOT present scan results as unstructured text and then ask "does this look right?" -- use AskUserQuestion with structured options. You MUST NOT combine multiple GATEs into a single interaction.
+
+### GATE 3a: Institution and Infrastructure
+
+**GATE: You MUST call AskUserQuestion here. Do NOT present infrastructure as plain text.**
+
+Present institution and high-level infrastructure. Convention details (stats methods, figure sizes, containers) are summarized in a single confirmation line, not as reviewable fields.
+
+```
+=== Institution and Infrastructure ===
+
+Lab Profile:
+  PI:          Dr. Name                       (from project-a/CLAUDE.md)
+  Institution: {INSTITUTION_NAME}             (confirmed)
+  Departments: {DEPARTMENTS list}             (from faculty lookup)
+  Centers:     {CENTER_AFFILIATIONS}          (from faculty lookup)
+  External:    {EXTERNAL_AFFILIATIONS or "--"} (from faculty lookup)
+
+Lab Website: {lab_website_url or "not provided"}
+
+Research Themes (from lab website):
+  - {theme 1}
+  - {theme 2}
+  (omit section if no lab website data)
+
+Group Members (from lab website):
+  - {member list, if extracted}
+  (omit section if no lab website data)
+
+Lab Infrastructure:
+  Compute:     {cluster} / {scheduler}        (from job files)
+               {additional clusters}           (from web lookup)
+  Cloud:       --                             (not detected)
+  Platforms:   {detected platforms}            (from project CLAUDE.md files)
+               {additional platforms}           (from web lookup)
+  Facilities:  {from web lookup}               [dept]
+  Shared:      {detected shared resources}     (from project CLAUDE.md files)
+
+  Items marked [dept] are department-relevant. Deselect anything
+  your lab doesn't have access to.
+
+Also detected: {comma-separated summary of convention signals, e.g. "FDR correction, frequentist stats, Singularity, 7x5in figures"}
+  (stored in lab note -- edit anytime)
+```
+
+The "Also detected" line is a single-line confirmation summary of convention signals from Step 2d (stats, style, containers). Include only non-empty detections. If nothing was detected, omit the line entirely.
+
+Use AskUserQuestion: "Does this infrastructure profile look right? Correct any fields, add missing facilities, platforms, or resources."
+
+Accept inline corrections. Infrastructure fields flow into the lab entity node (Step 5b2).
+
+**STOP. Wait for the user's AskUserQuestion response before proceeding to GATE 3b.**
+
+### GATE 3b: Projects (one lab at a time)
+
+**GATE: You MUST call AskUserQuestion per lab. Do NOT present project tables as plain text.**
+
+For EACH lab being onboarded, present its project table as a separate review stage:
+
+```
+=== {Lab Name} ({N} projects) ===
+
+| # | Project | Status | Domain | Languages | Data Layers | Data Access | Research Q |
+|---|---------|--------|--------|-----------|-------------|-------------|------------|
+| 1 | project-a | NEW | (auto-detected) | R, Python | (auto-detected) | In hand | (from CLAUDE.md) |
+| 2 | project-b | NEW | (auto-detected) | R | -- | -- | -- |
+| ...
+
+Data Access values: In hand | On HPC | Pending IRB | Pending DUA |
+  Pending access | Public | Restricted | --
+
+Fields marked -- could not be auto-detected.
+```
+
+Use AskUserQuestion per lab: "Anything to adjust for {Lab Name}? You can correct fields, fill in Data Access, add datasets not on disk, or deselect projects."
+
+**STOP. Wait for the user's AskUserQuestion response for this lab before presenting the next lab or proceeding to GATE 3c.**
+
+**Data Access column:** Infer from scan where possible (non-empty `data/` -> "In hand", public repository accessions in CLAUDE.md -> "Public", restricted-access references -> "Pending access"). Mark `--` when unknown and let the user fill in. The value flows directly into the `Access status` field in `_research/data-inventory.md` (Step 5d).
+
+### GATE 3c: Cross-Lab Connections (multi-lab only)
+
+**GATE: You MUST call AskUserQuestion here. Do NOT present connections as plain text.**
+
+If onboarding multiple labs, present detected cross-lab connections after all individual lab reviews complete:
+
+```
+=== Cross-Lab Connections ===
+
+{detected connections: shared methods, overlapping data types,
+ complementary cohorts, shared HPC patterns, etc.}
+```
+
+Use AskUserQuestion: "Any connections I missed between labs?"
+
+If only one lab, skip this sub-step.
+
+**STOP. Wait for the user's AskUserQuestion response before proceeding to GATE 4.**
+
+### Step 3 completion
+
+**If ALL projects are CURRENT and mode is not `--update`:**
+```
+All projects already registered. Nothing to do.
+Hint: Use /onboard --update to re-scan for changes.
+```
+
+After all sub-steps complete, proceed to Step 4.
+
+---
+
+## GATE 4: Strategic Questions (optional)
+
+**GATE: You MUST call AskUserQuestion here. Do NOT skip this step silently.**
+
+Only for full onboard mode (not `--update`, not single-add). ONE open-ended question via AskUserQuestion:
+- question: "Anything else I should know? Research directions not captured by these projects, upcoming datasets, collaborations, or cross-project connections?"
+- header: "Strategy"
+- options:
+  - label: "Skip", description: "Nothing to add -- /reflect will find connections later"
+  - label: "I have more context", description: "Provide additional research directions, datasets, or connections via free text"
+- multiSelect: false
+
+If user selects "Skip", proceed directly to Step 5. If they provide free-text, incorporate into goal creation.
+
+---
+
+## GATE 5: Generate Artifacts
+
+**GATE: You MUST call AskUserQuestion for artifact approval. Do NOT create any files without user confirmation.**
+
+**One approval gate.** Present a summary of ALL artifacts to be created, then write everything in one pass. No per-project note approval. No per-project doc selection.
+
+Display the artifact list as context, then use AskUserQuestion for approval:
+- question: "Ready to create these artifacts:\n- ops/institutions/{slug}.md (if new)\n- _research/goals/{goal-slug}.md (if new directions)\n- projects/{lab}/{tag}.md (per NEW project)\n- _dev/{tag} symlinks\n- projects/_index.md updates\n- _research/data-inventory.md entries\n- self/goals.md thread updates\n- ops/reminders.md follow-ups\n\nProceed?"
+- header: "Create"
+- options:
+  - label: "Proceed", description: "Create all listed artifacts"
+  - label: "Cancel", description: "Do not create anything; review further"
+- multiSelect: false
+
+Only proceed with artifact creation if user selects "Proceed".
+
+**Artifact creation order:** Goals first (so project notes can reference them in linked_goals), then project notes, then everything else.
+
+### 5e. Research Goals (moved before project notes)
+
+If the strategic interview (Step 4) identified new research directions not covered by existing goals:
+
+1. Check `_research/goals/` for existing goals that might match.
+2. If genuinely new, create a research goal note using `_code/templates/research-goal.md` schema:
+
+```yaml
+---
+type: research-goal
+title: "{goal title}"
+status: active
+linked_labs: ["{lab_slug}"]
+constraints: []
+evaluation_criteria: []
+domain: "{domain}"
+tags: [research-goal]
+created: {today}
+---
+```
+
+`linked_labs` scopes the goal to one or more labs. Use `["{lab_slug}"]` for lab-specific goals. For cross-lab goals, list all relevant lab slugs. An empty list means vault-wide.
+
+3. Save to `_research/goals/{goal-slug}.md`.
+
+If a goal already exists that matches what the user described, link the new projects to it instead of creating a duplicate. If the existing goal's `linked_labs` does not include the current lab, append the current lab slug to the list.
+
+**Multi-lab goal handling:** Only ask whether a goal is lab-specific vs cross-lab if multiple labs exist in the vault. Otherwise, default to the current lab.
+
+### 5a. Project Notes
+
+For each NEW project, build a project note. Follow the exact schema from `_code/templates/project.md`:
+
+```yaml
+---
+type: project
+title: "{detected or user-provided title}"
+project_tag: "{tag}"
+lab: "{lab name}"
+pi: "{PI}"
+status: active
+project_path: "{absolute or ~-relative path}"
+language: [{detected languages}]
+hpc_path: "{from scan, or empty string if none}"
+scheduler: "{LSF, SLURM, or PBS if detected; otherwise empty string}"
+linked_goals: [{from Step 4/5e, as wiki-links}]
+linked_hypotheses: []
+linked_experiments: []
+has_claude_md: {true/false}
+has_git: {true/false}
+has_tests: {true/false}
+created: {today YYYY-MM-DD}
+updated: {today YYYY-MM-DD}
+tags: [project, {lab-slug}-lab]
+---
+
+{One-line description from CLAUDE.md or user correction}
+
+![[_dev/{tag}/CLAUDE.md]]
+```
+
+### 5a2. Internal Doc Discovery (auto-selected, no per-project checklist)
+
+After generating the base project note, scan the project directory for internal documentation that should be wiki-linked from the project note.
+
+**Discovery (config-driven):**
+
+Build the `find` command dynamically from ONBOARD_CONFIG (loaded in Step 0) and per-project scope:
+
+1. **Determine scan targets.** If the project note has `scan_dirs` set (non-empty list from a previous `--update` run), restrict find to those directories only. If `scan_dirs` is empty (first onboard), scan the full project tree:
+   ```bash
+   find {project_path} -maxdepth {ONBOARD_CONFIG.scan_depth} -name '*.md' ...
+   ```
+
+2. **Build exclude args.** Merge three sources into a single exclude list:
+   - Global: `ONBOARD_CONFIG.exclude_dirs` (from `ops/config.yaml`)
+   - Per-project: `scan_exclude` from the project note frontmatter (if `--update` mode)
+   - Always included: `.claude/plans` (agent plan artifacts)
+
+   For each pattern, emit: `-not -path '*/{pattern}/*'`
+
+3. **Post-filter results.** After find completes, remove:
+   - Files < 100 bytes (too small to be meaningful docs)
+   - `CLAUDE.md` (already transcluded in the project note)
+   - Files whose basename matches any entry in `ONBOARD_CONFIG.exclude_files`
+
+**Auto-selection (no per-project user prompt):**
+
+Classify each discovered file and auto-select research docs:
+
+| Group | Rule | Action |
+|---|---|---|
+| **Research docs** | Path contains `/analysis/`, `/scripts/`, `/src/`, `/R/`, `/notebooks/`, `/results/`, `/reports/` | Auto-include |
+| **Infrastructure** | Path contains `/man/`, `/vignettes/`, `/docs/api/`, `/docs/reference/`; or basename matches `ONBOARD_CONFIG.exclude_files` | Skip |
+| **Other** | Everything else | Skip |
+
+**No per-project doc checklist.** Research docs are auto-selected. Mention what was included in the Step 7 summary. User can adjust later via `--update`.
+
+**Persist scan scope:**
+Extract the set of unique top-level directories (relative to project root) from selected files. Save as `scan_dirs` in project note frontmatter. Future `--update` runs use this whitelist automatically.
+
+**Generate Key Docs section:**
+For each selected doc, append a `## Key Docs` section to the project note body (after the `![[_dev/{tag}/CLAUDE.md]]` line):
+
+```markdown
+## Key Docs
+- [[ARCHITECTURE]] -- system architecture and module boundaries
+- [[README_FACTORIAL]] -- 2x2x2 factorial experiment design
+```
+
+Context phrases are **required** for every entry (same convention as topic map Core Ideas). A bare link list is insufficient.
+
+**Skip conditions:**
+- If no `.md` files found besides CLAUDE.md, skip this step silently.
+- If no files match the research docs classification, skip without adding the section.
+
+Save to: `projects/{lab_slug}/{tag}.md` (matching existing convention: `projects/lab-a/`, `projects/lab-b/`).
+
+Create lab subdirectory if it does not exist:
+```bash
+mkdir -p projects/{lab_slug}
+```
+
+### 5b. Symlinks
+
+For each NEW project:
+```bash
+ln -sfn {project_path} {vault_root}/_dev/{tag}
+```
+
+Verify _dev/ directory exists first:
+```bash
+mkdir -p _dev
+```
+
+If symlink already exists and points to the same target, skip silently (idempotent).
+
+After creating individual symlinks, run the bulk verification script to catch any missed links:
+```bash
+bash ops/scripts/create-dev-links.sh
+```
+This script reads all project notes and ensures every `project_tag` has a corresponding `_dev/` symlink. It is idempotent.
+
+### 5b2. Lab Entity Node
+
+If `projects/{lab_slug}/_index.md` does not exist, create it using the `_code/templates/lab.md` schema:
+
+```yaml
+---
+type: lab
+lab_slug: "{lab_slug}"
+pi: "{PI name}"
+institution: "{from scan or user correction}"
+institution_profile: "[[{institution-slug}]]"
+lab_website: "{lab_website_url or empty string if not provided}"
+departments: ["{from faculty lookup -- list of department names}"]
+center_affiliations: ["{from faculty lookup -- research centers/institutes}"]
+external_affiliations: ["{from faculty lookup -- external institutions, or empty}"]
+hpc_cluster: "{from scan or empty}"
+hpc_scheduler: "{from scan or empty}"
+research_focus: "{1-2 sentence focus}"
+infrastructure:
+  compute: ["{HPC cluster names, cloud accounts, GPU access, local workstations}"]
+  containers: ["{Singularity, Docker, or empty}"]
+  platforms: ["{detected data management and research platforms, or empty}"]
+  core_facilities: ["{detected shared instrumentation and service labs, or empty}"]
+  shared_resources: ["{detected repositories, archives, registries, or empty}"]
+  licensed_software: ["{detected licensed software, or empty}"]
+statistical_conventions:
+  multiple_testing: "{FDR, Bonferroni, permutation, or empty}"
+  significance_threshold: "{0.05 or lab-specific}"
+  effect_size_metrics: ["{log2FC, Cohen's d, odds ratio, etc.}"]
+  framework: "{frequentist, bayesian, both, or empty}"
+  power_convention: "{lab standard or empty}"
+style_conventions:
+  accent_palette: "{palette name or empty -- inherits vault theme}"
+  figure_dimensions: "{e.g. single-column 3.5in, full-width 7in, or empty}"
+  journal_targets: ["{primary target journals}"]
+created: {today}
+updated: {today}
+tags: [lab]
+---
+```
+
+The body should list the lab's projects and datasets. Filename becomes the `[[lab_slug-lab]]` link target.
+
+Infrastructure fields are populated from Step 2d auto-detection + Step 2g institution lookup + Step 2g lab website fetch + Step 3 user corrections. Identity and infrastructure fields (PI, institution, departments, compute, platforms, facilities, shared resources) were user-reviewed at GATE 3a. Convention fields (statistical_conventions, style_conventions, containers) were silently auto-detected and are NOT user-reviewed during onboarding -- they are included here for downstream skill use (/eda, /plot, /experiment). The `institution_profile` wiki-link points to the full institutional resource catalog at `ops/institutions/{slug}.md`. The lab's `infrastructure:` fields represent what THIS LAB actually has access to (a subset/override of the institution profile). Empty lists inherit nothing -- they signal "not available" rather than "unknown". If the user provides infrastructure info not captured by the schema, add it as a body section rather than inventing new frontmatter fields.
+
+If no institution profile was created (user skipped institution lookup), set `institution_profile: ""` (empty string).
+
+Convention fields that are empty inherit from vault defaults in `ops/config.yaml`. Per-project overrides (if any) are stored in the project note frontmatter and take precedence over lab defaults.
+
+Inform the user after creation:
+```
+Lab profile stored in projects/{lab_slug}/_index.md.
+Auto-detected conventions (stats, style, containers) included -- review and edit anytime.
+Per-project overrides go in individual project notes.
+Run /onboard --update to re-scan and refresh.
+```
+
+### 5c. Update projects/_index.md
+
+For each NEW project, append a row to the appropriate lab section table in `projects/_index.md`.
+
+Row format (matching existing convention):
+```
+| [[{tag}]] | {PI} | {languages, comma-separated} | {HPC info or --} | {one-line summary} |
+```
+
+If `projects/_index.md` does not exist, it should have been created in Step 0 Bootstrap. If the lab section does not exist within the file, create it:
+```markdown
+### {Lab Name}
+
+| Project | PI | Language | HPC | Summary |
+|---|---|---|---|---|
+| [[{tag}]] | {PI} | {languages} | {HPC or --} | {summary} |
+```
+
+Insert new lab sections before the `## Maintenance` line.
+
+### 5d. Data Inventory
+
+For each NEW project that has identifiable datasets (data/ directory is non-empty, or data described in CLAUDE.md or scan):
+
+**Summary Table row** -- append to the Summary Table in `_research/data-inventory.md`:
+```
+| **{Dataset Name}** | {Lab} | {Domain} | {Data layers} | {N or TBD} | {Species} | {Access status} | {Location/project} |
+```
+
+**Data Layer Coverage Matrix row** -- append to the Data Layer Coverage Matrix in `_research/data-inventory.md`. Column headers come from `ops/config.yaml` `data_layers` list (e.g., Genomics, Transcriptomics, Proteomics, etc. for bioinformatics; other domains define their own). Each cell is either the specific subtype detected (e.g., "Bulk RNA-seq", "SomaScan") or `--`:
+```
+| {Dataset Name} | {layer1 value or --} | {layer2 value or --} | ... |
+```
+
+**Display rule:** The per-dataset coverage matrix is written to `_research/data-inventory.md` but NEVER displayed verbosely in onboard output. Instead, display the compressed lab-level summary (see Step 7 summary format).
+
+**Detailed Inventory entry** -- append under the appropriate lab heading in the Detailed Inventory section:
+```markdown
+#### {Dataset Name}
+
+- **Project:** [[{tag}]]
+- **Path:** `{project_path}`
+- **Source:** {from scan or CLAUDE.md}
+- **N:** {sample count or TBD}
+- **Data types:** {data layers and specifics}
+- **Status:** {current status}
+```
+
+Use the exact column format of existing entries. Do not reformat existing content.
+
+### 5g. Update self/goals.md
+
+Append new entries to the `## Active Threads` section:
+```
+- {Lab Name} onboarded -- {N} projects registered, linked to {goals or "no goals yet"}
+```
+
+If new research goals were created, add them under `## Active Research Goals` following the existing format:
+```
+### [[{goal-slug}]] -- {goal title}
+**Scope:** {from user input}
+**Status:** Newly created. Next: /literature search + /generate hypotheses.
+```
+
+### 5h. Update ops/reminders.md
+
+Add follow-up items only for genuinely incomplete work. Do not add boilerplate reminders for fully onboarded projects.
+
+Examples of actionable reminders:
+```
+- [ ] {today}: Complete data inventory for {project} -- detailed entry needed
+- [ ] {today}: Run /reflect to connect new {lab} projects to existing claims
+- [ ] {today}: Apply for {dataset/resource} access -- needed for {goal}
+```
+
+Skip reminders for projects that are fully onboarded with no gaps.
+
+---
+
+## Step 6: Verify
+
+Run validation on all created artifacts:
+
+### 6a. Schema check
+For each created project note, verify required YAML fields are present:
+- type, title, project_tag, lab, pi, status, project_path, language, hpc_path, scheduler, linked_goals, linked_hypotheses, linked_experiments, has_claude_md, has_git, has_tests, created, updated, tags
+
+### 6b. Link health
+Check that all `[[wiki-links]]` in created/modified files resolve to real files:
+```bash
+# Extract wiki-links from new files and check each resolves
+```
+
+### 6c. Index sync
+Verify every new project note has a corresponding row in `projects/_index.md`.
+
+### 6d. Symlink check
+Verify each `_dev/{tag}` symlink exists and points to a valid directory:
+```bash
+ls -la _dev/{tag}
+```
+
+### 6e. Data inventory consistency
+Every project with a non-empty data/ directory should have at least a Summary Table entry in `_research/data-inventory.md`.
+
+### 6f. Institution profile consistency
+If `institution_profile` is set (non-empty) in the lab entity node, verify `ops/institutions/{slug}.md` exists. If the file is missing, warn:
+```
+WARN: Lab references institution profile [[{slug}]] but ops/institutions/{slug}.md not found.
+```
+
+Report any issues found. If all pass:
+```
+Verification: all checks passed.
+```
+
+---
+
+## Step 7: Summary Report
+
+Output a summary of everything done:
+
+```
+=== /onboard Summary ===
+
+Lab: {lab name} ({lab path})
+Mode: {full | incremental | single-add}
+
+Institution profile: {institution name or "none"}
+  - ops/institutions/{slug}.md  {(newly created) or (loaded from cache)}
+
+Projects registered: {N}
+{list with tags and one-line summaries}
+
+Data inventory entries added: {N}
+
+Data coverage (by lab):
+  {Lab1}:  {Layer1} ({count}), {Layer2} ({count}), ...
+  {Lab2}:  {Layer1} ({count}), ...
+  Gaps:    {data layers from config with zero datasets across all labs}
+
+Research goals created: {N} ({list or "none"})
+Symlinks created: {N}
+Internal docs linked: {N across M projects}
+
+Follow-up reminders added:
+{list}
+
+=== Quick Orientation ===
+
+Your vault now has {N} projects across {M} labs. Here is how to navigate:
+
+  projects/{lab}/_index.md     Lab profiles with project links
+  _research/data-inventory.md  Cross-lab data coverage matrix
+  _research/goals/             Research goals (seeded by /init)
+  notes/                       Knowledge claims (populated by /init, /reduce, /literature)
+
+The knowledge graph is currently empty (0 claims). /init will create
+your first claims in four layers:
+
+  Orientation   -- what you study (core research questions as propositions)
+  Methodology   -- how you study it (analytical methods, their assumptions)
+  Confounders   -- what could fool you (technical and biological confounders)
+  Inversions    -- what would prove you wrong (falsification conditions)
+
+These four layers are the foundation everything else builds on. A graph
+with only orientation claims affirms without questioning -- the full
+four-layer structure reflects the falsificationist stance that makes
+the system useful.
+
+=== What's Next ===
+
+>> /init                                              [START HERE]
+   Seeds all four claim layers for your research goals. The goals
+   created during this onboarding session will appear as seeding
+   targets. Without this step, the knowledge graph has no foundation.
+
+Then, in any order:
+  /literature -- search for papers in your research domains
+  /reduce on CLAUDE.md files -- extract knowledge from project docs
+
+After seeding and literature:
+  /reflect -- connect claims to each other and update topic maps
+  /research -- begin the hypothesis generation loop
+
+=== End Summary ===
+```
+
+---
+
+## Handoff Mode
+
+If `--handoff` was included in arguments, append RALPH HANDOFF block after the summary:
+
+```
+=== RALPH HANDOFF: onboard ===
+Target: {lab path}
+
+Work Done:
+- Scanned {lab path}: found N projects (M new, K current)
+- Institution profile: {institution name or "skipped"} (ops/institutions/{slug}.md)
+- Created project notes: {list}
+- Updated data-inventory.md: {N entries added}
+- Created research goals: {list or "none"}
+- Updated self/goals.md, projects/_index.md
+
+Files Modified:
+- ops/institutions/{slug}.md  {CREATE or "loaded from cache"}
+- {list of all files created/modified with action: CREATE or EDIT}
+
+Learnings:
+- [Friction]: {any friction encountered} | NONE
+- [Surprise]: {any surprises} | NONE
+- [Methodology]: {any methodology insights} | NONE
+
+Queue Updates:
+- Suggest: /init to seed knowledge graph for newly created research goals [PRIORITY]
+- Suggest: /literature to search for papers in new research domains
+- Suggest: /reduce on CLAUDE.md files for detailed knowledge extraction
+- Suggest: /reflect to connect new claims to existing graph
+=== END HANDOFF ===
+```
+
+---
+
+## Error Handling
+
+| Error | Behavior |
+|-------|----------|
+| Lab path does not exist | Report error with path checked, ask for correct path |
+| No projects detected in path | Report what was scanned and indicators checked, ask if path is correct |
+| CLAUDE.md parse failure | Log warning, fall back to filesystem detection only |
+| Project already registered | Show as CURRENT in diff, skip unless mode is --update with changes |
+| data-inventory.md missing | Create from `_code/templates/data-inventory.md` with today's date |
+| self/goals.md missing | Create with `## Active Threads` and `## Active Research Goals` sections (see Step 0 Bootstrap) |
+| projects/_index.md missing | Create with `# Projects` heading and `## Maintenance` section (see Step 0 Bootstrap) |
+| ops/reminders.md missing | Create from `_code/templates/reminders.md` |
+| _dev/ directory missing | Create with `mkdir -p _dev` |
+| _dev/ symlink already exists pointing to same target | Skip silently (idempotent) |
+| _dev/ symlink exists pointing to different target | Warn user, ask before overwriting |
+| Research goal already exists | Link project to existing goal instead of creating duplicate |
+| projects/{lab}/ directory missing | Create with `mkdir -p` |
+| Permission denied on symlink | Report error, suggest manual creation, continue with remaining artifacts |
+| Flat structure detected | Offer restructuring options (Step 1), do not silently flatten or nest |
+| Restructure move fails (permission, existing target) | Report which moves failed, ask user to resolve manually, continue with successful moves |
+| No conventions detected from code | Report "no conventions detected" in Lab Profile, accept user corrections in Step 3 |
+| /learn fails during institution lookup | Log warning, skip institution profile, continue with filesystem-detected infrastructure only |
+| Institution not determinable | Use AskUserQuestion; if skipped, proceed without institution profile |
+| ops/institutions/ directory missing | Create with `mkdir -p ops/institutions` |
+
+---
+
+## Convention Inheritance Model
+
+Statistical and style conventions follow a three-level inheritance chain:
+
+```
+Vault defaults (ops/config.yaml)
+  -> Lab defaults (projects/{lab}/_index.md frontmatter)
+    -> Project overrides (projects/{lab}/{tag}.md frontmatter)
+```
+
+**Resolution rule:** Skills that consume conventions (/eda, /plot, /experiment, /generate) resolve in order: project -> lab -> vault. First non-empty value wins.
+
+**What lives where:**
+
+| Level | Stored in | Set by | Example |
+|-------|-----------|--------|---------|
+| Vault | `ops/config.yaml` under `conventions:` | /setup, manual edit | Default alpha=0.05, vault plot theme |
+| Lab | `projects/{lab}/_index.md` `statistical_conventions` / `style_conventions` | /onboard Step 2d | Lab prefers FDR, single-column 3.5in figures |
+| Project | `projects/{lab}/{tag}.md` (optional override fields) | /onboard Step 3 corrections or manual | Project targets Nature (specific figure format) |
+
+**Multi-lab considerations:**
+- A central vault with multiple labs is ideal when there is domain overlap -- cross-lab synthesis is the primary value.
+- If labs have zero domain overlap, separate vaults with /federation-sync may be a better fit.
+- Research goals can be lab-specific (`linked_labs: ["smith"]`) or cross-lab (`linked_labs: ["smith", "jones"]`). An empty list means vault-wide.
+- /init seeds domain knowledge per goal (`/init {goal-name}` targets a specific goal; goals are already lab-scoped via `linked_labs` frontmatter). Vault-level methodology seeds run once.
+- /literature searches are scoped by research goal (already goal-specific). Results benefit all labs in the vault through /reflect and /reweave.
+- /tournament can run within a goal (lab-scoped) or vault-wide for cross-domain hypothesis comparison.
+
+---
+
+## Critical Constraints
+
+- **User approval before writes.** The Step 5 batch approval is the single gate. Never silently create artifacts.
+- **Match existing conventions exactly.** Project notes go in `projects/{lab_slug}/`. Index uses the existing table format. Data inventory uses existing column format.
+- **Idempotent.** Running /onboard twice on the same lab produces no duplicate artifacts.
+- **No CLAUDE.md content duplication.** Project notes use `![[_dev/{tag}/CLAUDE.md]]` transclusion, not copied content.
+- **Wiki-link integrity.** Every link created must resolve. Verify before finishing.
+- **YAML safety.** Double-quote all string values in frontmatter.
+- **No slash in tags or titles.** Use hyphens: `smith-lab` not `smith/lab`.
+
+---
+
+## Why This Skill Exists
+
+Onboarding a lab manually requires running /project per project, hand-editing data-inventory.md, creating research goals individually, and manually wiring everything together. This skill automates the full flow through hybrid detection (filesystem scanning + convention mining + structured interview), producing all vault artifacts in one pass. It also supports incremental re-runs when new projects or datasets arrive. The streamlined flow (~3-4 user interactions for a typical lab) prevents interview fatigue while preserving all artifact generation capability.
+
+## Skill Graph
+
+Invoked by: user (standalone), /ralph (delegation)
+Invokes: /learn (institution resource lookup)
+Suggests next: /init (knowledge seeding -- primary), /literature, /reduce, /reflect
+Reads: projects/, _research/data-inventory.md, _research/goals/, self/goals.md, ops/reminders.md, ops/config.yaml, filesystem
+Writes: projects/, _research/data-inventory.md, _research/goals/, self/goals.md, ops/reminders.md, projects/_index.md, _dev/ symlinks, ops/institutions/

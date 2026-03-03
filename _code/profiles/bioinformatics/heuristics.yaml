@@ -1,0 +1,19 @@
+# Tool/file -> data layer inference rules for /onboard auto-detection
+file_extensions:
+  ".bam": "Genomics"
+  ".vcf": "Genomics"
+  ".fastq": "Genomics"
+  ".bed": "Epigenomics"
+  ".bigwig": "Epigenomics"
+
+tool_references:
+  "DESeq2": "Transcriptomics"
+  "edgeR": "Transcriptomics"
+  "limma": "Transcriptomics"
+  "Seurat": "scRNA-seq"
+  "Scanpy": "scRNA-seq"
+  "MaxQuant": "Proteomics"
+  "GATK": "Genomics"
+  "bismark": "Epigenomics"
+  "QIIME": "Metagenomics"
+  "metaphlan": "Metagenomics"

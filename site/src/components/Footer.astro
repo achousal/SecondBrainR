@@ -1,0 +1,36 @@
+---
+const base = import.meta.env.BASE_URL;
+
+const links = [
+  { label: "Docs", url: `${base}docs/` },
+  { label: "About", url: `${base}about/` },
+  { label: "GitHub", url: "https://github.com/achousal/EngramR" },
+  { label: "Ars Contexta", url: "https://github.com/agenticnotetaking/arscontexta" },
+  { label: "Claude Code", url: "https://docs.anthropic.com/en/docs/claude-code" },
+  { label: "Obsidian", url: "https://obsidian.md/" },
+];
+---
+
+<footer class="py-16 border-t border-border">
+  <div class="max-w-4xl mx-auto px-6">
+    <div class="flex flex-col md:flex-row justify-between items-start gap-8 mb-12">
+      <div>
+        <span class="font-display text-xl font-semibold">
+          Engram<span class="text-accent">R</span>
+        </span>
+        <p class="mt-2 text-sm text-text-muted">MIT License</p>
+      </div>
+      <div class="flex flex-wrap gap-x-6 gap-y-2">
+        {links.map((link) => (
+          <a href={link.url} class="text-sm text-text-muted hover:text-text transition-colors">
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <p class="text-sm text-text-muted italic leading-relaxed max-w-xl">
+      The reactor is running. The question is which ideas to put into it.
+    </p>
+  </div>
+</footer>

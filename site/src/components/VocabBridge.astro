@@ -1,0 +1,31 @@
+---
+const columns = [
+  {
+    pipeline: "inbox/ -> /reduce -> notes/",
+    label: "Where observations become structured claims",
+  },
+  {
+    pipeline: "/generate -> /tournament -> /evolve",
+    label: "Where claims become ranked predictions",
+  },
+  {
+    pipeline: "source -> claim -> hypothesis -> experiment",
+    label: "Every step. Full chain.",
+  },
+];
+---
+
+<section class="py-20 md:py-24">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="grid md:grid-cols-3 gap-8">
+      {columns.map((col) => (
+        <div data-animate="fade-up" class="text-center">
+          <code class="block text-sm text-link font-mono mb-3 tracking-wide">
+            {col.pipeline}
+          </code>
+          <p class="text-sm text-text-muted">{col.label}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

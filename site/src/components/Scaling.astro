@@ -1,0 +1,71 @@
+---
+const tiers = [
+  {
+    title: "Solo researcher",
+    trail: "researcher",
+    items: [
+      "Personal knowledge graph of atomic claims",
+      "Literature search across PubMed, arXiv, Semantic Scholar",
+      "Hypothesis generation and self-tournament",
+      "Exploratory data analysis with themed plots",
+      "Full provenance from source to result",
+    ],
+  },
+  {
+    title: "Research team",
+    trail: "evaluator",
+    items: [
+      "Slack integration -- observations from any team member",
+      "Automatic cross-pollination of literature and bench data",
+      "Shared leaderboard ranked by scientific merit",
+      "Pre-specified analysis plans for top hypotheses",
+      "Autonomous daemon for continuous synthesis",
+    ],
+  },
+  {
+    title: "Cross-lab network",
+    trail: "developer",
+    items: [
+      "Selective knowledge graph bridging between instances",
+      "Cross-lab hypothesis tournaments on equal footing",
+      "No shared raw data required -- only claims",
+      "Surfaces scientific overlap before PIs collaborate",
+      "Each lab retains full sovereignty over its reactor",
+    ],
+  },
+];
+---
+
+<section id="scaling" class="py-24 md:py-32">
+  <div class="max-w-5xl mx-auto px-6">
+    <div data-animate="fade-up" class="mb-12 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Scales with your lab</h2>
+      <p class="text-text-muted text-lg">
+        Starts as a single-user tool. Designed for teams.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      {tiers.map((tier) => (
+        <button
+          type="button"
+          data-animate="fade-up"
+          data-trail={tier.trail}
+          class="scaling-card rounded-lg p-6 border border-border bg-surface text-left transition-colors card-shadow cursor-pointer hover:border-accent-dim"
+        >
+          <h3 class="font-display text-lg font-semibold mb-4 text-text">
+            {tier.title}
+          </h3>
+          <ul class="space-y-2">
+            {tier.items.map((item) => (
+              <li class="flex items-start gap-2 text-sm text-text-muted leading-relaxed">
+                <span class="text-accent-dim mt-0.5 shrink-0">--</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </button>
+      ))}
+    </div>
+  </div>
+</section>

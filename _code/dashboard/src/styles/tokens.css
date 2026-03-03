@@ -1,0 +1,45 @@
+:root {
+  --color-base: #09090b;
+  --color-surface: #131316;
+  --color-surface-bright: #1c1c21;
+  --color-border: #27272a;
+  --color-text: #e4e2dd;
+  --color-text-muted: #71717a;
+  --color-accent: #d4a24e;
+  --color-accent-dim: #92702e;
+  --color-link: #5ba3c9;
+  --color-link-dim: #3d7a9e;
+  --color-tension: #c75a4a;
+  --color-success: #4a9e6b;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", var(--font-sans);
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.25), 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background-color: var(--color-base);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100dvh;
+}

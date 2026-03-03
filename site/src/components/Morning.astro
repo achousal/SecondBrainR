@@ -1,0 +1,134 @@
+---
+interface Chip {
+  label: string;
+  color: "link" | "accent" | "accent-dim";
+}
+
+interface Event {
+  time: string;
+  title: string;
+  content: string;
+  quote?: string;
+  actor?: string;
+  concepts?: Chip[];
+}
+
+const events: Event[] = [
+  {
+    time: "9:02am",
+    title: "Observation",
+    content: "The tech notices something unexpected in her experiment. She sends a Slack message.",
+    quote: "Seeing unexpected protein accumulation in the treated group at 24h. Wasn't part of the original hypothesis.",
+    actor: "Lab technician",
+  },
+  {
+    time: "9:03am",
+    title: "Connection",
+    content:
+      "The reactor extracts a structured claim, tags it, and searches the knowledge graph. Three connections surface: a grad student's dataset showing the same pattern, a paper the postdoc read last week, and an existing hypothesis that predicted this -- through a different mechanism. A tension is flagged.",
+    concepts: [
+      { label: "atomic claim", color: "link" },
+      { label: "wiki-link", color: "link" },
+    ],
+  },
+  {
+    time: "9:40am",
+    title: "Cross-pollination",
+    content: "The postdoc gets a notification: a new observation was linked to a literature note he submitted last week. He didn't know anyone in the lab was generating data in this area.",
+    quote: "Her data fits the alternative pathway better. If that's the mechanism, we should see it in the longitudinal dataset we already have.",
+    actor: "Postdoc",
+  },
+  {
+    time: "9:45am",
+    title: "Evolution",
+    content:
+      "Evidence density crosses the threshold. The system generates an evolved hypothesis -- same core prediction, updated mechanism. It comes with a pre-specified analysis plan and statistical tests.",
+    concepts: [
+      { label: "hypothesis", color: "accent" },
+      { label: "evidence threshold", color: "accent" },
+    ],
+  },
+  {
+    time: "10:00am",
+    title: "Tournament",
+    content:
+      "The evolved hypothesis enters the tournament and debates the original head-to-head on specificity, evidence support, and testability. It wins -- three independent data sources where the original had one. Elo updates. Debate transcript stored.",
+    concepts: [
+      { label: "tournament", color: "accent" },
+      { label: "Elo", color: "accent" },
+    ],
+  },
+  {
+    time: "11:15am",
+    title: "Experiment",
+    content:
+      "The postdoc executes the analysis. The hypothesis note contains the test, the parameters, and suggested experiments. Results: two of three predictions confirmed. One inconclusive. The system logs the experiment and flags the gap.",
+  },
+  {
+    time: "11:30am",
+    title: "Feedback",
+    content:
+      "The graph updates. The hypothesis holds its rank but carries a documented weakness. Next round, that weakness is fair game.",
+    concepts: [
+      { label: "/meta-review", color: "accent-dim" },
+    ],
+  },
+];
+
+const chipColors: Record<string, string> = {
+  "link": "border-link-dim text-link",
+  "accent": "border-accent-dim text-accent",
+  "accent-dim": "border-border text-accent-dim",
+};
+---
+
+<section id="morning" class="py-24 md:py-32">
+  <div class="max-w-4xl mx-auto px-6">
+    <div data-animate="fade-up" class="mb-16">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">A morning</h2>
+      <p class="text-text-muted text-lg">
+        Two people sent messages while doing their actual work. The reactor did the rest.
+      </p>
+    </div>
+
+    <div class="space-y-0">
+      {events.map((event) => (
+        <div data-animate="fade-up" class="grid grid-cols-[5rem_1fr] md:grid-cols-[7rem_1fr] gap-4 md:gap-8">
+          <div class="pt-6">
+            <span class="font-mono text-sm text-accent font-medium">{event.time}</span>
+          </div>
+          <div class="border-l border-accent-dim pl-6 md:pl-8 pb-8 pt-6">
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <h3 class="text-sm font-medium text-text-muted uppercase tracking-wider">
+                {event.title}
+              </h3>
+              {event.concepts?.map((chip) => (
+                <span class:list={["vocab-chip", chipColors[chip.color]]}>
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+            <p class="text-text leading-relaxed mb-3">{event.content}</p>
+            {event.quote && (
+              <blockquote class="border-l-2 border-border pl-4 text-text-muted italic">
+                <p>"{event.quote}"</p>
+                {event.actor && (
+                  <cite class="block mt-1 text-sm not-italic text-accent-dim">-- {event.actor}</cite>
+                )}
+              </blockquote>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div data-animate="fade-up" class="mt-12 p-6 rounded-lg bg-surface border border-border card-shadow">
+      <p class="text-text-muted leading-relaxed mb-3">
+        One morning. Nobody stopped what they were doing. The reactor connected
+        their observations, evolved a hypothesis, debated it, ranked it, and
+        pre-specified the analysis. By late morning, results were in and feeding
+        back into the system.
+      </p>
+    </div>
+  </div>
+</section>

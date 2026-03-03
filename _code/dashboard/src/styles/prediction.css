@@ -1,0 +1,135 @@
+/* -- Prediction panel -- */
+.prediction-panel {
+  margin: 1rem 1.5rem;
+  padding: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.prediction-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.prediction-panel-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.prediction-badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* -- Probability meter -- */
+.prediction-meter-container {
+  margin-bottom: 1.25rem;
+}
+
+.prediction-meter-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+}
+
+.prediction-meter {
+  display: block;
+  max-width: 400px;
+}
+
+.prediction-meter-scale {
+  display: flex;
+  justify-content: space-between;
+  max-width: 400px;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  margin-top: 0.125rem;
+}
+
+/* -- SHAP waterfall -- */
+.shap-waterfall-container {
+  margin-top: 0.5rem;
+}
+
+.shap-waterfall-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+}
+
+.shap-waterfall {
+  display: block;
+  max-width: 480px;
+}
+
+.shap-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.shap-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.shap-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* -- Prediction file upload -- */
+.prediction-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prediction-upload-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* -- Print styles -- */
+@media print {
+  .prediction-panel {
+    background: white;
+    border-color: #ddd;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .prediction-panel-title {
+    color: black;
+  }
+
+  .prediction-meter-label,
+  .shap-waterfall-label {
+    color: #555;
+  }
+
+  .shap-legend {
+    color: #555;
+  }
+
+  .prediction-upload {
+    display: none !important;
+  }
+}

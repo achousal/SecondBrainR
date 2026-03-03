@@ -1,0 +1,1088 @@
+---
+name: init
+description: "Guided knowledge seeding for new vaults or cycle transitions. Seeds orientation claims, methodological foundations, and assumption inversions. Cycle mode generates transition summaries and refreshes inversions."
+version: "1.0"
+generated_from: "arscontexta-v1.6"
+user-invocable: true
+context: fork
+model: sonnet
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - Bash
+  - AskUserQuestion
+  - Skill
+argument-hint: "[goal-name] | --cycle | --handoff"
+---
+
+## EXECUTE NOW
+
+**Target: $ARGUMENTS**
+
+Guided knowledge seeding for new vaults or cycle transitions. Two modes based on arguments.
+
+### Step 0: Read Vocabulary and Vault State
+
+Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for domain vocabulary mapping. Then read current vault state:
+
+1. `self/goals.md` -- current Active Threads and Research Goals
+2. `self/identity.md` -- agent identity and epistemic stance
+3. `self/methodology.md` -- working methodology
+
+Count existing claims:
+```bash
+ls notes/*.md 2>/dev/null | wc -l
+```
+
+Store as CLAIM_COUNT.
+
+Read existing research goals:
+```bash
+ls _research/goals/*.md 2>/dev/null
+```
+
+**Note:** All relative paths in Bash commands are relative to the vault root (repository root).
+
+**START NOW.** Parse arguments and begin.
+
+---
+
+## Step 1: Mode Selection
+
+Parse `$ARGUMENTS` to determine mode:
+
+| Input | Mode | Behavior |
+|-------|------|----------|
+| (empty) | seed | Interactive goal selection, full seeding pipeline |
+| `{goal-name}` | seed | Direct seeding for named goal |
+| `--cycle` | cycle | Cycle transition summary and inversion refresh |
+| `--handoff` (appended) | any + handoff | Run chosen mode, output RALPH HANDOFF at end |
+
+### Route to mode
+
+- If arguments contain `--cycle`, go to **CYCLE MODE** (Step C0).
+- Otherwise, go to **SEED MODE** (Step S1).
+
+---
+
+# ============================================================
+# SEED MODE -- Knowledge Seeding for New or Expanding Vaults
+# ============================================================
+
+## Step S1: Re-init Detection
+
+If CLAIM_COUNT > 0:
+
+Present to user via AskUserQuestion:
+
+```
+Your vault already has {CLAIM_COUNT} claims. /init is designed for early-stage knowledge seeding.
+
+What would you like to do?
+```
+
+Options:
+1. **Seed a new goal** -- "Add orientation claims for a goal that lacks foundational seeding"
+2. **Full re-seed** -- "Generate orientation, methodology, and inversion claims from scratch (existing claims preserved)"
+3. **Cancel** -- "Exit without changes"
+
+If "Cancel", stop with:
+```
+/init cancelled. No changes made.
+```
+
+If CLAIM_COUNT == 0, proceed directly (no detection needed).
+
+---
+
+## Step S2: Infrastructure Check
+
+Verify core vault infrastructure exists:
+
+```bash
+ls _research/goals/ self/goals.md _research/data-inventory.md projects/_index.md 2>/dev/null
+```
+
+If ANY are missing, warn:
+
+```
+Missing infrastructure:
+- {list missing files}
+
+Recommendation: Run /onboard first to create project structure, then return to /init for knowledge seeding.
+
+Continue anyway? (This will only create claims in notes/, not project infrastructure.)
+```
+
+Use AskUserQuestion. If user says stop, exit. If continue, proceed with available state.
+
+---
+
+## Step S3: Goal Selection
+
+If a goal name was provided as argument, look it up in `_research/goals/`:
+
+```bash
+ls _research/goals/*{goal-name}*.md 2>/dev/null
+```
+
+If found, read it and proceed to Phase 2 with that single goal.
+
+If no argument provided, read all goals from `_research/goals/`:
+
+Present goals via AskUserQuestion (multiSelect: true). List each goal from `_research/goals/` as an option (title from frontmatter or filename). The built-in "Other" option lets users type a custom goal.
+
+Prompt text:
+```
+Pick goals to seed, or type your own (e.g., "batch effect correction across platforms").
+You can select multiple, type a custom goal, or say "all".
+```
+
+If user types a custom description via "Other", look up or create a matching goal file in `_research/goals/` before proceeding.
+
+Store selections as SELECTED_GOALS.
+
+---
+
+## Phase 2: Domain Orientation (per goal)
+
+**Purpose:** Establish the 3-5 core questions each research goal addresses. These become the structural foundation that all later claims connect to.
+
+For each goal in SELECTED_GOALS:
+
+### 2a. Read goal context
+
+Read the goal file from `_research/goals/{goal-slug}.md`. Read existing hypotheses for this goal:
+
+```bash
+grep -l "{goal-slug}" _research/hypotheses/*.md 2>/dev/null | head -20
+```
+
+Read the latest meta-review if available:
+
+```bash
+ls -t _research/meta-reviews/*{goal-slug-fragment}*.md 2>/dev/null | head -1
+```
+
+### 2b. Interview: Core Questions
+
+Ask user via AskUserQuestion:
+
+```
+For the goal "{goal title}":
+
+What are the 3-5 core scientific questions this research program addresses?
+
+Each should be a question that, if answered, would substantially advance the goal.
+Write them as complete questions. Suggest 2-3 examples tailored to the goal so the user sees how their projects map to research questions.
+```
+
+Accept free-text response. Parse into individual questions.
+
+### 2c. Demo Claim Walkthrough
+
+**Purpose:** Before batch-generating orientation claims, walk the user through composing ONE claim interactively. This shifts the user's first generative act earlier in the process -- building one thing teaches more than reviewing thirty.
+
+Take the FIRST core question from Step 2b. Present to the user:
+
+```
+Let's turn your first core question into a claim together.
+
+Question: "{first core question}"
+
+A claim is a prose proposition -- a complete thought that someone could agree or disagree with.
+The title IS the concept.
+Test: "This claim argues that [title]" must work as a sentence.
+
+Example:
+  Question: "Does p-tau217 classify amyloid positivity accurately?"
+  Claim title: "plasma ptau217 classifies amyloid positivity despite CKD confounding"
+```
+
+Use AskUserQuestion to collect the demo claim fields in a single interaction:
+
+```
+For your question: "{first core question}"
+
+1. Title: Write a propositional title (a claim someone could argue for or against).
+   Test: "This claim argues that ___" must read as a sentence.
+
+2. Description: One sentence adding context beyond the title (~150 chars).
+   It should add scope, mechanism, or implication -- not restate the title.
+
+3. Confidence: How strong is the evidence?
+   - established: replicated, consensus
+   - supported: multiple lines of evidence, not yet consensus
+   - preliminary: early evidence, plausible
+   - speculative: theoretically motivated, untested
+```
+
+Present as free-text AskUserQuestion. Parse the user's response into title, description, and confidence fields.
+
+**Construct the demo claim:**
+
+Apply all standard claim conventions:
+- Sanitize title for filename: lowercase, replace spaces with `-`, remove forbidden chars (/ \ : * ? " < > | . + [ ] ( ) { } ^)
+- Verify wiki-link targets exist before including them
+- Identify the relevant topic map from the goal's research area
+
+```yaml
+---
+description: "{user's description}"
+type: claim
+role: orientation
+confidence: {user's chosen level}
+source_class: synthesis
+verified_by: agent
+created: {today YYYY-MM-DD}
+---
+```
+
+Body: incorporate the user's framing into 2-3 sentences. Add inline [[wiki-links]] only to verified existing targets.
+
+```markdown
+{2-3 sentence argument based on user's framing, with verified [[wiki-links]].}
+
+---
+
+Topics:
+- [[{relevant-topic-map}]]
+```
+
+Present the fully constructed claim to the user for approval:
+
+```
+Here is your first claim:
+
+File: notes/{sanitized-title}.md
+Title: {title} (passes test: "This claim argues that {title}")
+Description: {description}
+Confidence: {confidence}
+Topic map: {topic-map}
+
+[Full claim preview]
+
+Approve, edit, or skip?
+```
+
+Use AskUserQuestion with options: Approve, Edit, Skip.
+
+**If approved:** Write to `notes/{sanitized-title}.md`. Add to CLAIMS_CREATED and ORIENTATION_CLAIMS lists.
+
+**If user edits:** Apply edits and re-present for approval.
+
+**If user skips:** Proceed to Step 2d with all core questions (no demo claim created). No penalty.
+
+**Transition to batch generation:** The demo claim counts as the first orientation claim for this goal. Step 2d generates orientation claims for the REMAINING core questions only (excluding the one used for the demo claim, whether approved or skipped after editing).
+
+---
+
+### 2d. Generate Orientation Claims
+
+For each remaining core question (excluding any addressed by the demo claim in Step 2c), generate ONE orientation claim that frames the question as a testable proposition. These are the structural anchors for the graph.
+
+**Claim construction rules:**
+- Title: prose-as-title, a complete proposition framing the question (e.g., "early intervention reduces long-term outcome severity in high-risk populations")
+- Title must NOT contain: `/ \ : * ? " < > | . + [ ] ( ) { } ^`
+- Use `-` instead of `/` in compound terms: `input-output`, `pre-post`, `v2-0`
+- Description: one sentence adding scope, mechanism, or implication beyond the title (max 200 chars)
+- Body: 2-4 sentences explaining the scientific reasoning, with inline wiki-links to any relevant existing claims or hypotheses
+
+**YAML frontmatter:**
+```yaml
+---
+description: "{context beyond title}"
+type: claim
+role: orientation
+confidence: preliminary
+source_class: synthesis
+verified_by: agent
+created: {today YYYY-MM-DD}
+---
+```
+
+**Body structure:**
+```markdown
+{2-4 sentence argument with inline [[wiki-links]] to relevant existing claims or hypotheses.}
+
+---
+
+Topics:
+- [[{relevant-topic-map}]]
+```
+
+### 2e. Create Orientation Claims
+
+For each orientation claim:
+
+1. Sanitize title for filename: lowercase, replace spaces with `-`, remove forbidden chars
+2. Verify wiki-link targets exist:
+   ```bash
+   ls "notes/{target}.md" 2>/dev/null
+   ```
+   Remove links to nonexistent targets. Do NOT create dangling links.
+3. Present claim to user for approval/edit
+4. Write to `notes/{sanitized-title}.md` using the Write tool
+   - validate_write hook enforces schema automatically
+   - auto_commit hook commits to git
+5. Add to CLAIMS_CREATED tracking list
+
+Store orientation claims as ORIENTATION_CLAIMS (title list) for Phase 3 and 4 reference.
+
+**Do NOT pause or present a summary here.** Phases 3, 4, and 5 are mandatory continuation steps, not optional. Proceed directly to Phase 3.
+
+**PHASE TRACKING:** Set PHASE_2_COMPLETE = true. The following phases are MANDATORY:
+- Phase 3: Methodology + Confounders + Data Realities (uses ORIENTATION_CLAIMS as input)
+- Phase 4: Assumption Inversions (uses ORIENTATION_CLAIMS as input)
+- Phase 5: Graph Wiring + Summary (verifies all phases completed)
+
+Skipping to Phase 5 without completing Phase 3 and Phase 4 is a SKILL EXECUTION ERROR. The graph MUST contain methodology, confounder, and inversion claims alongside orientation claims. Orientation-only seeding produces a graph that affirms without questioning -- this violates the vault's falsificationist epistemic stance.
+
+---
+
+## Phase 3: Methodological Seeding (shared across goals)
+
+**Purpose:** Seed cross-cutting methodological knowledge -- confounders, data realities, analytical requirements. This is NOT per-goal; it captures shared analytical infrastructure.
+
+Phase 3 runs ONCE, after all goals complete Phase 2. It uses Phase 2 orientation claims as worked examples.
+
+### 3.pre Vault State Scan
+
+**Silent step -- no user interaction.** Scan vault artifacts created by /onboard to pre-populate Phase 3 interviews.
+
+**Read the following sources (skip silently if missing):**
+
+1. **Lab conventions:** Read `projects/*/_index.md`. Extract `statistical_conventions.*` (framework, multiple_testing, effect_size_metrics) and `infrastructure.*` (core_facilities, HPC). Store as `LAB_CONVENTIONS`.
+
+2. **Project metadata:** Read `projects/*/*.md` (excluding `_index.md`). Extract `language`, `linked_goals` fields from frontmatter. Store as `PROJECT_META`.
+
+3. **Data inventory:** Read `_research/data-inventory.md`. Parse the Summary Table rows (columns: Dataset, Species, Omic Layer, N, Access, Goal Link). Store as `DATA_INVENTORY`.
+
+4. **Code tools:** Read first ~60 lines of `_code/src/engram_r/plot_stats.py` and `_code/R/stats_helpers.R`. Detect available statistical test types, plot types, and helper functions. Store as `CODE_TOOLS`.
+
+**Set flag:** `VAULT_INFORMED = true` if ANY source yielded non-empty data. Otherwise `VAULT_INFORMED = false`.
+
+### 3a. Analytical Method Claims
+
+**If `VAULT_INFORMED`:**
+
+Draft 2-4 analytical method claims from vault state:
+- `LAB_CONVENTIONS.statistical_conventions` -> framework, multiple testing correction, effect size metrics
+- `CODE_TOOLS` -> available analysis methods, test designs, plot types
+- `PROJECT_META.language` -> R/Python tool ecosystem and associated libraries
+
+Present as a table with source attribution:
+
+```
+Drafted analytical methods from vault state:
+
+| # | Method Claim (draft title) | Source |
+|---|---------------------------|--------|
+| 1 | {draft title}             | {e.g., "lab conventions: framework = mixed-effects regression"} |
+| 2 | {draft title}             | {e.g., "code tools: statistical test wrapper in analysis_helpers.py"} |
+| ...                                                    |
+
+Confirm, adjust, or add domain-specific methods not captured above.
+```
+
+Use AskUserQuestion to let the user confirm, adjust specific drafts, or add methods the scan missed.
+
+**Else (vault empty / no onboard data):**
+
+Ask user:
+
+```
+What analytical methods or techniques are central to your research program?
+
+Think about: statistical frameworks, data processing pipelines, measurement technologies, computational tools.
+
+List 2-4 methods that most of your hypotheses depend on.
+```
+
+**In either case**, for each method (confirmed or user-provided), generate ONE methodology claim:
+
+```yaml
+---
+description: "{what this method enables or constrains}"
+type: methodology
+role: methodology
+confidence: supported
+source_class: synthesis
+verified_by: agent
+created: {today YYYY-MM-DD}
+---
+```
+
+Body: 2-3 sentences on why this method matters, its key assumptions, and known limitations. Link to relevant orientation claims from Phase 2.
+
+### 3b. Compositional Confounder Claims
+
+This is the key innovation of /init: using Phase 2 claims as concrete anchors for confounder identification.
+
+For EACH orientation claim in ORIENTATION_CLAIMS:
+
+**If `VAULT_INFORMED`:**
+
+Read domain profile `confounders.yaml` if active (`_code/profiles/{domain.name}/confounders.yaml`). Use its data_layer -> confounders mapping. If no profile is active, interview the user for confounders per data layer.
+
+Match data layer from `DATA_INVENTORY` rows to each orientation claim via its linked goal or domain keywords. Refine confounder selection using these additional signals:
+- `DATA_INVENTORY.N` -- small N (< 50) -> inadequate power to detect or adjust for confounders
+- `DATA_INVENTORY.Access` -- restricted/pending -> selection bias risk
+- `LAB_CONVENTIONS.infrastructure.core_facilities` -- facility-specific batch artifacts
+
+Present drafted confounders per claim:
+
+```
+For claim: "{orientation claim title}"
+Matched omic layer: {layer from DATA_INVENTORY}
+
+| # | Confounder (draft) | Source |
+|---|-------------------|--------|
+| 1 | {draft confounder title} | {e.g., "canonical confounder for matched data layer"} |
+| 2 | {draft confounder title} | {e.g., "data inventory: N=28 -> power limitation"} |
+| ...                                                   |
+
+Confirm, adjust, or add confounders specific to your system.
+```
+
+Use AskUserQuestion for each claim to let the user confirm, adjust, or add domain-specific confounders.
+
+**Else (vault empty / no onboard data):**
+
+Ask:
+
+```
+Looking at the claim: "{orientation claim title}"
+
+What could explain the expected results OTHER than the hypothesis?
+Consider: technical confounders (batch effects, platform artifacts), biological confounders (age, sex, comorbidities), and analytical confounders (multiple testing, selection bias).
+
+Name 1-2 specific confounders.
+```
+
+**In either case**, for each confounder (confirmed or user-provided), generate a claim:
+
+```yaml
+---
+description: "{how this confounder operates and why it matters}"
+type: claim
+role: confounder
+confidence: supported
+source_class: synthesis
+verified_by: agent
+created: {today YYYY-MM-DD}
+---
+```
+
+Title pattern: "{confounder} confounds {measurement or inference} in {context}"
+Example: "batch processing date confounds signal intensity measurements in longitudinal cohort studies"
+
+Body: 2-3 sentences explaining the confounding mechanism, with inline [[wiki-links]] to the orientation claim it threatens.
+
+### 3c. Data Reality Claims
+
+**If `VAULT_INFORMED`:**
+
+Draft 2-3 data reality claims from `DATA_INVENTORY`:
+- **Sample sizes:** N values < 50 -> power constraint claim. N = "TBD" -> unknown sample size claim.
+- **Access barriers:** "Pending IRB", "Pending DUA", "Restricted" -> timeline/access constraint claim.
+- **Coverage gaps:** `--` entries in the Omic Coverage Matrix -> missing modality claim.
+- **Context-specific constraints:** Read domain profile `data_reality_signals` if active. Otherwise use generic context-specific constraints from data inventory Context column.
+
+Present as a categorized list:
+
+```
+Drafted data reality claims from inventory:
+
+Sample sizes:
+  - {draft title, e.g., "small sample size in {dataset} limits power for {analysis}"} (source: N={value})
+
+Access barriers:
+  - {draft title, e.g., "pending IRB approval delays {dataset} availability"} (source: Access={status})
+
+Coverage gaps:
+  - {draft title, e.g., "missing data modality prevents cross-method integration for {goal}"} (source: coverage matrix)
+
+Confirm, adjust, or add data realities not captured above.
+```
+
+Use AskUserQuestion to let the user confirm, adjust, or add constraints the scan missed.
+
+**Else (vault empty / no onboard data):**
+
+Ask user:
+
+```
+What are the practical data constraints across your research program?
+
+Think about: sample sizes, missing data patterns, platform limitations, cohort access barriers, pre-analytical variables.
+
+List 2-3 data realities that affect multiple hypotheses.
+```
+
+**In either case**, for each data reality (confirmed or user-provided), generate ONE claim with `type: claim`, `role: data-reality`, and `confidence: supported`. Title pattern: "{data limitation} constrains {what it limits}".
+
+### 3d. Write Methodological Claims
+
+For each claim in Phase 3 (methods + confounders + data realities):
+
+1. Follow the same creation procedure as Phase 2 (sanitize, verify links, present, write)
+2. Add to CLAIMS_CREATED list
+3. Ensure each claim has a `Topics:` footer linking to a relevant topic map
+
+---
+
+## Phase 4: Assumption Inversions (per goal)
+
+**Purpose:** For each orientation claim from Phase 2, generate an explicit inversion -- "what would convince you this is wrong?" This builds falsification thinking into the graph from day one.
+
+For each goal in SELECTED_GOALS, and for each orientation claim created for that goal:
+
+### 4a. Generate Inversion
+
+Ask user:
+
+```
+For the claim: "{orientation claim title}"
+
+What would convince you this claim is WRONG?
+What evidence, result, or observation would falsify this?
+```
+
+### 4b. Create Inversion Claim
+
+Generate a claim that articulates the falsification condition:
+
+```yaml
+---
+description: "{what the falsification scenario implies}"
+type: claim
+role: inversion
+confidence: speculative
+source_class: synthesis
+verified_by: agent
+created: {today YYYY-MM-DD}
+---
+```
+
+Title pattern: a proposition that, if true, falsifies the parent claim.
+Example: If orientation is "increased measurement variance predicts system failure before observable symptoms", the inversion might be "measurement variance increases reflect instrument degradation rather than meaningful change in the system under study".
+
+Body: 2-3 sentences explaining how this inversion would be tested and what it would mean for the research program. MUST include an inline wiki-link to the parent orientation claim:
+
+```markdown
+This inversion challenges [[{parent orientation claim}]] by proposing...
+
+If true, this would require {consequence for the research program}.
+
+---
+
+Topics:
+- [[{relevant-topic-map}]]
+```
+
+### 4c. Write Inversions
+
+Follow the same creation procedure. Add to CLAIMS_CREATED.
+
+---
+
+## Phase 5: Graph Wiring and Summary
+
+### 5a. Phase Completion Gate
+
+Count claims in CLAIMS_CREATED by role:
+- ORIENTATION_COUNT = claims with `role: orientation` (from Phase 2)
+- METHODOLOGY_COUNT = claims with `role: methodology` (from Phase 3a)
+- CONFOUNDER_COUNT = claims with `role: confounder` (from Phase 3b)
+- DATA_REALITY_COUNT = claims with `role: data-reality` (from Phase 3c)
+- INVERSION_COUNT = claims with `role: inversion` (from Phase 4)
+
+**Hard gate -- if METHODOLOGY_COUNT == 0 AND CONFOUNDER_COUNT == 0 AND INVERSION_COUNT == 0:**
+
+```
+ERROR: Phases 3 and 4 did not execute. The knowledge graph requires
+methodology, confounder, and inversion claims alongside orientation claims.
+
+Current counts:
+  Orientation:    {ORIENTATION_COUNT}
+  Methodology:    0
+  Confounders:    0
+  Data realities: {DATA_REALITY_COUNT}
+  Inversions:     0
+
+This is NOT optional. Return to Phase 3 and execute it now.
+Do NOT produce a summary report until all phases have run.
+```
+
+Return to Phase 3 and execute. Do NOT proceed to 5b.
+
+**Soft gate -- if total claims < 6:**
+
+```
+Note: Only {N} claims were created. A well-seeded knowledge graph typically has at least 6 foundation claims.
+
+Consider running /init again with additional goals, or use /seed + /reduce to add literature-derived claims.
+```
+
+### 5b. Topic Map Updates
+
+For each topic map referenced in the created claims:
+
+1. Check if the topic map exists: `ls "notes/{topic-map-name}.md" 2>/dev/null`
+2. If it exists, read it and append new claims to the appropriate role section. Group claims by their `role` field:
+   - `role: orientation` -> `## Core Ideas (Orientation)` section
+   - `role: methodology` -> `## Methodology` section
+   - `role: confounder` -> `## Confounders` section
+   - `role: data-reality` -> `## Data Realities` section (create if not present)
+   - `role: inversion` -> `## Inversions` section (create if not present)
+
+   Format for each entry:
+   ```
+   - [[{claim title}]] -- {context phrase explaining relevance}
+   ```
+
+3. If it does NOT exist and 5+ claims reference this topic, create it using `_code/templates/topic-map.md` schema:
+
+   ```yaml
+   ---
+   description: "{scope of this topic map}"
+   type: moc
+   created: {today YYYY-MM-DD}
+   ---
+   ```
+
+   Populate with role-grouped sections:
+
+   ```markdown
+   ## Core Ideas (Orientation)
+   - [[{orientation claim}]] -- {context}
+
+   ## Methodology
+   - [[{methodology claim}]] -- {context}
+
+   ## Confounders
+   - [[{confounder claim}]] -- {context}
+
+   ## Inversions
+   - [[{inversion claim}]] -- {context}
+
+   ## Open Questions
+   ```
+
+   Only include sections that have at least one claim. The role structure makes the graph's epistemic layers visible in the artifacts themselves.
+
+4. If fewer than 5 claims reference a nonexistent topic map, add a `Topics:` entry pointing to the most relevant existing topic map instead. Do NOT create sparse topic maps.
+
+### 5c. Project-to-Claim Bridge
+
+**Purpose:** Wire project files to their associated research goals, connecting the two parallel namespaces (/onboard projects and /init claims).
+
+For each goal in SELECTED_GOALS:
+
+1. **Identify candidate projects.** Read lab-level index files to determine which lab owns the goal:
+   ```bash
+   grep -rl "{goal-slug}" projects/*/_index.md 2>/dev/null
+   ```
+
+   Then list all project files under matching lab directories:
+   ```bash
+   ls projects/{lab-slug}/*.md 2>/dev/null
+   ```
+
+2. **Match projects to goals.** A project matches a goal if:
+   - The project is in the same lab directory AND its research domain overlaps with the goal's scope (infer from project description, data types, or keywords in the project frontmatter)
+   - Only wire clear matches -- do NOT guess loose connections
+
+3. **Check idempotency.** For each matched project, read its frontmatter:
+   - If `linked_goals` already contains `"[[{goal-name}]]"`, skip (already wired)
+   - If `linked_goals: []`, update to `linked_goals: ["[[{goal-name}]]"]`
+   - If `linked_goals` has other entries, append: add `"[[{goal-name}]]"` to the existing list
+   - If no `linked_goals` field exists, add it to frontmatter
+
+4. **Present bridges for approval.** Before writing any changes:
+
+   ```
+   Project-to-goal bridges to create:
+
+   | Project | Goal | Basis |
+   |---------|------|-------|
+   | {project file} | [[{goal}]] | {rationale: same lab + domain overlap} |
+
+   Confirm? (Changes are to project file frontmatter only.)
+   ```
+
+   Use AskUserQuestion. If confirmed, write changes. If user adjusts, apply adjustments.
+
+5. **Track bridges.** Store count as PROJECT_BRIDGES_CREATED for Phase 5e summary.
+
+### 5d. Update Goal Files and goals.md
+
+**Goal frontmatter update:** For each goal in SELECTED_GOALS, read `_research/goals/{goal-slug}.md` and add or update the `seeding_status` block in its frontmatter:
+
+```yaml
+seeding_status:
+  orientation: complete     # Phase 2 ran and produced claims
+  methodology: complete     # Phase 3a ran -- or "pending" if skipped
+  confounders: complete     # Phase 3b ran -- or "pending" if skipped
+  data_realities: complete  # Phase 3c ran -- or "pending" if skipped
+  inversions: complete      # Phase 4 ran -- or "pending" if skipped
+```
+
+Set each phase to `complete` if it produced at least one claim for this goal (or for shared phases like 3a, if it ran at all). Set to `pending` if the phase was skipped or produced zero claims. `/health` should warn if any phase is `pending`. `/generate` should warn if `inversions: pending` for the target goal.
+
+**goals.md update:** Read `self/goals.md`. If not already present, add an entry under `## Active Threads`:
+
+```
+- /init seeding complete for {goal names}: {N} claims created ({M} orientation, {K} methodology, {L} confounders, {J} inversions)
+```
+
+### 5e. Summary Report
+
+Output:
+
+```
+=== /init Seeding Summary ===
+
+Goals seeded: {list}
+
+Claims created: {total}
+  Orientation:    {count}
+  Methodology:    {count}
+  Confounders:    {count}
+  Data realities: {count}
+  Inversions:     {count}
+
+Topic maps created: {count}
+Topic maps updated: {count}
+Project bridges wired: {count}
+
+Claims list:
+{numbered list with titles, one per line}
+
+Graph health:
+- Orphan claims: {count from CLAIMS_CREATED that lack topic map links -- should be 0}
+- Dangling links: {count -- should be 0}
+
+Suggested next actions:
+- /literature -- search for papers supporting or challenging these claims
+- /generate -- produce hypotheses building on this foundation
+- /reflect -- find connections between new and existing claims
+=== End Summary ===
+```
+
+---
+
+# ============================================================
+# CYCLE MODE -- Research Cycle Transition
+# ============================================================
+
+## Step C0: Read Cycle Context
+
+Read the following files to build full cycle context:
+
+1. `self/goals.md` -- current threads, completed work, active goals
+2. All meta-reviews:
+   ```bash
+   ls -t _research/meta-reviews/*.md 2>/dev/null
+   ```
+   Read the 3 most recent meta-reviews.
+3. Execution tracker:
+   ```bash
+   ls _research/experiments/execution-tracker.md 2>/dev/null
+   ```
+4. Daemon inbox:
+   ```bash
+   ls ops/daemon-inbox.md 2>/dev/null
+   ```
+5. Reminders:
+   ```bash
+   ls ops/reminders.md 2>/dev/null
+   ```
+6. Existing cycle summaries:
+   ```bash
+   ls _research/cycles/cycle-*.md 2>/dev/null
+   ```
+
+Determine CYCLE_NUMBER: count existing cycle summaries + 1. If no cycles directory exists, this is Cycle 1.
+
+If no meta-reviews exist, warn:
+
+```
+No meta-reviews found. Cycle summaries are most valuable when preceded by meta-review synthesis.
+Consider running /meta-review first.
+
+Continue with limited cycle summary? (Y/n)
+```
+
+---
+
+## Step C1: Generate Cycle Summary
+
+Create `_research/cycles/` if it does not exist:
+```bash
+mkdir -p _research/cycles
+```
+
+Build a cycle summary note using the template at `_code/templates/cycle-summary.md`.
+
+### C1a. Ask for Cycle Dates
+
+```
+What date range does this cycle cover?
+Format: YYYY-MM-DD to YYYY-MM-DD
+```
+
+### C1b. Compile Per-Program Status
+
+For each active goal in `self/goals.md`:
+
+- Read tournament standings from `_research/hypotheses/_index.md` (filter by goal)
+- Read experiment results from `_research/experiments/` (filter by goal)
+- Extract key findings from the latest meta-review for this goal
+- Determine what carries forward vs. what is resolved
+
+### C1c. Identify Persistent Blind Spots
+
+Cross-reference meta-review recommendations across all programs. Patterns that recurred in multiple meta-reviews are persistent blind spots:
+
+- Gatekeeper hypotheses generated late (positive-first bias)
+- Methodological requirements independently rediscovered
+- Cross-program awareness missing
+- Confounders treated as limitations not design elements
+
+### C1d. Write Cycle Summary
+
+Present the draft cycle summary to user for review/edit.
+
+Write to: `_research/cycles/cycle-{N}-summary.md`
+
+**Frontmatter:**
+```yaml
+---
+type: cycle-summary
+cycle: {N}
+programs: [{list of goal wiki-links}]
+date_range: "{start} to {end}"
+status: completed
+created: {today YYYY-MM-DD}
+---
+```
+
+---
+
+## Step C2: Goals Transition
+
+For each active research goal, ask the user:
+
+```
+Goal: "{goal title}"
+
+What is the status for the next cycle?
+```
+
+Options:
+1. **Continue** -- "Active research continues with same scope"
+2. **Pivot** -- "Scope or approach is changing (describe how)"
+3. **Complete** -- "This goal has been achieved or is no longer pursued"
+4. **New sub-goal** -- "Spawning a new sub-goal from this one"
+
+Based on responses:
+- **Continue:** no changes to goal file, update `self/goals.md` status line
+- **Pivot:** update goal file with new scope, add pivot note to goals.md
+- **Complete:** set goal status to `completed` in frontmatter, move from Active to Completed in goals.md
+- **New sub-goal:** create new goal file via `/research`, link to parent
+
+---
+
+## Step C3: Refresh Assumption Inversions
+
+The key cycle-transition action: re-run inversions with accumulated cycle knowledge.
+
+### C3a. Collect Existing Inversions
+
+Search for inversion claims created by previous /init runs or that contain falsification language:
+
+```bash
+grep -rl "confidence: speculative" notes/*.md 2>/dev/null | head -30
+```
+
+Read each to identify those that are assumption inversions (linked to orientation claims).
+
+### C3b. Re-evaluate with Cycle Knowledge
+
+For each existing inversion, check if cycle evidence has:
+1. **Confirmed the inversion** -- the parent claim was falsified (update parent claim confidence)
+2. **Refuted the inversion** -- evidence supports the parent claim (update inversion confidence to lower)
+3. **Neither** -- inversion remains open
+
+Present each to user with cycle evidence summary. Ask for disposition.
+
+### C3c. Generate New Inversions
+
+Based on cycle meta-review blind spots and new knowledge, generate fresh inversions for claims that were NOT previously inverted:
+
+For each active goal, read its top-ranked hypotheses. For each top hypothesis, ask:
+
+```
+Hypothesis: "{hypothesis title}" (Elo: {score})
+
+Given what we learned this cycle, what is the strongest argument AGAINST this hypothesis that we have not yet addressed?
+```
+
+Generate inversion claims following the Phase 4 format from seed mode.
+
+---
+
+## Step C4: Daemon Reconciliation (optional)
+
+If `ops/daemon-inbox.md` exists and is non-empty:
+
+Read daemon-inbox recommendations. Compare against meta-review recommendations and cycle summary blind spots.
+
+Present discrepancies to user:
+
+```
+Daemon recommends: {action}
+Meta-review recommends: {action}
+Conflict: {description}
+
+Which takes priority?
+```
+
+Options:
+1. **Follow meta-review** -- "Human-reviewed synthesis takes precedence"
+2. **Follow daemon** -- "Automated analysis identified something the review missed"
+3. **Reconcile** -- "Merge both perspectives (explain how)"
+
+If user wants to update daemon config:
+- Read `ops/daemon-config.yaml`
+- Make the requested changes
+- Present diff for approval before writing
+
+---
+
+## Step C5: Update Reminders
+
+Read `ops/reminders.md`. Based on cycle transition:
+
+1. **Close completed reminders** -- mark items achieved during this cycle as done
+2. **Add new reminders** from cycle summary carry-forward items
+3. **Update deadlines** for items that shifted
+
+Present changes to user before writing.
+
+---
+
+## Step C6: Cycle Transition Summary
+
+Output:
+
+```
+=== /init --cycle Summary (Cycle {N}) ===
+
+Date range: {start} to {end}
+Programs: {list}
+
+Cycle summary: _research/cycles/cycle-{N}-summary.md
+
+Goal transitions:
+{list: goal -> status}
+
+Inversions:
+  Existing reviewed: {count}
+  Confirmed (parent falsified): {count}
+  Refuted (parent supported): {count}
+  Open: {count}
+  New inversions created: {count}
+
+Daemon reconciliation: {done/skipped/not needed}
+
+Reminders updated: {count changes}
+
+Claims created this session: {count}
+
+Suggested next actions:
+- /generate -- new hypotheses informed by cycle findings
+- /literature -- search for papers on blind spot topics
+- /init {goal} -- seed any newly created goals
+=== End Summary ===
+```
+
+---
+
+# ============================================================
+# HANDOFF MODE
+# ============================================================
+
+If `--handoff` was included in arguments, append RALPH HANDOFF block after the summary:
+
+```
+=== RALPH HANDOFF: init ===
+Target: {arguments}
+Mode: {seed | cycle}
+
+Work Done:
+- {summary of actions taken}
+
+Files Modified:
+- {list of all files created/modified with action: CREATE or EDIT}
+
+Claims Created:
+- {list of claim titles}
+
+Learnings:
+- [Friction]: {any friction encountered} | NONE
+- [Surprise]: {any surprises} | NONE
+- [Methodology]: {any methodology insights} | NONE
+
+Queue Updates:
+- Suggest: {follow-up actions}
+=== END HANDOFF ===
+```
+
+---
+
+## Error Handling
+
+| Error | Behavior |
+|-------|----------|
+| No goals exist | Recommend /research to create a goal first, or offer to create inline |
+| Re-init on populated vault | Soft detection + user choice (Step S1) |
+| Missing infrastructure | Warn + recommend /onboard, allow continue (Step S2) |
+| Duplicate claim title | Ask user to rephrase, do NOT overwrite existing claims |
+| validate_write hook rejects | Parse the error, fix the claim (usually missing description or YAML formatting), retry once |
+| Dangling wiki-link in claim body | Remove the link before writing, note the removal to user |
+| No meta-reviews for --cycle | Warn, generate limited summary, skip blind spot analysis |
+| Goal file not found for argument | Fuzzy match on filename, present candidates, ask user to confirm |
+| Empty user response to interview | Re-ask once with a worked example, then skip that phase with a note |
+
+---
+
+## Critical Constraints
+
+- **User approval before every claim write.** Never silently create claims.
+- **No pipeline bypass.** Claims go to `notes/` via Write tool (validate_write hook runs automatically). This IS the pipeline for /init-generated claims because they are synthesis, not source extraction.
+- **Prose-as-title.** Every claim title must work in the sentence: "This claim argues that {title}."
+- **No dangling links.** Verify every wiki-link target exists before writing. Remove links to nonexistent targets.
+- **No truncated links.** NEVER use `...` or ellipsis in wiki-links. Write the full title.
+- **YAML safety.** Double-quote all string values in frontmatter.
+- **No slash in titles.** Use `-` instead of `/`: `input-output`, `pre-post`, `v2-0`.
+- **Topics footer required.** Every claim must end with a `Topics:` section linking to at least one topic map.
+- **Compositional phases.** Phase 3 MUST reference specific Phase 2 claims by title. Phase 4 MUST link inversions to their parent orientation claims. This is not optional.
+- **No mid-process pauses.** Seed mode runs Phases 2 through 5 as a continuous sequence. Do NOT stop after Phase 2 to ask if the user wants to continue -- all phases are mandatory. The only summary is the Phase 5 final report.
+- **Idempotent.** Running /init twice on the same goal should detect prior seeding (via CLAIM_COUNT and re-init detection) and offer choices, not blindly duplicate.
+
+---
+
+## Skill Graph
+
+Invoked by: user (standalone), /ralph (delegation), /onboard (primary next step)
+Prerequisite: /onboard (creates research goals and project infrastructure that /init seeds from)
+Invokes: /research (if user needs a new goal)
+Suggests next: /literature, /generate, /reflect
+Reads: self/, _research/goals/, _research/meta-reviews/, _research/hypotheses/, _research/experiments/, _research/cycles/, ops/daemon-inbox.md, ops/reminders.md, ops/daemon-config.yaml, notes/
+Writes: notes/ (claims), _research/cycles/ (cycle summaries), self/goals.md, ops/reminders.md, ops/daemon-config.yaml (optional), projects/ (linked_goals wiring)

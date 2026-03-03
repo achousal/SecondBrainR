@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>12345678</PMID>
+      <Article>
+        <ArticleTitle>Plasma Metric_A as a marker for test condition</ArticleTitle>
+        <AuthorList>
+          <Author>
+            <LastName>Benedet</LastName>
+            <ForeName>Andrea L</ForeName>
+          </Author>
+          <Author>
+            <LastName>Mila-Aloma</LastName>
+            <ForeName>Marta</ForeName>
+          </Author>
+        </AuthorList>
+        <Journal>
+          <Title>Nature Medicine</Title>
+          <JournalIssue>
+            <PubDate>
+              <Year>2021</Year>
+            </PubDate>
+          </JournalIssue>
+        </Journal>
+        <Abstract>
+          <AbstractText Label="BACKGROUND">Metric_A is a promising marker.</AbstractText>
+          <AbstractText Label="METHODS">We measured plasma Metric_A in 300 participants.</AbstractText>
+          <AbstractText Label="RESULTS">Metric_A was elevated in score-positive individuals.</AbstractText>
+        </Abstract>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="doi">10.1038/s41591-021-01234-5</ArticleId>
+        <ArticleId IdType="pubmed">12345678</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>

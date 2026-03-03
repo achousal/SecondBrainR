@@ -1,0 +1,50 @@
+# Data layer -> canonical technical confounders
+# Used by /init Phase 3b to auto-draft confounder claims
+Transcriptomics:
+  - "Library prep batch"
+  - "RIN"
+  - "sequencing depth"
+  - "cell-type composition"
+Proteomics:
+  - "Ionization efficiency"
+  - "sample prep batch"
+  - "MNAR"
+  - "dynamic range"
+Genomics:
+  - "Population stratification"
+  - "coverage"
+  - "variant calling pipeline"
+Epigenomics:
+  - "Cell-type composition"
+  - "bisulfite conversion"
+  - "batch effects"
+Metabolomics:
+  - "Ion suppression"
+  - "instrument drift"
+  - "metabolite instability"
+Metagenomics:
+  - "Extraction bias"
+  - "16S vs shotgun depth"
+  - "database completeness"
+Clinical/EHR:
+  - "Ascertainment bias"
+  - "coding variability"
+  - "MNAR"
+  - "temporal confounders"
+Flow/CyTOF:
+  - "Instrument drift"
+  - "antibody lot variation"
+  - "gating subjectivity"
+
+biological_confounders:
+  - "age"
+  - "sex"
+  - "comorbidities"
+
+data_reality_signals:
+  species_column: "Species"
+  rules:
+    - condition: "mouse-only"
+      claim: "translational gap: findings from mouse models require human validation"
+    - condition: "mixed human/mouse"
+      claim: "cross-species challenge: results span species with different biology"

@@ -1,0 +1,17 @@
+---
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<nav class="text-sm mb-6" aria-label="Breadcrumb">
+  <ol class="flex items-center gap-1.5 text-text-muted">
+    <li>
+      <a href={`${base}docs/`} class="hover:text-text transition-colors no-underline">Docs</a>
+    </li>
+    <li aria-hidden="true" class="select-none">/</li>
+    <li class="text-text font-medium truncate" aria-current="page">{title}</li>
+  </ol>
+</nav>

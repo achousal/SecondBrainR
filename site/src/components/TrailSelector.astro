@@ -1,0 +1,24 @@
+---
+const trails = [
+  { id: "researcher", label: "I'm a researcher" },
+  { id: "evaluator", label: "I'm evaluating for my lab" },
+  { id: "developer", label: "I'm integrating or developing" },
+];
+---
+
+<section class="py-12 md:py-16">
+  <div class="max-w-3xl mx-auto px-6 text-center" data-animate="fade-up">
+    <p class="text-sm text-text-muted mb-4">What brings you here?</p>
+    <div class="flex flex-wrap items-center justify-center gap-3" id="trail-selector">
+      {trails.map((trail) => (
+        <button
+          type="button"
+          class="trail-btn px-5 py-2.5 rounded-lg border border-border text-sm text-text-muted font-medium hover:border-accent-dim hover:text-text transition-colors cursor-pointer"
+          data-trail={trail.id}
+        >
+          {trail.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</section>

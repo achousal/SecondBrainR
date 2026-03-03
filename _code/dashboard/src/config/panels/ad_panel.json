@@ -1,0 +1,128 @@
+{
+  "id": "ad_classification",
+  "name": "AD Classification Panel",
+  "version": "1.0.0",
+  "description": "Alzheimer's disease blood biomarker classification using plasma p-tau217, NfL, GFAP, and amyloid ratio",
+  "biomarkers": [
+    {
+      "id": "ptau217",
+      "name": "p-tau 217",
+      "unit": "pg/mL",
+      "aliases": ["ptau217", "p-tau217", "ptau_217", "p_tau_217", "plasma_ptau217"],
+      "zones": [
+        {
+          "label": "Rule-out",
+          "min": 0,
+          "max": 0.42,
+          "color": "#5ba3c9",
+          "interpretation": "Amyloid pathology unlikely. Low probability of AD."
+        },
+        {
+          "label": "Intermediate",
+          "min": 0.42,
+          "max": 1.07,
+          "color": "#d4a24e",
+          "interpretation": "Borderline range. Consider confirmatory testing (PET or CSF)."
+        },
+        {
+          "label": "Rule-in",
+          "min": 1.07,
+          "max": 100,
+          "color": "#c75a4a",
+          "interpretation": "Amyloid pathology likely present. Consistent with AD."
+        }
+      ],
+      "source": "Ashton et al., 2024 (Lancet Neurology)"
+    },
+    {
+      "id": "nfl",
+      "name": "NfL",
+      "unit": "pg/mL",
+      "aliases": ["nfl", "neurofilament", "nfl_plasma", "neurofilament_light"],
+      "zones": [
+        {
+          "label": "Normal",
+          "min": 0,
+          "max": 16.3,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range for age."
+        },
+        {
+          "label": "Elevated",
+          "min": 16.3,
+          "max": 50,
+          "color": "#d4a24e",
+          "interpretation": "Mildly elevated. May indicate neurodegeneration. Consider age and comorbidities."
+        },
+        {
+          "label": "High",
+          "min": 50,
+          "max": 10000,
+          "color": "#c75a4a",
+          "interpretation": "Significantly elevated. Active neurodegeneration likely."
+        }
+      ],
+      "source": "Simren et al., 2022 (EBioMedicine)"
+    },
+    {
+      "id": "gfap",
+      "name": "GFAP",
+      "unit": "pg/mL",
+      "aliases": ["gfap", "glial_fibrillary", "gfap_plasma"],
+      "zones": [
+        {
+          "label": "Normal",
+          "min": 0,
+          "max": 100,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range."
+        },
+        {
+          "label": "Elevated",
+          "min": 100,
+          "max": 250,
+          "color": "#d4a24e",
+          "interpretation": "Mildly elevated. Astrocyte activation detected."
+        },
+        {
+          "label": "High",
+          "min": 250,
+          "max": 50000,
+          "color": "#c75a4a",
+          "interpretation": "Significantly elevated. Strong astrocyte activation, associated with amyloid pathology."
+        }
+      ],
+      "source": "Simren et al., 2022 (EBioMedicine)"
+    },
+    {
+      "id": "ab42_ab40",
+      "name": "Ab42/Ab40 Ratio",
+      "unit": "ratio",
+      "aliases": ["ab42_ab40", "ab42/ab40", "amyloid_ratio", "abeta_ratio", "ab42_40"],
+      "zones": [
+        {
+          "label": "Low",
+          "min": 0,
+          "max": 0.066,
+          "color": "#c75a4a",
+          "interpretation": "Low ratio. Amyloid pathology likely present."
+        },
+        {
+          "label": "Intermediate",
+          "min": 0.066,
+          "max": 0.077,
+          "color": "#d4a24e",
+          "interpretation": "Borderline range. Consider confirmatory testing."
+        },
+        {
+          "label": "Normal",
+          "min": 0.077,
+          "max": 1,
+          "color": "#4a9e6b",
+          "interpretation": "Normal ratio. Amyloid pathology unlikely."
+        }
+      ],
+      "source": "Nakamura et al., 2018 (Nature); Ashton et al., 2024"
+    }
+  ]
+}

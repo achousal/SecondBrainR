@@ -1,0 +1,105 @@
+{
+  "id": "general_clinical",
+  "name": "General Clinical Panel",
+  "version": "1.0.0",
+  "description": "Common clinical chemistry markers with standard laboratory reference ranges",
+  "biomarkers": [
+    {
+      "id": "crp",
+      "name": "CRP",
+      "unit": "mg/L",
+      "aliases": ["crp", "c_reactive_protein", "c-reactive", "hs_crp", "hscrp"],
+      "zones": [
+        {
+          "label": "Normal",
+          "min": 0,
+          "max": 3,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range."
+        },
+        {
+          "label": "Elevated",
+          "min": 3,
+          "max": 10,
+          "color": "#d4a24e",
+          "interpretation": "Mildly elevated. Low-grade inflammation."
+        },
+        {
+          "label": "High",
+          "min": 10,
+          "max": 1000,
+          "color": "#c75a4a",
+          "interpretation": "Significantly elevated. Active inflammation or infection."
+        }
+      ],
+      "source": "Standard clinical laboratory ranges"
+    },
+    {
+      "id": "egfr",
+      "name": "eGFR",
+      "unit": "mL/min/1.73m2",
+      "aliases": ["egfr", "estimated_gfr", "gfr", "egfr_ckd"],
+      "zones": [
+        {
+          "label": "Severe",
+          "min": 0,
+          "max": 30,
+          "color": "#c75a4a",
+          "interpretation": "Severely reduced kidney function (Stage 4-5)."
+        },
+        {
+          "label": "Moderate",
+          "min": 30,
+          "max": 60,
+          "color": "#d4a24e",
+          "interpretation": "Moderately reduced kidney function (Stage 3)."
+        },
+        {
+          "label": "Mild",
+          "min": 60,
+          "max": 90,
+          "color": "#5ba3c9",
+          "interpretation": "Mildly reduced kidney function (Stage 2). May be normal for age."
+        },
+        {
+          "label": "Normal",
+          "min": 90,
+          "max": 300,
+          "color": "#4a9e6b",
+          "interpretation": "Normal kidney function."
+        }
+      ],
+      "source": "KDIGO 2012 guidelines"
+    },
+    {
+      "id": "albumin",
+      "name": "Albumin",
+      "unit": "g/dL",
+      "aliases": ["albumin", "serum_albumin", "alb"],
+      "zones": [
+        {
+          "label": "Low",
+          "min": 0,
+          "max": 3.5,
+          "color": "#c75a4a",
+          "interpretation": "Below normal range. May indicate malnutrition, liver disease, or inflammation."
+        },
+        {
+          "label": "Normal",
+          "min": 3.5,
+          "max": 5.5,
+          "color": "#4a9e6b",
+          "interpretation": "Within the normal reference range."
+        },
+        {
+          "label": "High",
+          "min": 5.5,
+          "max": 10,
+          "color": "#d4a24e",
+          "interpretation": "Above normal range. May indicate dehydration."
+        }
+      ],
+      "source": "Standard clinical laboratory ranges"
+    }
+  ]
+}

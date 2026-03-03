@@ -1,0 +1,30 @@
+---
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+const { headings } = Astro.props;
+const tocItems = headings.filter((h) => h.depth === 2);
+---
+
+{tocItems.length > 0 && (
+  <aside class="doc-toc hidden xl:block" aria-label="Table of contents">
+    <div class="sticky top-20">
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
+        On this page
+      </h4>
+      <ul class="space-y-1.5" id="toc-list">
+        {tocItems.map((item) => (
+          <li>
+            <a
+              href={`#${item.slug}`}
+              class="toc-link block text-xs text-text-muted hover:text-text transition-colors leading-snug no-underline"
+              data-toc-slug={item.slug}
+            >
+              {item.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </aside>
+)}

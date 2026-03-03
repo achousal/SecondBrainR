@@ -1,0 +1,32 @@
+---
+import Base from "@layouts/Base.astro";
+import Nav from "@components/Nav.astro";
+import Hero from "@components/Hero.astro";
+import Problem from "@components/Problem.astro";
+import TrailSelector from "@components/TrailSelector.astro";
+import Morning from "@components/Morning.astro";
+import VocabBridge from "@components/VocabBridge.astro";
+import HowItWorks from "@components/HowItWorks.astro";
+import Scaling from "@components/Scaling.astro";
+import GetStarted from "@components/GetStarted.astro";
+import Footer from "@components/Footer.astro";
+import "@styles/global.css";
+---
+
+<Base title="EngramR -- Cumulative Research Environment">
+  <Nav transparent />
+  <main>
+    <Hero />
+    <Problem />
+    <Morning />
+    <VocabBridge />
+    <HowItWorks />
+    <TrailSelector />
+    <Scaling />
+    <GetStarted />
+  </main>
+  <Footer />
+  <script>
+    import "@scripts/trails.ts";
+  </script>
+</Base>
