@@ -113,23 +113,25 @@ If `result.ready` is True: say nothing (no noise).
 
 If a goal name was provided as argument, look it up and set SELECTED_GOALS = [that goal].
 
-Otherwise, present available goals from the orient output as **suggestions the user owns**:
+Otherwise, present available goals from the orient output as **editable suggestions**:
 
 ```
 === Research Goals ===
 
 These were created during onboarding. They are suggestions -- you own them.
-We will seed goals one at a time.
+Everything downstream (core questions, claims, wiring) builds from these goals,
+so get them right here. We will seed goals one at a time.
 
 {numbered list, each with title and one-line scope from the goal file's Objective}
 
 You can:
-- Select goals to seed (by number or name) -- we will work through them one at a time
-- Edit a goal -- change its title, scope, or framing before seeding
-- Add a new goal -- describe a research direction not listed here
-- Remove a goal -- if it no longer fits your program
+- Select goals to seed (by number or name)
+- Edit a goal -- change title, scope, or framing before seeding
+- Add a new goal
+- Remove a goal
 
-Which goals would you like to seed?
+Tip: To workshop responses without consuming agent context, copy them into a
+separate Claude session, refine there, and paste the final versions back here.
 ```
 
 Wait for user response. Build SELECTED_GOALS list (ordered).
