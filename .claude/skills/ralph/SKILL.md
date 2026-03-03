@@ -584,6 +584,39 @@ Queue Updates:
 
 ---
 
+## Skill Tool Fallback Protocol
+
+The Skill tool can intermittently fail with "Unknown skill" errors after ~6-7 invocations per session. This is a known platform limitation. Direct SKILL.md reads are a first-class recovery mechanism, not an ad-hoc workaround.
+
+### Recovery Procedure
+
+When a `/skill` invocation fails with "Unknown skill" or similar tool errors:
+
+1. **Read the SKILL.md directly** from the filesystem using the Read tool
+2. **Follow the instructions** in the SKILL.md as if the Skill tool had loaded them
+3. **Continue processing** -- do not abort the batch or retry the Skill tool
+
+### Phase-to-Path Lookup
+
+| Phase Skill | SKILL.md Path |
+|-------------|---------------|
+| /reduce | `.claude/skills/reduce/SKILL.md` |
+| /reflect | `.claude/skills/reflect/SKILL.md` |
+| /reweave | `.claude/skills/reweave/SKILL.md` |
+| /verify | `.claude/skills/verify/SKILL.md` |
+| /enrich | `.claude/skills/enrich/SKILL.md` |
+| /ralph | `.claude/skills/ralph/SKILL.md` |
+
+### Lead Session Responsibility
+
+The lead session (ralph orchestrator) applies the same fallback. If the Skill tool fails when building a subagent prompt that references a skill, read the SKILL.md directly and include the relevant instructions in the subagent prompt.
+
+### Subagent Responsibility
+
+Subagents spawned by ralph also apply this fallback. If a subagent's `/reduce --handoff` call fails, it reads `.claude/skills/reduce/SKILL.md` directly and executes accordingly.
+
+---
+
 ## Quality Gates
 
 ### Gate 1: Subagent Spawned
