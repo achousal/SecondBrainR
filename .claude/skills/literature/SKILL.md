@@ -51,7 +51,7 @@ Parse immediately:
 - If `$ARGUMENTS` contains `--goal [slug]` -> scope search to that research goal's domain
 - If `$ARGUMENTS` contains `--handoff` -> emit CO-SCIENTIST HANDOFF block at end
 - Remaining text in `$ARGUMENTS` -> search query
-- If no query and no `--setup` -> ask user for search query
+- If no query and no `--setup` -> read vault context for suggestions, then present query options
 
 **Execute these steps:**
 
@@ -108,7 +108,38 @@ Read and follow `.claude/skills/literature/reference/setup-flow.md`.
 Read `ops/config.yaml` `literature:` section via `resolve_literature_sources()`. Returns enabled source list and default.
 
 ### Step 2: Query and Source Selection
-Present available sources plus **all** option. Default is `literature.default` from config. If query provided in arguments, skip prompt.
+
+**Context-aware suggestions (when no query provided):**
+
+Before prompting, read vault state to offer targeted suggestions:
+
+1. Read `self/goals.md` -- extract active research goals (title, scope, status)
+2. Count existing literature notes: `ls _research/literature/*.md 2>/dev/null | grep -cv '_index' || echo 0`
+3. For each active goal, read `_research/goals/{slug}.md` -- check `seeding_status` and `Key Literature` section
+
+**If active goals exist with sparse/no literature** (post-init or early-cycle state):
+- Derive 1-2 specific search queries per goal from the goal's Objective and domain
+- Present as a numbered menu with goal context:
+
+```
+Your active goals need literature grounding:
+
+  1. biomarker-validation: "plasma p-tau217 NfL GFAP diagnostic cutpoints Alzheimer's"
+  2. biomarker-validation: "CKD sex APOE confounders blood-based AD biomarkers"
+  3. cadasil-phenotyping: "CADASIL cognitive decline immune characterization biomarkers"
+  4. cadasil-phenotyping: "CADASIL CSF plasma proteomics single-cell"
+  ...
+
+Select numbers (comma-separated), type your own query, or "all" to run all suggestions.
+```
+
+- Queries should use domain-specific terms from the goal's Objective, not generic phrases
+- Each query targets a distinct facet of the goal (e.g., primary biomarkers vs confounders)
+- If `--goal [slug]` was provided, only suggest queries for that goal
+
+**If no active goals or literature is already populated:** fall back to standard prompt: "What is your search query?"
+
+Present available sources plus **all** option. Default is `literature.default` from config. If query provided in arguments, skip all suggestion logic.
 
 ### Step 3: Execute Search
 Always call `search_all_sources()` from `search_interface.py`:
