@@ -233,4 +233,4 @@ Standard inbox YAML fields: `source_type` (research|web-search|manual|import), `
 
 Code: `_code/src/engram_r/` (Python) and `_code/R/` (R). See [_code/README.md](_code/README.md) for modules, test commands, and environment variables.
 
-Health surfaces: `/health` (vault integrity -- scans `notes/`, `_research/`, `self/`, `projects/` only) and `/stats --dev` (code integrity). See [Administration](docs/manual/administration.md) for daemon, hooks, helper scripts, code section health, and the decision engine.
+Health surfaces: `/stats` (vault metrics and growth), `/health` (vault integrity -- scans `notes/`, `_research/`, `self/`, `projects/` only), and `/stats --dev` (code integrity). See [Administration](docs/manual/administration.md) for daemon, hooks, helper scripts, code section health, and the decision engine.

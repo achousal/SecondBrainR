@@ -20,15 +20,15 @@ Read these files to configure domain-specific behavior:
 
 ## EXECUTE NOW
 
-**Target: $ARGUMENTS**
+**Target: `$ARGUMENTS`** (if blank or empty -> DEFAULT)
 
-Parse immediately:
-- If target contains `--dev`: **route to Dev Mode** (see Dev Mode section below)
-- If target contains `--share`: output compact shareable format after full stats
-- If target is empty: output full stats display
-- If target names a specific category (e.g., "health", "growth", "pipeline"): show only that category
+**STRICT ROUTING -- follow exactly, no exceptions:**
+1. If target is `--dev` or contains `--dev` -> route to Dev Mode section below. STOP here.
+2. If target contains `--share` -> output compact shareable format after full vault stats.
+3. If target names a specific category (e.g., "health", "growth", "pipeline") -> show only that category of vault stats.
+4. **DEFAULT** -- if target is empty, blank, missing, or does not match any flag above -> **show vault stats.** Do NOT run Dev Mode. Do NOT run section-check.sh. Collect vault metrics from Steps 1-4 below and present them.
 
-**START NOW.** Collect metrics and present them.
+**START NOW.** Collect vault metrics and present them. Never run Dev Mode unless `--dev` is literally present in the target.
 
 ---
 

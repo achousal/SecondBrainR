@@ -21,7 +21,7 @@ Each co-scientist skill maps to a step in the scientific method. Together they f
 
 ## The Self-Improving Loop
 
-See [[docs/manual/architecture]] for the full loop diagram.
+See [[architecture]] for the full loop diagram.
 
 1. **Generate**: create hypotheses grounded in literature and prior feedback.
 2. **Reflect**: critically evaluate each hypothesis across multiple dimensions.
