@@ -115,19 +115,19 @@ Before prompting, read vault state to offer targeted suggestions:
 
 1. Read `self/goals.md` -- extract active research goals (title, scope, status)
 2. Count existing literature notes: `ls _research/literature/*.md 2>/dev/null | grep -cv '_index' || echo 0`
-3. For each active goal, read `_research/goals/{slug}.md` -- check `seeding_status` and `Key Literature` section
+3. For each active goal, read `_research/goals/{slug}.md` -- check `Key Literature` section
 
-**If active goals exist with sparse/no literature** (post-init or early-cycle state):
+**Condition for showing suggestions:** Only show goal-based search suggestions when the total literature note count (step 2) is below 5. If >= 5 literature notes already exist, the vault has literature -- even if individual goal files have empty `Key Literature` sections. Empty `Key Literature` sections with existing literature is a wiring gap (fix with linking), not a search gap.
+
+**If total literature count < 5 AND active goals exist** (true post-init state):
 - Derive 1-2 specific search queries per goal from the goal's Objective and domain
 - Present as a numbered menu with goal context:
 
 ```
 Your active goals need literature grounding:
 
-  1. biomarker-validation: "plasma p-tau217 NfL GFAP diagnostic cutpoints Alzheimer's"
-  2. biomarker-validation: "CKD sex APOE confounders blood-based AD biomarkers"
-  3. cadasil-phenotyping: "CADASIL cognitive decline immune characterization biomarkers"
-  4. cadasil-phenotyping: "CADASIL CSF plasma proteomics single-cell"
+  1. goal-slug: "domain-specific search query targeting primary facet"
+  2. goal-slug: "domain-specific search query targeting secondary facet"
   ...
 
 Select numbers (comma-separated), type your own query, or "all" to run all suggestions.
@@ -137,7 +137,7 @@ Select numbers (comma-separated), type your own query, or "all" to run all sugge
 - Each query targets a distinct facet of the goal (e.g., primary biomarkers vs confounders)
 - If `--goal [slug]` was provided, only suggest queries for that goal
 
-**If no active goals or literature is already populated:** fall back to standard prompt: "What is your search query?"
+**Otherwise:** fall back to standard prompt: "What is your search query?"
 
 Present available sources plus **all** option. Default is `literature.default` from config. If query provided in arguments, skip all suggestion logic.
 
