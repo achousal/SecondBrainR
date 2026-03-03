@@ -41,7 +41,7 @@ Read current state of files that will be modified:
 - `ops/reminders.md`
 - `ops/config.yaml` (for data_layers list)
 
-If any are missing, create them per the Bootstrap procedure in the reference.
+If any are missing, create them using Step 0: Bootstrap Infrastructure in `reference/artifact-generation.md`. This step has an explicit table mapping each file to its template in `_code/templates/`. Run Step 0 before proceeding to Step 4.
 
 ### Step 4: Generate Artifacts
 

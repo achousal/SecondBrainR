@@ -4,6 +4,21 @@ Reference file for the onboard-generate sub-skill. Extracted from the main onboa
 
 ---
 
+## Step 0: Bootstrap Infrastructure
+
+Before generating any artifacts, ensure all infrastructure files exist. For each file below, check existence and create from template if missing:
+
+| File | Template | Action if missing |
+|------|----------|-------------------|
+| `self/goals.md` | `_code/templates/goals.md` | Copy template to `self/goals.md` |
+| `projects/_index.md` | (inline) | Create with `# Projects` heading and `## Maintenance` section |
+| `_research/data-inventory.md` | `_code/templates/data-inventory.md` | Copy template |
+| `ops/reminders.md` | `_code/templates/reminders.md` | Copy template |
+
+Run this bootstrap before any Step 5 artifact generation. If a file already exists, skip it (idempotent).
+
+---
+
 ## Artifact creation order
 
 Goals first (so project notes can reference them in linked_goals), then project notes, then everything else.
@@ -253,6 +268,8 @@ For each NEW project that has identifiable datasets (data/ directory is non-empt
 Use the exact column format of existing entries. Do not reformat existing content.
 
 ## 5g. Update self/goals.md
+
+**Prerequisite:** `self/goals.md` must exist (created in Step 0 Bootstrap from `_code/templates/goals.md`).
 
 Append new entries to the `## Active Threads` section:
 ```

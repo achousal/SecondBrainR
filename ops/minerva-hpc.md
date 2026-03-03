@@ -80,7 +80,7 @@ Parent: [[mount-sinai]]
 - Default memory: 3000 MB/core
 - Walltime format: `HHH:MM` (no seconds)
 - **Required flags**: `-P acc_<allocation>` and `-W <walltime>`
-- **Default allocation**: `acc_Chipuk_Laboratory_Laboratory`
+- **Default allocation**: `acc_Chipuk_Laboratory
 - **Default queue**: `premium`
 
 ## Job Templates

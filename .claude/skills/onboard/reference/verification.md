@@ -66,6 +66,19 @@ If the lab entity node references named compute resources (in the institution pr
 
 These are WARN level (not FAIL) -- the compute reference is useful but not structurally required.
 
+### 6h. Infrastructure file check
+
+Verify all required infrastructure files exist and have expected content:
+
+| File | Check | Level if missing |
+|------|-------|------------------|
+| `self/goals.md` | Exists and has `## Active Research Goals` section with entries matching `_research/goals/` | FAIL |
+| `projects/_index.md` | Exists | WARN |
+| `_research/data-inventory.md` | Exists | WARN |
+| `ops/reminders.md` | Exists | WARN |
+
+For `self/goals.md` specifically: count entries under `## Active Research Goals` and compare against files in `_research/goals/`. Every goal file should have a corresponding entry. Missing entries are WARN.
+
 ---
 
 Report any issues found. If all pass:

@@ -383,10 +383,19 @@ Check backward link gaps. Output RALPH HANDOFF block when done.",
 
 **When `--parallel` flag is present, SKIP Step 4 entirely and use this section instead.**
 
-**Incompatible flags:** `--parallel` cannot be combined with `--type`. Parallel mode processes claims end-to-end (all phases). If `--type` is also set, report an error:
+**Incompatible flags:**
+
+1. `--parallel` cannot be combined with `--type`. Parallel mode processes claims end-to-end (all phases). If `--type` is also set, report an error:
 ```
 ERROR: --parallel and --type are incompatible. Parallel processes full claim pipelines, not individual phases.
 Use serial mode for per-phase filtering: /ralph N --type reflect
+```
+
+2. `--parallel` requires claim-pipeline tasks (type: claim). Extract tasks MUST run serially because each extraction produces new claim tasks that subsequent iterations need to pick up. If all pending tasks are extract-type, report an error:
+```
+ERROR: --parallel is not applicable. All {N} pending tasks are extract-phase.
+Extract tasks must run serially -- each extraction creates new claim tasks that need sequential registration.
+Use: /ralph {N}
 ```
 
 ### Parallel Architecture
