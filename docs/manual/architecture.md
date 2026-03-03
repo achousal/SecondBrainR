@@ -31,11 +31,8 @@ The vault is organized around three primitives:
 
 Topic maps organize claim clusters into navigable neighborhoods -- attention
 hubs that make the graph browsable without search. Raw input enters through
-a quality pipeline that enforces structure before anything reaches the graph:
-
-```
-inbox/ --> /reduce --> /reflect --> /reweave --> /verify --> notes/
-```
+a quality pipeline that enforces structure before anything reaches the graph
+(see [Workflows](workflows.md) for the full pipeline).
 
 ---
 
@@ -108,7 +105,6 @@ locally and #5 in federated competition.
 
 ## See Also
 
-- [Skills Reference](skills.md) -- full command reference
-- [Co-Scientist Guide](co-scientist-guide.md) -- hypothesis pipeline details
+- [Skills Reference](skills.md) -- full command reference and example session
 - [Configuration](configuration.md) -- dimension settings that shape behavior
 - [Inter-Lab Collaboration](inter-lab.md) -- federation and multi-vault setup

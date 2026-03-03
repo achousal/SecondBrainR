@@ -24,25 +24,13 @@ Both skills run as natural conversations in main context, delegating computation
 
 ## Prerequisites
 
-The vault must be initialized (ops/config.yaml, ops/derivation.md, _code/templates/ present). The co-scientist layer must be operational (_code/ dependencies installed, environment variables set). Verify both:
-
-```bash
-# Vault structure
-ls ops/config.yaml ops/derivation.md _code/templates/
-
-# Co-scientist layer
-cd _code && uv run pytest tests/ -v --tb=short
-```
-
-Domain-specific API keys depend on your configured profile.
-Common keys: `S2_API_KEY` (Semantic Scholar), `OPENALEX_API_KEY` (OpenAlex),
-`NCBI_API_KEY` + `NCBI_EMAIL` (biomedical). See `_code/README.md` for the full table.
+Verify prerequisites from the [Setup Guide](setup-guide.md) are met (Python 3.11+, uv, Claude Code, dependencies installed, environment variables configured). The vault must be initialized (ops/config.yaml, ops/derivation.md, _code/templates/ present).
 
 ---
 
 ## Session Rhythm: Orient - Work - Persist
 
-Every session follows this three-phase cycle. It is enforced by hooks, not discipline.
+Every session follows this three-phase cycle. It is enforced by hooks, not discipline. For the full session rhythm reference, see [Workflows](workflows.md).
 
 ### Phase 1: Orient
 

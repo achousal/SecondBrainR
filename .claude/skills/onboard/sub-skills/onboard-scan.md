@@ -33,8 +33,6 @@ Read .claude/skills/onboard/reference/institution-lookup.md
 
 ### Step 3: Read Vault State
 
-Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for domain vocabulary.
-
 Read `ops/config.yaml` for `onboard:` section (scan_depth, exclude_dirs, exclude_files). Store as ONBOARD_CONFIG.
 
 Collect registered project tags:

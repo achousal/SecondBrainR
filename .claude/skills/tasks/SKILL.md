@@ -14,15 +14,7 @@ argument-hint: "[add|done|drop|reorder|status] [description|number] — manage t
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` / `vocabulary.note_plural` for note type references
-   - Use `vocabulary.topic_map` for MOC references
-   - Use `vocabulary.cmd_reflect` / `vocabulary.cmd_reweave` / `vocabulary.cmd_verify` for phase command names
-
-2. **`ops/config.yaml`** — pipeline chaining mode, automation settings
-
-If no derivation file exists, use universal terms.
+1. **`ops/config.yaml`** — pipeline chaining mode, automation settings
 
 ---
 
@@ -382,10 +374,6 @@ Report the error with the valid range: "Task #{N} does not exist. Current tasks:
   Use `/tasks add [description]` to add a task,
   or `/next` for automated suggestions.
 ```
-
-### No ops/derivation-manifest.md
-
-Use universal vocabulary. All operations work identically.
 
 ### Concurrent Modification
 

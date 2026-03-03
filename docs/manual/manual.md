@@ -41,9 +41,6 @@ Diagnosis and resolution procedures for orphan claims, dangling links, stale con
 ### [Setup Guide](setup-guide.md)
 Installation, environment configuration, dependency setup, and vault initialization for new deployments.
 
-### [Co-Scientist Guide](co-scientist-guide.md)
-Full documentation for the co-scientist pipeline: hypothesis generation, tournament ranking, evolution, landscape mapping, and meta-review feedback loops.
-
 ### [Inter-Lab Collaboration](inter-lab.md)
 Patterns for federated vaults, cross-lab claim sharing, conflict resolution, and provenance preservation across research groups.
 

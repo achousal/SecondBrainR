@@ -210,7 +210,7 @@ class TestClassifySignals:
     def test_metabolic_no_alarms_no_signals(self, clean_state, default_config):
         """No metabolic signals when no alarms."""
         clean_state.metabolic = MetabolicState(
-            qpr=1.0, cmr=2.0, hcr=50.0, swr=1.0, alarm_keys=[]
+            qpr=1.0, cmr=2.0, tpv=1.0, hcr=50.0, gcr=0.8, ipr=0.5, alarm_keys=[]
         )
         signals = classify_signals(clean_state, default_config)
         metabolic = [s for s in signals if s.name.startswith("metabolic_")]
@@ -503,18 +503,24 @@ class TestStateSummary:
         state = VaultState(
             metabolic=MetabolicState(
                 qpr=5.0,
-                vdr=95.0,
                 cmr=19.0,
+                tpv=0.5,
                 hcr=10.0,
-                swr=1.5,
+                gcr=0.7,
+                ipr=2.0,
+                vdr=95.0,
                 alarm_keys=["qpr_critical", "cmr_hot"],
             ),
         )
         summary = _build_state_summary(state)
         assert "metabolic" in summary
         assert summary["metabolic"]["qpr"] == 5.0
+        assert summary["metabolic"]["tpv"] == 0.5
+        assert summary["metabolic"]["gcr"] == 0.7
+        assert summary["metabolic"]["ipr"] == 2.0
         assert summary["metabolic"]["vdr"] == 95.0
         assert summary["metabolic"]["alarm_keys"] == ["qpr_critical", "cmr_hot"]
+        assert "swr" not in summary["metabolic"]
 
     def test_metabolic_none_not_in_summary(self):
         state = VaultState(metabolic=None)
@@ -645,3 +651,35 @@ class TestMultiAlarmMetabolicCascade:
         # Orphans have higher count (20 vs 5), should win
         assert rec.priority == "session"
         assert "/reflect" in rec.action or "/ralph" in rec.action
+
+
+# ---------------------------------------------------------------------------
+# Queue blocked signal
+# ---------------------------------------------------------------------------
+
+
+class TestQueueBlockedSignal:
+    def test_queue_blocked_signal(self, clean_state, default_config):
+        """queue_blocked > 0 produces a multi-session signal."""
+        clean_state.queue_blocked = 5
+        signals = classify_signals(clean_state, default_config)
+        blocked = [s for s in signals if s.name == "queue_blocked"]
+        assert len(blocked) == 1
+        assert blocked[0].speed == "multi_session"
+        assert blocked[0].count == 5
+        assert "/literature" in blocked[0].action
+        assert "unpopulated stubs" in blocked[0].rationale
+
+    def test_no_queue_blocked_signal_when_zero(self, clean_state, default_config):
+        """queue_blocked == 0 produces no signal."""
+        clean_state.queue_blocked = 0
+        signals = classify_signals(clean_state, default_config)
+        blocked = [s for s in signals if s.name == "queue_blocked"]
+        assert blocked == []
+
+    def test_state_summary_includes_queue_blocked(self):
+        """_build_state_summary includes queue_blocked key."""
+        state = VaultState(queue_blocked=7)
+        summary = _build_state_summary(state)
+        assert "queue_blocked" in summary
+        assert summary["queue_blocked"] == 7

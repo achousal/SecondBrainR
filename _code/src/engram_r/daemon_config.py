@@ -117,15 +117,26 @@ class MetabolicConfig:
 
     When indicators exceed these thresholds, the daemon suppresses
     creation and prioritizes consolidation/maintenance.
+
+    7 indicators in 3 tiers:
+    Tier 1 (Governance): QPR, CMR, TPV -- auto-suppress generative tasks.
+    Tier 2 (Awareness): HCR, GCR, IPR -- user-facing signals via /next.
+    Tier 3 (Observational): VDR -- logged only.
     """
 
     enabled: bool = True
+    # Tier 1: Governance
     qpr_critical: float = 3.0  # QPR > 3.0 triggers generation halt
     cmr_hot: float = 10.0  # CMR > 10:1 = running hot
+    tpv_stalled: float = 0.1  # TPV < 0.1 = stalled throughput
+    # Tier 2: Awareness
     hcr_redirect: float = 15.0  # HCR < 15% redirects to SAP support
-    swr_archive: float = 5.0  # SWR > 5.0 triggers stub archival
+    gcr_fragmented: float = 0.3  # GCR < 0.3 = fragmented graph
+    ipr_overflow: float = 3.0  # IPR > 3.0 = inbox overflowing
+    # Tier 3: Observational (VDR informational only)
     vdr_warn: float = 80.0  # VDR > 80% = informational warning
     lookback_days: int = 7  # Window for rate computations
+    history_max_snapshots: int = 90  # Max historical snapshots to retain
 
 
 @dataclass(frozen=True)

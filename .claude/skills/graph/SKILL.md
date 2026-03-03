@@ -14,16 +14,10 @@ argument-hint: "[operation] [target] — operations: health, triangles, bridges,
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping, platform hints
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` / `vocabulary.note_plural` for note type references
-   - Use `vocabulary.topic_map` / `vocabulary.topic_map_plural` for MOC references
-   - Use `vocabulary.cmd_reflect` for connection-finding command name
-   - Use `vocabulary.cmd_reweave` for backward-pass command name
+1. **`ops/derivation-manifest.md`** — platform hints
+   - Platform-specific behavior and dimension configuration
 
 2. **`ops/config.yaml`** — for graph thresholds (MOC size limits, orphan thresholds)
-
-If no derivation file exists, use universal terms (notes, MOCs, etc.).
 
 ---
 
@@ -44,9 +38,9 @@ Parse the operation from arguments:
 
 **The graph IS the knowledge. This skill makes it visible.**
 
-Individual {vocabulary.note_plural} are valuable, but their connections create compound value. /graph reveals the structural properties of those connections — where the graph is dense, where it is sparse, where it is fragile, and where synthesis opportunities hide.
+Individual claims are valuable, but their connections create compound value. /graph reveals the structural properties of those connections — where the graph is dense, where it is sparse, where it is fragile, and where synthesis opportunities hide.
 
-Every operation produces two things: **findings** (what the analysis reveals) and **actions** (what to do about it). Never dump raw data. Always interpret results with {vocabulary.note} descriptions and domain context. Always suggest specific next steps.
+Every operation produces two things: **findings** (what the analysis reveals) and **actions** (what to do about it). Never dump raw data. Always interpret results with claim descriptions and domain context. Always suggest specific next steps.
 
 ---
 
@@ -60,7 +54,7 @@ Full graph health report: density, orphans, dangling links, coverage.
 
 ```bash
 # Count total notes (excluding MOCs)
-NOTES_DIR="{vocabulary.notes}"
+NOTES_DIR="notes"
 TOTAL=$(ls -1 "$NOTES_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
 MOC_COUNT=$(grep -rl '^type: moc' "$NOTES_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
 NOTE_COUNT=$((TOTAL - MOC_COUNT))
@@ -110,21 +104,21 @@ If graph helper scripts exist in `ops/scripts/graph/`, use them instead of inlin
 ```
 --=={ graph health }==--
 
-  {vocabulary.note_plural}: [N] (plus [M] {vocabulary.topic_map_plural})
-  Connections: [N] (avg [X] per {vocabulary.note})
+  claims: [N] (plus [M] topic maps)
+  Connections: [N] (avg [X] per claim)
   Graph density: [0.XX]
-  {vocabulary.topic_map} coverage: [N]% of {vocabulary.note_plural} appear in at least one {vocabulary.topic_map}
+  topic map coverage: [N]% of claims appear in at least one topic map
 
   Orphans ([N]):
     - [[orphan name]] — [description from YAML]
-    → Suggestion: Run /{vocabulary.cmd_reflect} to find connections
+    → Suggestion: Run //reflect to find connections
 
   Dangling Links ([N]):
     - [[missing name]] — referenced from [[source note]]
-    → Suggestion: Create the {vocabulary.note} or remove the link
+    → Suggestion: Create the claim or remove the link
 
-  {vocabulary.topic_map} Sizes:
-    - [[moc name]]: [N] {vocabulary.note_plural} [OK | WARN: approaching split threshold | WARN: consider merging]
+  topic map Sizes:
+    - [[moc name]]: [N] claims [OK | WARN: approaching split threshold | WARN: consider merging]
 
   Overall: [HEALTHY | NEEDS ATTENTION | FRAGMENTED]
 ```
@@ -133,7 +127,7 @@ If graph helper scripts exist in `ops/scripts/graph/`, use them instead of inlin
 
 | Density | Interpretation |
 |---------|---------------|
-| < 0.02 | Sparse — {vocabulary.note_plural} exist but connections are thin |
+| < 0.02 | Sparse — claims exist but connections are thin |
 | 0.02-0.06 | Healthy — growing network with meaningful connections |
 | 0.06-0.15 | Dense — well-connected, watch for over-linking |
 | > 0.15 | Very dense — verify connections are genuine, not noise |
@@ -168,7 +162,7 @@ For each note A with outgoing links to B and C:
 **Step 3: Evaluate and rank**
 
 For each open triangle:
-1. Read descriptions of BOTH unlinked {vocabulary.note_plural}
+1. Read descriptions of BOTH unlinked claims
 2. Assess: is there a genuine conceptual relationship that the common parent suggests?
 3. Rank by potential value: how surprising and useful would the connection be?
 
@@ -177,7 +171,7 @@ For each open triangle:
 ```
 --=={ graph triangles }==--
 
-  Found [N] synthesis opportunities — pairs of {vocabulary.note_plural} that share
+  Found [N] synthesis opportunities — pairs of claims that share
   a common reference but do not reference each other:
 
   1. [[note B]] and [[note C]]
@@ -186,7 +180,7 @@ For each open triangle:
      C: "[description]"
      → These may benefit from a connection because [specific reasoning
         about WHY B and C might relate through A's lens]
-     → Action: Run /{vocabulary.cmd_reflect} on [[note B]] to evaluate
+     → Action: Run //reflect on [[note B]] to evaluate
 
   2. [[note D]] and [[note E]]
      Common parent: [[note F]]
@@ -196,17 +190,17 @@ For each open triangle:
 ```
 
 **Filter out trivial triangles:** Skip pairs where:
-- Both are in the same {vocabulary.topic_map} (they may already be related through the MOC without direct links)
-- One is a {vocabulary.topic_map} itself (MOCs link to everything, triangles with MOCs are noise)
+- Both are in the same topic map (they may already be related through the MOC without direct links)
+- One is a topic map itself (MOCs link to everything, triangles with MOCs are noise)
 - The descriptions suggest no conceptual overlap
 
 ### /graph bridges
 
-Identify structurally critical {vocabulary.note_plural} whose removal would disconnect graph regions.
+Identify structurally critical claims whose removal would disconnect graph regions.
 
 **Step 1: Build adjacency list**
 
-Build a bidirectional adjacency list from all wiki links in {vocabulary.notes}/.
+Build a bidirectional adjacency list from all wiki links in notes/.
 
 If `ops/scripts/graph/find-bridges.sh` exists, use it directly.
 
@@ -214,7 +208,7 @@ If `ops/scripts/graph/find-bridges.sh` exists, use it directly.
 
 A bridge note is one where:
 - Removing it (and its links) would split a connected component into two or more components
-- It is the SOLE connection between clusters of {vocabulary.note_plural}
+- It is the SOLE connection between clusters of claims
 
 Implementation: For each note, temporarily remove it and check if the remaining graph has more connected components.
 
@@ -223,14 +217,14 @@ Implementation: For each note, temporarily remove it and check if the remaining 
 ```
 --=={ graph bridges }==--
 
-  Found [N] bridge {vocabulary.note_plural} — structurally critical nodes whose
+  Found [N] bridge claims — structurally critical nodes whose
   removal would disconnect graph regions:
 
-  1. [[bridge note]] — connects [N] {vocabulary.note_plural} on one side to [M] on the other
+  1. [[bridge note]] — connects [N] claims on one side to [M] on the other
      Description: "[description]"
      Cluster A: [[note1]], [[note2]], ...
      Cluster B: [[note3]], [[note4]], ...
-     → Risk: If this {vocabulary.note} becomes stale, [N+M] {vocabulary.note_plural}
+     → Risk: If this claim becomes stale, [N+M] claims
        lose their connection path
      → Action: Consider adding parallel connections between the clusters
 
@@ -259,9 +253,9 @@ Use BFS/DFS to find all connected components:
 **Step 3: Analyze clusters**
 
 For each cluster:
-- Size (number of {vocabulary.note_plural})
-- Key {vocabulary.note_plural} (highest link count within cluster)
-- Topic coverage (which {vocabulary.topic_map_plural} are represented)
+- Size (number of claims)
+- Key claims (highest link count within cluster)
+- Topic coverage (which topic maps are represented)
 - Isolation level (how many links cross cluster boundaries)
 
 **Step 4: Present findings**
@@ -271,26 +265,26 @@ For each cluster:
 
   Found [N] connected components:
 
-  Cluster 1: [size] {vocabulary.note_plural}
+  Cluster 1: [size] claims
     Key nodes: [[note1]] (8 links), [[note2]] (6 links)
     Topics: [[topic A]], [[topic B]]
     Cross-cluster links: [N]
     → This cluster is [well-connected | isolated | a hub]
 
-  Cluster 2: [size] {vocabulary.note_plural}
+  Cluster 2: [size] claims
     ...
 
-  Isolated {vocabulary.note_plural} ([N]):
+  Isolated claims ([N]):
     - [[isolated note]] — [description]
-    → Action: Run /{vocabulary.cmd_reflect} to find connections
+    → Action: Run //reflect to find connections
 
-  [If 1 cluster: "All {vocabulary.note_plural} are in one connected component.
+  [If 1 cluster: "All claims are in one connected component.
    The graph is fully connected. This is healthy."]
 ```
 
 ### /graph hubs
 
-Rank {vocabulary.note_plural} by influence — most-linked-to (authorities) and most-linking-from (hubs).
+Rank claims by influence — most-linked-to (authorities) and most-linking-from (hubs).
 
 **Step 1: Count links**
 
@@ -314,7 +308,7 @@ If `ops/scripts/graph/influence-flow.sh` exists, use it directly.
 
 **Step 2: Identify synthesizers**
 
-Synthesizer {vocabulary.note_plural} score high on BOTH metrics — they absorb many inputs (high authority) and produce many outputs (high hub). These are the most structurally important {vocabulary.note_plural} in the graph.
+Synthesizer claims score high on BOTH metrics — they absorb many inputs (high authority) and produce many outputs (high hub). These are the most structurally important claims in the graph.
 
 **Step 3: Present findings**
 
@@ -341,15 +335,15 @@ Synthesizer {vocabulary.note_plural} score high on BOTH metrics — they absorb 
 
 ### /graph siblings [[topic]]
 
-Find unconnected {vocabulary.note_plural} within a topic — {vocabulary.note_plural} sharing the same {vocabulary.topic_map} but not linking to each other.
+Find unconnected claims within a topic — claims sharing the same topic map but not linking to each other.
 
-**Step 1: Read the specified {vocabulary.topic_map}**
+**Step 1: Read the specified topic map**
 
-Find and read the {vocabulary.topic_map} matching the argument. Extract all {vocabulary.note_plural} linked in Core Ideas.
+Find and read the topic map matching the argument. Extract all claims linked in Core Ideas.
 
 **Step 2: Check pairwise connections**
 
-For each pair of {vocabulary.note_plural} in the {vocabulary.topic_map}:
+For each pair of claims in the topic map:
 1. Does A link to B? (grep for `[[B]]` in A's file)
 2. Does B link to A? (grep for `[[A]]` in B's file)
 3. If neither: this is an unconnected sibling pair
@@ -368,7 +362,7 @@ For each unconnected pair:
 ```
 --=={ graph siblings: [[topic]] }==--
 
-  {vocabulary.topic_map} [[topic]] has [N] {vocabulary.note_plural}.
+  topic map [[topic]] has [N] claims.
   Found [M] unconnected sibling pairs:
 
   Likely connections:
@@ -383,22 +377,22 @@ For each unconnected pair:
 
   Appropriately separate: [N] pairs — no connection needed
 
-  → Action: Run /{vocabulary.cmd_reflect} on the "likely" pairs
+  → Action: Run //reflect on the "likely" pairs
 ```
 
 ### /graph forward [[note]] [depth]
 
-N-hop forward traversal from a {vocabulary.note}. Default depth: 2.
+N-hop forward traversal from a claim. Default depth: 2.
 
-**Step 1: Start from the specified {vocabulary.note}**
+**Step 1: Start from the specified claim**
 
-Read the {vocabulary.note} and extract all outgoing wiki links (hop 1).
+Read the claim and extract all outgoing wiki links (hop 1).
 
 If `ops/scripts/graph/n-hop-forward.sh` exists, use it with the note and depth arguments.
 
 **Step 2: Traverse**
 
-For each linked {vocabulary.note}:
+For each linked claim:
 1. Read it and extract its outgoing wiki links (hop 2)
 2. Continue to specified depth
 3. Track visited notes to avoid cycles
@@ -416,18 +410,18 @@ For each linked {vocabulary.note}:
     │   └── [[link 2a]] — "[description]"
     └── [[link 3]] — "[description]"
 
-  Reached [N] {vocabulary.note_plural} in [depth] hops.
+  Reached [N] claims in [depth] hops.
   Dead ends (no outgoing links): [[note X]], [[note Y]]
   Cycles detected: [[note]] → ... → [[note]] (skipped)
 ```
 
 ### /graph backward [[note]] [depth]
 
-N-hop backward traversal to a {vocabulary.note}. Default depth: 2.
+N-hop backward traversal to a claim. Default depth: 2.
 
-**Step 1: Start from the specified {vocabulary.note}**
+**Step 1: Start from the specified claim**
 
-Find all notes that link TO this {vocabulary.note} (hop 1).
+Find all notes that link TO this claim (hop 1).
 
 ```bash
 NAME="[note name]"
@@ -438,7 +432,7 @@ If `ops/scripts/graph/recursive-backlinks.sh` exists, use it with the note and d
 
 **Step 2: Traverse backward**
 
-For each linking {vocabulary.note}:
+For each linking claim:
 1. Find what links to IT (hop 2)
 2. Continue to specified depth
 3. Track visited notes to avoid cycles
@@ -456,13 +450,13 @@ For each linking {vocabulary.note}:
     │   └── [[referrer 2a]] — "[description]"
     └── [[referrer 3]] — "[description]"
 
-  [N] {vocabulary.note_plural} lead to [[root note]] within [depth] hops.
+  [N] claims lead to [[root note]] within [depth] hops.
   Entry points (no incoming links): [[note X]], [[note Y]]
 ```
 
 ### /graph query [field] [value]
 
-Schema-level YAML query across {vocabulary.note_plural}.
+Schema-level YAML query across claims.
 
 **Step 1: Parse field and value**
 
@@ -490,7 +484,7 @@ For each matching file, extract the description for context.
 ```
 --=={ graph query: {field} = {value} }==--
 
-  Found [N] {vocabulary.note_plural}:
+  Found [N] claims:
 
   1. [[note name]] — "[description]"
   2. [[note name]] — "[description]"
@@ -530,12 +524,12 @@ If no arguments provided:
 
 ## Output Rules
 
-- **Never dump raw data.** Always interpret results with {vocabulary.note} descriptions and context.
-- **Always suggest actions.** "Run /{vocabulary.cmd_reflect} on these pairs" or "Consider adding a bridge {vocabulary.note} about X."
-- **Use domain vocabulary** for all labels and descriptions — {vocabulary.note}, {vocabulary.topic_map}, etc.
+- **Never dump raw data.** Always interpret results with claim descriptions and context.
+- **Always suggest actions.** "Run //reflect on these pairs" or "Consider adding a bridge claim about X."
+- **Use domain vocabulary** for all labels and descriptions — claim, topic map, etc.
 - **For large result sets,** summarize top findings (max 10) and offer to show more: "[N] more results. Show all? (yes/no)"
 - **Include density benchmarks** for context — "your density of 0.04 is in the healthy range."
-- **Distinguish structural from semantic.** Graph analysis reveals structural properties. Semantic judgment about WHETHER connections should exist requires /{vocabulary.cmd_reflect}.
+- **Distinguish structural from semantic.** Graph analysis reveals structural properties. Semantic judgment about WHETHER connections should exist requires //reflect.
 
 ---
 
@@ -543,7 +537,7 @@ If no arguments provided:
 
 ### Small Vault (<10 notes)
 
-Report metrics but contextualize: "With [N] {vocabulary.note_plural}, graph analysis provides limited insight. Graph operations become more valuable as the knowledge graph grows. Current metrics are baseline measurements."
+Report metrics but contextualize: "With [N] claims, graph analysis provides limited insight. Graph operations become more valuable as the knowledge graph grows. Current metrics are baseline measurements."
 
 All operations still run — they just produce less data.
 
@@ -551,17 +545,15 @@ All operations still run — they just produce less data.
 
 If `ops/scripts/graph/` does not exist or individual scripts are missing, implement the analysis inline using grep, file reads, and bash loops as shown in each operation's steps. The inline implementations are complete — scripts are optimization, not requirements.
 
-### No ops/derivation-manifest.md
 
-Use universal vocabulary (notes, MOCs, etc.). All operations work identically.
 
 ### Empty Notes Directory
 
-Report: "No {vocabulary.note_plural} found in {vocabulary.notes}/. Start by capturing content to build your knowledge graph."
+Report: "No claims found in notes/. Start by capturing content to build your knowledge graph."
 
 ### Note Not Found (for forward/backward/siblings)
 
-If the specified {vocabulary.note} or {vocabulary.topic_map} does not exist:
+If the specified claim or topic map does not exist:
 1. Search for partial matches: `ls "$NOTES_DIR"/*{query}*.md 2>/dev/null`
 2. If matches found: "Did you mean: [[match1]], [[match2]]?"
-3. If no matches: "{vocabulary.note} '[[name]]' not found. Check the name and try again."
+3. If no matches: "claim '[[name]]' not found. Check the name and try again."

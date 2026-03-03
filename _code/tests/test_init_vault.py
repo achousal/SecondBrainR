@@ -313,6 +313,8 @@ class TestScaffold:
         assert (target_path / "ops" / "reminders.md").is_file()
 
     def test_creates_settings_json(self, source_vault: Path, target_path: Path) -> None:
+        import json
+
         init_vault.scaffold(
             target_path,
             source_vault,
@@ -322,7 +324,20 @@ class TestScaffold:
         )
         settings = target_path / ".claude" / "settings.json"
         assert settings.is_file()
-        assert settings.read_text().strip() == "{}"
+        data = json.loads(settings.read_text(encoding="utf-8"))
+        # Should contain skill permissions for the copied skills
+        allow = data.get("permissions", {}).get("allow", [])
+        skill_entries = [e for e in allow if e.startswith("Skill(")]
+        assert len(skill_entries) > 0
+        # Each skill on disk should have a corresponding permission
+        skills_dir = target_path / ".claude" / "skills"
+        disk_skills = {
+            d.name
+            for d in skills_dir.iterdir()
+            if d.is_dir() and (d / "SKILL.md").is_file()
+        }
+        for name in disk_skills:
+            assert f"Skill({name})" in allow
 
 
 class TestGitInit:

@@ -19,9 +19,6 @@ Read vault state and produce a structured summary for the /init orchestrator.
 
 ### Step 1: Read Core State
 
-Read domain vocabulary:
-- `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`)
-
 Read agent identity:
 - `self/identity.md`
 - `self/methodology.md`
@@ -41,6 +38,13 @@ ls _research/goals/*.md 2>/dev/null
 ```
 
 For each goal file found, read its frontmatter to extract: title, status, linked_labs, seeding_status.
+
+**Seeding status mapping:** Derive a single status per goal from the `seeding_status` block:
+- No `seeding_status` key at all -> `none`
+- All phases (orientation, methodology, confounders, data_realities, inversions) are `complete` -> `complete`
+- Any other combination (some complete, some missing) -> `partial`
+
+Store each goal's mapped status for use in Step 6.
 
 ### Step 4: Read Vault Artifacts (for vault-informed generation)
 
@@ -81,6 +85,11 @@ grep -rl "role: orientation" notes/*.md 2>/dev/null | head -20
 | Goal | Status | Labs | Seeding Status |
 |------|--------|------|----------------|
 {rows from goal files}
+
+### Seeding Status Per Goal
+GOAL_SEEDING:
+- {goal-slug}: {none|partial|complete}
+UNSEEDED_GOALS: {count of goals with status none or partial}
 
 ### Lab Conventions
 {structured summary of statistical_conventions, infrastructure per lab}

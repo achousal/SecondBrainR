@@ -337,7 +337,7 @@ class SlackBot:
 
         # Log all unhandled events for debugging
         @self.app.middleware
-        def _log_all_events(body, next):
+        def _log_all_events(body, next) -> None:
             event = body.get("event", {})
             etype = event.get("type", "unknown")
             esubtype = event.get("subtype", "")

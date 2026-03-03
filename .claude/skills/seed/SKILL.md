@@ -14,11 +14,7 @@ argument-hint: "[file] — path to source file to seed for processing"
 
 **Target: $ARGUMENTS**
 
-The target MUST be a file path. If no target provided, list {DOMAIN:inbox}/ contents and ask which to seed.
-
-### Step 0: Read Vocabulary
-
-Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for domain vocabulary mapping. All output must use domain-native terms. If neither file exists, use universal terms.
+The target MUST be a file path. If no target provided, list inbox/ contents and ask which to seed.
 
 **START NOW.** Seed the source file into the processing queue.
 
@@ -27,8 +23,8 @@ Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for doma
 ## Step 1: Validate Source
 
 Confirm the target file exists. If it does not, check common locations:
-- `{DOMAIN:inbox}/{filename}`
-- Subdirectories of {DOMAIN:inbox}/
+- `inbox/{filename}`
+- Subdirectories of inbox/
 
 If the file cannot be found, report error and stop:
 ```
@@ -68,9 +64,9 @@ If semantic search is available (qmd MCP tools or CLI), check for content overla
 mcp__qmd__search query="claims from {source filename}" limit=5
 ```
 
-Or via keyword search in the {DOMAIN:notes}/ directory:
+Or via keyword search in the notes/ directory:
 ```bash
-grep -rl "{key terms from source title}" {DOMAIN:notes}/ 2>/dev/null | head -5
+grep -rl "{key terms from source title}" notes/ 2>/dev/null | head -5
 ```
 
 ### 2c. Report Duplicates
@@ -93,22 +89,22 @@ mkdir -p "$ARCHIVE_DIR"
 ```
 
 The archive folder serves two purposes:
-1. Permanent home for the source file (moved from {DOMAIN:inbox})
+1. Permanent home for the source file (moved from inbox/)
 2. Destination for task files after batch completion (/archive-batch moves them here)
 
 ## Step 4: Move Source to Archive
 
 Move the source file from its current location to the archive folder. This is the **claiming step** — once moved, the source is owned by this processing batch.
 
-**{DOMAIN:inbox} sources get moved:**
+**inbox/ sources get moved:**
 ```bash
-if [[ "$FILE" == *"{DOMAIN:inbox}"* ]] || [[ "$FILE" == *"inbox"* ]]; then
+if [[ "$FILE" == *"inbox"* ]]; then
   mv "$FILE" "$ARCHIVE_DIR/"
   FINAL_SOURCE="$ARCHIVE_DIR/$(basename "$FILE")"
 fi
 ```
 
-**Sources outside {DOMAIN:inbox} stay in place:**
+**Sources outside inbox/ stay in place:**
 ```bash
 # Living docs (like configuration files) stay where they are
 # Archive folder is still created for task files
@@ -117,7 +113,7 @@ FINAL_SOURCE="$FILE"
 
 Use `$FINAL_SOURCE` in the task file — this is the path all downstream phases reference.
 
-**Why move immediately:** All references (task files, {DOMAIN:note_plural}' Source footers) use the final archived path from the start. No path updates needed later. If it is in {DOMAIN:inbox}, it is unclaimed. Claimed sources live in archive.
+**Why move immediately:** All references (task files, claims' Source footers) use the final archived path from the start. No path updates needed later. If it is in inbox/, it is unclaimed. Claimed sources live in archive.
 
 ## Step 5: Determine Claim Numbering
 
@@ -155,7 +151,7 @@ created: "{UTC timestamp}"
 next_claim_start: {NEXT_CLAIM_START}
 ---
 
-# Extract {DOMAIN:note_plural} from {source filename}
+# Extract claims from {source filename}
 
 ## Source
 Original: {original file path}
@@ -168,7 +164,7 @@ Content type: {detected type}
 
 ## Acceptance Criteria
 - Extract claims, implementation ideas, tensions, and testable hypotheses
-- Duplicate check against {DOMAIN:notes}/ during extraction
+- Duplicate check against notes/ during extraction
 - Near-duplicates create enrichment tasks (do not skip)
 - Each output type gets appropriate handling
 
@@ -253,16 +249,16 @@ Claim numbers (NNN) are globally unique across all batches, ensuring every filen
 
 ## Source Handling Patterns
 
-**{DOMAIN:inbox} source (most common):**
+**inbox/ source (most common):**
 ```
-{DOMAIN:inbox}/research/article.md
+inbox/research/article.md
     | /seed
     v
 ops/queue/archive/2026-01-30-article/article.md  <- source moved here
 ops/queue/article.md                               <- task file created
 ```
 
-**Living doc (outside {DOMAIN:inbox}):**
+**Living doc (outside inbox/):**
 ```
 CLAUDE.md -> stays as CLAUDE.md (no move)
 ops/queue/archive/2026-01-30-claude-md/           <- folder still created
@@ -275,7 +271,7 @@ When /archive-batch runs later, it moves task files into the existing archive fo
 
 ## Edge Cases
 
-**Source outside {DOMAIN:inbox}:** Works — source stays in place, archive folder is created for task files only.
+**Source outside inbox/:** Works — source stays in place, archive folder is created for task files only.
 
 **No queue file:** Create `ops/queue/queue.yaml` (or `.json`) with schema header and this first entry.
 
@@ -283,21 +279,19 @@ When /archive-batch runs later, it moves task files into the existing archive fo
 
 **Source is a URL or non-file:** Report error: "/seed requires a file path."
 
-**No ops/derivation-manifest.md:** Use universal vocabulary for all output.
-
 ---
 
 ## Critical Constraints
 
 **never:**
 - Skip duplicate detection (prevents wasted processing)
-- Move a source that is not in {DOMAIN:inbox} (living docs stay in place)
+- Move a source that is not in inbox/ (living docs stay in place)
 - Reuse claim numbers from previous batches (globally unique is required)
 - Create a task file without updating the queue (both must happen together)
 
 **always:**
 - Ask before proceeding when duplicates are detected
 - Create the archive folder even for living docs (task files need it)
-- Use the archived path (not original) in the task file for {DOMAIN:inbox} sources
+- Use the archived path (not original) in the task file for inbox/ sources
 - Report next steps clearly so the user knows what to do next
 - Compute next_claim_start from both queue AND archive (not just one)

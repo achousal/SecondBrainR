@@ -263,8 +263,8 @@ After projects and goals are confirmed, detect and activate a domain profile, th
    import sys; sys.path.insert(0, 'src')
    from engram_r.domain_profile import load_profile, apply_profile_config, merge_profile_palettes
    p = load_profile('{profile_name}')
-   apply_profile_config(p, 'ops/config.yaml')
-   merge_profile_palettes(p, '_code/styles/palettes.yaml')
+   apply_profile_config(p, '../ops/config.yaml')
+   merge_profile_palettes(p, 'styles/palettes.yaml')
    "
    ```
 
@@ -273,7 +273,7 @@ After projects and goals are confirmed, detect and activate a domain profile, th
    uv run --directory _code python -c "
    import json, sys; sys.path.insert(0, 'src')
    from engram_r.search_interface import check_literature_readiness
-   print(json.dumps(check_literature_readiness('ops/config.yaml')))
+   print(json.dumps(check_literature_readiness('../ops/config.yaml')))
    "
    ```
 
@@ -283,8 +283,8 @@ After projects and goals are confirmed, detect and activate a domain profile, th
    a. Read `.claude/skills/literature/reference/setup-flow.md`
    b. Present the setup status block with profile-specific guidance (Steps 1-2 from reference)
    c. Show export commands for missing required vars only (Step 3)
-   d. Ask: "Paste these exports in another terminal, then say 'check'. Or 'skip' to configure later via /literature --setup."
-   e. On "check": re-run `check_literature_readiness('ops/config.yaml')`, report delta (Step 4)
+   d. Ask: "Open _code/.env in your editor and fill in the missing values. The file already has placeholder lines. It is gitignored. Say 'done' when saved, or 'skip' to configure later via /literature --setup."
+   e. On "done": re-check with `set -a && source _code/.env 2>/dev/null && set +a` prefix (Step 4)
    f. On "skip" or after "check" succeeds: proceed to Generate Approval
    g. Store the final `result.ready` state for use in the Phase 5 summary
 

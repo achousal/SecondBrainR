@@ -41,17 +41,9 @@ For sources/enrichers NOT in the active profile, skip guidance -- only explain w
 
 ---
 
-## Step 3: Show Export Commands
+## Step 3: Direct .env Editing
 
-For each missing required variable, show a ready-to-paste export command:
-
-```
-Set these in another terminal (or add to ~/.zshenv_secrets for persistence):
-
-  export NCBI_API_KEY="your-key-here"       # https://www.ncbi.nlm.nih.gov/account/settings/
-  export NCBI_EMAIL="you@institution.edu"    # Your institutional email
-  {only show vars that are actually missing}
-```
+For each missing required variable, show where to obtain the key and instruct the user to add it to `_code/.env`:
 
 **URL reference table (show for all missing vars):**
 
@@ -65,24 +57,31 @@ Set these in another terminal (or add to ~/.zshenv_secrets for persistence):
 
 Only include rows for variables that are actually missing.
 
+Then prompt:
+
+```
+Open _code/.env in your editor and fill in the missing values.
+The file already has placeholder lines for each variable.
+It is gitignored -- your keys stay local.
+
+Say "done" when saved, or "skip" to configure later via /literature --setup.
+```
+
+**Do NOT ask the user to paste keys into this conversation.** Keys in chat would appear in session transcripts and API logs. The `.env` file keeps secrets on the local filesystem only.
+
+**Why `_code/.env`:** This file is gitignored, already sourced by the daemon (`ops/scripts/daemon.sh`), and its template (`_code/.env.example`) documents all supported variables. The re-check command (Step 4) sources it with `set -a` so keys are immediately visible -- no session restart needed.
+
 ---
 
 ## Step 4: Interactive Re-Check Loop
 
-After presenting status and export commands:
+After writing keys (or on explicit "check" request), re-run `check_literature_readiness` with `_code/.env` sourced so the subprocess sees the new values:
 
 ```
-Paste these exports in another terminal, then say "check".
-Or "skip" to configure later via /literature --setup.
-```
-
-**On "check":** Re-run `check_literature_readiness('ops/config.yaml')` and compare against the previous result:
-
-```
-uv run --directory {vault_root}/_code python -c "
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import check_literature_readiness
-print(json.dumps(check_literature_readiness('ops/config.yaml')))
+print(json.dumps(check_literature_readiness('../ops/config.yaml')))
 "
 ```
 

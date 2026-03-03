@@ -13,15 +13,9 @@ argument-hint: "[dimension|--dry-run] — focus on specific dimension or preview
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping, dimension positions, platform hints
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` / `vocabulary.note_plural` for note type references
-   - Use `vocabulary.topic_map` / `vocabulary.topic_map_plural` for MOC references
-   - Use `vocabulary.inbox` for the inbox folder name
+1. **`ops/config.yaml`** — current live configuration (the "after" state)
 
-2. **`ops/config.yaml`** — current live configuration (the "after" state)
-
-3. **`ops/derivation.md`** — original derivation record (the "before" state)
+2. **`ops/derivation.md`** — original derivation record (the "before" state)
 
 If these files don't exist, report error: "Cannot refactor without both ops/config.yaml and ops/derivation.md. These files establish the baseline and current configuration."
 
@@ -154,7 +148,7 @@ Some changes affect only infrastructure (skills, templates, context file). Other
 | Enum value change | Old notes have invalid values | Update values in affected notes |
 
 For content-impacting changes:
-- Count affected notes: `grep -rl '[old value]' {vocabulary.notes}/*.md | wc -l`
+- Count affected notes: `grep -rl '[old value]' notes/*.md | wc -l`
 - List specific files that need updating
 - Estimate time for content migration
 
@@ -188,7 +182,7 @@ Detected [N] dimension changes:
     Affects:
     - [artifact 1]: [specific change]
     - [artifact 2]: [specific change]
-    Content impact: [N] existing {vocabulary.note_plural} need [what]
+    Content impact: [N] existing claims need [what]
     Risk: [low/medium/high]
 
   [dimension]: [old] -> [new]
@@ -245,9 +239,8 @@ For each skill affected by the dimension changes:
 
 1. Read the current skill from the generated skills directory
 2. Consult `${CLAUDE_PLUGIN_ROOT}/reference/` for the latest skill generation approach
-3. Apply vocabulary transformation from derivation-manifest
-4. Apply processing depth settings from the new config
-5. Write the regenerated skill
+3. Apply processing depth settings from the new config
+4. Write the regenerated skill
 
 **Skills most commonly affected by dimension changes:**
 
@@ -307,7 +300,7 @@ If Phase 2 identified content-impacting changes:
 1. **Schema migration:** Add/remove/rename fields across notes
    ```bash
    # Example: add a new required field to all notes
-   for f in {vocabulary.notes}/*.md; do
+   for f in notes/*.md; do
      grep -q '^new_field:' "$f" || sed -i '' '/^description:/a\
    new_field: [default value]' "$f"
    done
@@ -357,9 +350,9 @@ Run kernel validation to confirm nothing broke:
     [dimension]: [old] -> [new] — [N] artifacts updated
 
   Content migration:
-    [N] {vocabulary.note_plural} updated with new schema fields
+    [N] claims updated with new schema fields
     [N] wiki links updated
-    [N] {vocabulary.topic_map_plural} restructured
+    [N] topic maps restructured
 
   Kernel validation: [N]/[N] checks PASS
   [Any warnings or issues]
@@ -442,6 +435,3 @@ Handle each feature flag change specifically:
 | session_capture | INVARIANT — cannot disable | Already on (invariant) |
 | parallel_workers | Update /ralph to serial-only mode | Verify tmux available, update /ralph for parallel mode |
 
-### No ops/derivation-manifest.md
-
-Use universal vocabulary. Refactoring still works but vocabulary transformation is skipped.

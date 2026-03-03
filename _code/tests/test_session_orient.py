@@ -158,7 +158,10 @@ def test_vault_state_counts_with_files(vault: Path) -> None:
 def test_vault_state_counts_missing_dirs(tmp_path: Path) -> None:
     """Missing directories return zero, no error."""
     counts = session_orient._vault_state_counts(tmp_path)
-    assert counts == {"claims": 0, "inbox": 0, "observations": 0, "tensions": 0}
+    assert counts == {
+        "claims": 0, "inbox": 0, "observations": 0, "tensions": 0,
+        "queue_pending": 0, "queue_blocked": 0,
+    }
 
 
 # --- Goals.md threads tests ---

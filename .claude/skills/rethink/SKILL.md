@@ -10,22 +10,11 @@ context: fork
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping, domain context
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` for the note type name in output
-   - Use `vocabulary.rethink` for the command name in output
-   - Use `vocabulary.topic_map` for MOC references
-   - Use `vocabulary.cmd_reflect` for connection-finding references
-
-2. **`ops/config.yaml`** — thresholds, processing preferences
+1. **`ops/config.yaml`** — thresholds, processing preferences
    - `self_evolution.observation_threshold`: number of pending observations before suggesting rethink (default: 10)
    - `self_evolution.tension_threshold`: number of pending tensions before suggesting rethink (default: 5)
 
-3. **`ops/methodology/`** — existing methodology notes (read all to understand current system self-knowledge)
-
-If these files don't exist (pre-init invocation or standalone use), use universal defaults.
-
-The command name itself transforms per domain. The derivation manifest maps the universal name to domain-native language. If no manifest exists, use "rethink" as the command name.
+2. **`ops/methodology/`** — existing methodology notes (read all to understand current system self-knowledge)
 
 ## EXECUTE NOW
 
@@ -46,7 +35,7 @@ Parse immediately:
 
 **The system is not sacred. Evidence beats intuition.**
 
-Every rule in the context file, every workflow in a skill, every assumption baked into the architecture was a hypothesis at some point. Hypotheses need testing against reality. Observation notes in `ops/observations/` capture friction from actual use. Tension notes in `ops/tensions/` capture unresolved conflicts. Rethink first triages these individually (some become {DOMAIN:notes}, some become methodology updates, some get archived), then compares remaining evidence against what the system assumes and proposes changes when patterns emerge.
+Every rule in the context file, every workflow in a skill, every assumption baked into the architecture was a hypothesis at some point. Hypotheses need testing against reality. Observation notes in `ops/observations/` capture friction from actual use. Tension notes in `ops/tensions/` capture unresolved conflicts. Rethink first triages these individually (some become notes/, some become methodology updates, some get archived), then compares remaining evidence against what the system assumes and proposes changes when patterns emerge.
 
 This is the scientific method applied to knowledge systems: hypothesize, implement, observe, revise.
 
@@ -78,7 +67,7 @@ Read all methodology notes fully. Extract:
 Read:
 - `ops/config.yaml` — current configuration state
 - The context file (CLAUDE.md) — current behavioral instructions
-- `ops/derivation-manifest.md` — vocabulary and feature state
+- `ops/derivation-manifest.md` — feature state and dimension configuration
 
 ### 0c. Compare Across Three Drift Types
 
@@ -171,7 +160,7 @@ Assign exactly one disposition per observation or tension:
 
 | Disposition | Meaning | When to Apply | Action |
 |-------------|---------|---------------|--------|
-| PROMOTE | Reusable insight worth keeping as a permanent {DOMAIN:note} | General principle across sessions. Would work as a claim note. Crystallized insight, not operational guidance. | Create {DOMAIN:note} in {vocabulary.notes}/, set observation `status: promoted`, add `promoted_to: [[title]]` |
+| PROMOTE | Reusable insight worth keeping as a permanent claim | General principle across sessions. Would work as a claim note. Crystallized insight, not operational guidance. | Create claim in notes/, set observation `status: promoted`, add `promoted_to: [[title]]` |
 | IMPLEMENT | Operational guidance that should change the system | "System should do X differently." Points to a concrete improvement in context file, template, or skill. | Update the specific file, set `status: implemented`, add `implemented_in: [filepath]` |
 | METHODOLOGY | Friction pattern that should inform agent behavior | Behavioral learning. Not a domain insight (PROMOTE) or a system change (IMPLEMENT) — a methodology learning about HOW to operate. | Create or update methodology note in `ops/methodology/`, set `status: implemented`, add `implemented_in: ops/methodology/[file]` |
 | ARCHIVE | Session-specific, no longer relevant | One-session-specific with no lasting value. Already addressed by later work. Superseded by newer evidence. | Set `status: archived` |
@@ -196,7 +185,7 @@ Assign exactly one disposition per observation or tension:
 **Triage heuristics for tensions:**
 
 - Tension was resolved by subsequent changes → ARCHIVE (set `status: dissolved`, add `dissolved_reason`)
-- Tension reveals a genuine conflict between two {DOMAIN:notes} → PROMOTE (create a tension {DOMAIN:note} or resolution {DOMAIN:note})
+- Tension reveals a genuine conflict between two notes/ → PROMOTE (create a tension claim or resolution claim)
 - Tension points to a system workflow that needs redesigning → IMPLEMENT
 - Tension is about agent methodology → METHODOLOGY
 - Tension is real but resolution is unclear → KEEP PENDING
@@ -206,13 +195,13 @@ Assign exactly one disposition per observation or tension:
 Present the full triage to the user before executing any changes:
 
 ```
---=={ {DOMAIN:rethink} — Triage }==--
+--=={ rethink — Triage }==--
 
   Evidence: [N] observations, [M] tensions
 
   PROMOTE ([count])
-    [filename] — [title] → proposed {DOMAIN:note} title
-    [filename] — [title] → proposed {DOMAIN:note} title
+    [filename] — [title] → proposed claim title
+    [filename] — [title] → proposed claim title
 
   IMPLEMENT ([count])
     [filename] — [title] → change [specific file/section]
@@ -238,8 +227,8 @@ Use AskUserQuestion: "Review the triage above. Approve all, or list items to rec
 After user confirmation, apply all dispositions in order:
 
 **For PROMOTE items:**
-1. Create {DOMAIN:note} with prose-as-title in {vocabulary.notes}/
-2. Follow standard note schema: YAML frontmatter (description, type, created), body developing the insight, Topics footer linking to relevant {vocabulary.topic_map}(s)
+1. Create claim with prose-as-title in notes/
+2. Follow standard note schema: YAML frontmatter (description, type, created), body developing the insight, Topics footer linking to relevant topic maps
 3. The observation content becomes the seed for the note body — but develop it fully, do not just copy the observation
 4. Update the observation: set `status: promoted`, add `promoted_to: [[note title]]`
 
@@ -340,7 +329,7 @@ Analyze remaining pending evidence (post-triage) plus promoted/implemented histo
 
 1. **Group by category field:** Sort observations by their `category` (methodology, process-gap, friction, surprise, quality). 3+ items in the same category = potential pattern.
 
-2. **Group by referenced {DOMAIN:topic maps} or system areas:** Extract wiki links and file references from observation bodies. 3+ observations referencing the same area = recurring theme.
+2. **Group by referenced topic maps or system areas:** Extract wiki links and file references from observation bodies. 3+ observations referencing the same area = recurring theme.
 
 3. **Cross-reference tensions:** Check if multiple tensions share the same assumption. Multiple tensions pointing at the same thing = assumption may be wrong.
 
@@ -348,7 +337,7 @@ Analyze remaining pending evidence (post-triage) plus promoted/implemented histo
 
 5. **Compare methodology notes against context file:** If `ops/methodology/` has 3+ notes in the same category that are not reflected in the context file, the methodology has converged enough for elevation.
 
-6. **Check for vocabulary drift:** If observations use different terms than the derivation manifest or context file, the system's language may have drifted from the user's actual vocabulary.
+6. **Check for vocabulary drift:** If observations use different terms than ops/config.yaml or the context file, the system's language may have drifted from the user's actual vocabulary.
 
 7. **Group health-pattern observations by failure pattern and source skill:** Filter observations with `category: health-pattern`. Group by `failure_pattern` field. 2+ observations with the same `failure_pattern` across different dates = recurring production issue that needs a preventive fix in the source skill (e.g., post-write validation, input sanitization). Check which skill is responsible for creating the failing content (e.g., /reduce for truncated titles, /seed for slash-in-filename).
 
@@ -367,7 +356,7 @@ Only report patterns that pass all four checks.
 ### Pattern Report
 
 ```
---=={ {DOMAIN:rethink} — Patterns }==--
+--=={ rethink — Patterns }==--
 
   Patterns detected: [N]
 
@@ -491,7 +480,7 @@ If 10+ pending observations or 5+ pending tensions remain after triage AND patte
 ```
   Threshold signal for /next:
     [N] pending observations, [N] pending tensions remain
-    /next should prioritize {DOMAIN:rethink} at session priority
+    /next should prioritize rethink at session priority
 ```
 
 ---
@@ -503,11 +492,11 @@ If 10+ pending observations or 5+ pending tensions remain after triage AND patte
 ### Summary Output
 
 ```
---=={ {DOMAIN:rethink} — Complete }==--
+--=={ rethink — Complete }==--
 
   Triaged: [N] observations, [M] tensions
 
-    Promoted to {DOMAIN:notes}:  [count]
+    Promoted to notes/:  [count]
     Methodology updates:         [count]
     Implemented:                 [count]
     Archived:                    [count]
@@ -552,7 +541,7 @@ For each approved proposal:
 ```markdown
 ## YYYY-MM-DD: [change title]
 
-**Source:** /{DOMAIN:rethink} — [pattern type]
+**Source:** /rethink — [pattern type]
 **Evidence:** [observation/tension filenames]
 **Change:** [what was modified, which files]
 **Risk:** [risk assessment from proposal]
@@ -572,18 +561,18 @@ For each approved proposal:
 
 ### Promoted Notes Need Connections
 
-If any observations were promoted to {DOMAIN:notes}:
+If any observations were promoted to notes/:
 
 ```
-  [count] {DOMAIN:notes} were promoted from observations.
-  Run /{DOMAIN:connect} on promoted notes to find connections.
+  [count] notes/ were promoted from observations.
+  Run /reflect on promoted notes to find connections.
   Promoted: [list of note titles]
 ```
 
 ### Pipeline Queue Integration
 
 If promoted items should enter the processing pipeline (queue-based systems):
-- Add each promoted {DOMAIN:note} to the queue with `current_phase: "reflect"` (the note already exists, so skip create)
+- Add each promoted claim to the queue with `current_phase: "reflect"` (the note already exists, so skip create)
 - Report queue additions
 
 ### Session Log
@@ -617,13 +606,13 @@ These directories are part of the operational learning loop kernel primitive. If
 
 Report clean state:
 ```
---=={ {DOMAIN:rethink} — Clean State }==--
+--=={ rethink — Clean State }==--
 
   No pending observations or tensions.
   The system has no accumulated friction to process.
 
   Continue capturing observations during normal work.
-  Run /{DOMAIN:rethink} again when signals accumulate.
+  Run /rethink again when signals accumulate.
 ```
 
 ### Evidence Suggests /reseed
@@ -674,7 +663,7 @@ If the evidence pool is very large:
 - Dismiss evidence because it is inconvenient
 - Preserve assumptions out of tradition — evidence beats habit
 - Add complexity to handle edge cases when simplification would work better
-- Create {DOMAIN:notes} directly from observations without going through standard pipeline (PROMOTE adds to queue)
+- Create notes/ directly from observations without going through standard pipeline (PROMOTE adds to queue)
 - Re-propose rejected changes without new evidence
 
 **Always:**
@@ -700,4 +689,4 @@ Work happens → friction captured as observations/tensions
   → less friction → fewer observations → healthy system
 ```
 
-Run {DOMAIN:rethink}. Let evidence win.
+Run rethink. Let evidence win.

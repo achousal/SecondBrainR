@@ -2,13 +2,14 @@
 
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 from engram_r.pubmed import (
     PubMedArticle,
     _parse_article,
+    fetch_abstract_by_doi,
     fetch_articles,
     search_pubmed,
 )
@@ -90,3 +91,69 @@ class TestFetchArticles:
         articles = fetch_articles(["12345678"])
         assert len(articles) == 1
         assert articles[0].pmid == "12345678"
+
+
+class TestFetchAbstractByDoi:
+    """Test DOI-based abstract lookup via PubMed."""
+
+    @patch("engram_r.pubmed.fetch_articles")
+    @patch("engram_r.pubmed.urllib.request.urlopen")
+    def test_returns_abstract_when_found(self, mock_urlopen, mock_fetch):
+        """Finds PMID by DOI, then returns abstract from fetch_articles."""
+        import io
+
+        search_xml = (
+            b"<eSearchResult><IdList><Id>99999</Id></IdList></eSearchResult>"
+        )
+        mock_response = io.BytesIO(search_xml)
+        mock_urlopen.return_value.__enter__ = lambda s: mock_response
+        mock_urlopen.return_value.__exit__ = lambda s, *a: None
+
+        mock_fetch.return_value = [
+            PubMedArticle(pmid="99999", title="Test", abstract="Full abstract text.")
+        ]
+
+        result = fetch_abstract_by_doi("10.1234/test-doi")
+        assert result == "Full abstract text."
+
+    @patch("engram_r.pubmed.urllib.request.urlopen")
+    def test_returns_none_when_no_pmid(self, mock_urlopen):
+        """No PMID found for DOI returns None."""
+        import io
+
+        search_xml = b"<eSearchResult><IdList></IdList></eSearchResult>"
+        mock_response = io.BytesIO(search_xml)
+        mock_urlopen.return_value.__enter__ = lambda s: mock_response
+        mock_urlopen.return_value.__exit__ = lambda s, *a: None
+
+        result = fetch_abstract_by_doi("10.1234/no-match")
+        assert result is None
+
+    @patch("engram_r.pubmed.urllib.request.urlopen")
+    def test_returns_none_on_network_error(self, mock_urlopen):
+        """Network error returns None gracefully."""
+        mock_urlopen.side_effect = Exception("Connection refused")
+        result = fetch_abstract_by_doi("10.1234/error")
+        assert result is None
+
+    @patch("engram_r.pubmed.fetch_articles")
+    @patch("engram_r.pubmed.urllib.request.urlopen")
+    def test_returns_none_when_article_has_no_abstract(
+        self, mock_urlopen, mock_fetch
+    ):
+        """Article exists but has empty abstract returns None."""
+        import io
+
+        search_xml = (
+            b"<eSearchResult><IdList><Id>88888</Id></IdList></eSearchResult>"
+        )
+        mock_response = io.BytesIO(search_xml)
+        mock_urlopen.return_value.__enter__ = lambda s: mock_response
+        mock_urlopen.return_value.__exit__ = lambda s, *a: None
+
+        mock_fetch.return_value = [
+            PubMedArticle(pmid="88888", title="No Abstract Paper", abstract="")
+        ]
+
+        result = fetch_abstract_by_doi("10.1234/no-abstract")
+        assert result is None

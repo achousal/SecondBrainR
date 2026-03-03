@@ -26,7 +26,7 @@ SLACK_API_BASE = "https://slack.com/api"
 class SlackAPIError(Exception):
     """Error communicating with the Slack Web API."""
 
-    def __init__(self, message: str, error_code: str | None = None):
+    def __init__(self, message: str, error_code: str | None = None) -> None:
         super().__init__(message)
         self.error_code = error_code
 

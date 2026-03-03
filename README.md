@@ -41,24 +41,12 @@ EngramR combines a **knowledge layer** that extracts, connects, and maintains
 a graph of atomic claims, and a **hypothesis layer** that generates, debates,
 ranks, and evolves testable hypotheses from that evidence.
 
-The knowledge layer processes raw input through a quality pipeline before
-anything reaches the graph:
-
-```
-inbox/ --> /reduce --> /reflect --> /reweave --> /verify --> notes/
-```
+The knowledge layer processes raw input through a quality pipeline
+(`inbox/ -> /reduce -> /reflect -> /reweave -> /verify -> notes/`).
 
 The hypothesis layer reads accumulated evidence, generates testable predictions
 with mechanism and falsification criteria, debates them pairwise, ranks by Elo,
-and injects meta-review feedback into the next generation cycle:
-
-```
-/research --> /generate --> /review --> /tournament --> /meta-review
-                                                           |
-              (feedback feeds back into)                   |
-              /generate, /review, /evolve <---------------+
-```
-
+and injects meta-review feedback into the next generation cycle.
 Goals spawn hypotheses. Hypotheses spawn projects. Project results feed back
 into the hypothesis pool.
 
@@ -88,14 +76,7 @@ reactor gives back.
 
 ### Prerequisites
 
-| Dependency | Required | Purpose |
-| --- | --- | --- |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes | Command host and agent runtime |
-| Python 3.11+ | Yes | Library runtime |
-| [uv](https://docs.astral.sh/uv/) | Yes | Python package management |
-| `ripgrep` (`rg`) | Yes | YAML queries, graph analysis, schema validation |
-| [Obsidian](https://obsidian.md/) | No | Optional vault browser and editor |
-| R 4.x+ | No | Optional; for statistical plots |
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code), Python 3.11+, [uv](https://docs.astral.sh/uv/), and `ripgrep` (`rg`). Optional: [Obsidian](https://obsidian.md/) (vault browser), R 4.x+ (statistical plots). See [Setup Guide](docs/manual/setup-guide.md) for detailed installation instructions.
 
 ### Setup
 
@@ -110,7 +91,7 @@ reactor gives back.
    uv sync --all-extras
    ```
 
-3. Configure environment variables:
+3. Configure environment variables (see [_code/README.md](_code/README.md#environment-variables) for the full table):
    ```bash
    cp .env.example .env
    ```
@@ -121,7 +102,7 @@ reactor gives back.
    /plugin install arscontexta@agenticnotetaking
    ```
 
-5. Verify everything works:
+5. Verify everything works (see [Library Reference](_code/README.md) for full test and lint commands):
    ```bash
    uv run pytest tests/ -v
    ```
@@ -190,7 +171,7 @@ documentation with arguments and I/O details.
 | [User Manual](docs/manual/manual.md) | Hub page linking all reference docs |
 | [Getting Started](docs/manual/getting-started.md) | First session walkthrough |
 | [Setup Guide](docs/manual/setup-guide.md) | Installation, env vars, Slack, MCP servers |
-| [Skills Reference](docs/manual/skills.md) | Full command reference |
+| [Skills Reference](docs/manual/skills.md) | Full command reference with example session |
 | [Workflows](docs/manual/workflows.md) | Processing pipeline and session rhythm |
 | [Configuration](docs/manual/configuration.md) | ops/config.yaml, dimensions, domain profiles |
 | [Architecture](docs/manual/architecture.md) | Knowledge + hypothesis layers, Elo system |
@@ -199,7 +180,6 @@ documentation with arguments and I/O details.
 | [Security](docs/manual/security.md) | Write validation, tamper detection, PII filtering |
 | [Integrations](docs/manual/integrations.md) | Slack, Obsidian, MCP servers, domain profiles |
 | [Administration](docs/manual/administration.md) | Daemon, hooks, decision engine, scripts |
-| [Co-Scientist Guide](docs/manual/co-scientist-guide.md) | Hypothesis pipeline deep-dive |
 | [Inter-Lab Collaboration](docs/manual/inter-lab.md) | Federation and multi-vault setup |
 | [Querying](docs/manual/querying.md) | YAML frontmatter query patterns |
 | [Troubleshooting](docs/manual/troubleshooting.md) | Common failure modes and fixes |

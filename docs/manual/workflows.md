@@ -167,12 +167,7 @@ The hypothesis research loop is distinct from the processing pipeline but operat
 
 ### The Self-Improving Cycle
 
-```
-/research -> /generate -> /review -> /tournament -> /meta-review
-                                                         |
-              (feedback feeds back into)                 |
-              /generate, /review, /evolve <-------------+
-```
+The co-scientist loop (see [Architecture](architecture.md) for diagram):
 
 1. **/research** -- set a research goal, choose the next step.
 2. **/generate** -- create hypotheses (4 modes: literature synthesis, self-play debate, assumption-based, research expansion).

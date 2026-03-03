@@ -67,17 +67,7 @@ cd /path/to/vault
 cp .env.example .env
 ```
 
-Edit `.env` with your API keys:
-
-| Variable | Required | Where to get it |
-|----------|----------|-----------------|
-| `S2_API_KEY` | For /literature (Semantic Scholar) | [Semantic Scholar API](https://www.semanticscholar.org/product/api) |
-| `OPENALEX_API_KEY` | For /literature (OpenAlex) | [OpenAlex API](https://openalex.org/) |
-| `NCBI_API_KEY` | For /literature (biomedical) | [NCBI Account Settings](https://www.ncbi.nlm.nih.gov/account/settings/) |
-| `NCBI_EMAIL` | For /literature (biomedical) | Required by NCBI API policy |
-| `SLACK_BOT_TOKEN` | For Slack | Bot User OAuth Token from your Slack app (starts with `xoxb-`) |
-| `SLACK_DEFAULT_CHANNEL` | For Slack | Channel ID for notifications (find in channel details) |
-| `SLACK_TEAM_ID` | For Slack | Workspace Team ID (the `T...` segment in Slack URLs) |
+Edit `.env` with API keys for your domain. Which keys you need depends on your configured profile -- see [_code/README.md](../../_code/README.md#environment-variables) for the full environment variables table.
 
 > **Domain profiles:** After setup, select a domain profile in `ops/config.yaml` under `domain.name` to enable domain-specific search backends, data layers, and confounders. See `_code/profiles/` for available profiles.
 
@@ -368,24 +358,13 @@ errors, no crashes.
 
 ## Verification
 
-After setup, verify everything works:
+After setup, verify everything works. See [_code/README.md](../../_code/README.md) for the full set of test, lint, and format commands.
 
 ```bash
-# Tests pass
-cd _code && uv run pytest tests/ -v
-
-# Lint clean
-uv run ruff check src/
-
-# Format clean
-uv run black --check src/
-
-# Hooks work (start a Claude Code session)
-claude
-# Session orient hook should print vault state
+cd _code && uv run pytest tests/ -v   # tests pass
 ```
 
-In Claude Code, run `/health` to check vault integrity. A fresh vault should report all green.
+Start Claude Code (`claude`) -- the session orient hook should print vault state. Run `/health` to check vault integrity. A fresh vault should report all green.
 
 ## Troubleshooting
 

@@ -10,19 +10,12 @@ context: fork
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping, platform hints
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` / `vocabulary.note_plural` for note type references
-   - Use `vocabulary.reflect` for the process verb in output
-   - Use `vocabulary.topic_map` / `vocabulary.topic_map_plural` for MOC references
-   - Use `vocabulary.cmd_reweave` for the next-phase suggestion
-   - Use `vocabulary.inbox` for the inbox folder name
+1. **`ops/derivation-manifest.md`** — platform hints
+   - Platform-specific behavior and dimension configuration
 
 2. **`ops/config.yaml`** — processing depth, pipeline chaining
    - `processing.depth`: deep | standard | quick
    - `processing.chaining`: manual | suggested | automatic
-
-If these files don't exist, use universal defaults.
 
 **Processing depth adaptation:**
 
@@ -37,23 +30,23 @@ If these files don't exist, use universal defaults.
 **Target: $ARGUMENTS**
 
 Parse immediately:
-- If target contains `[[note name]]` or note name: find connections for that {vocabulary.note}
+- If target contains `[[note name]]` or note name: find connections for that claim
 - If target contains `--handoff`: output RALPH HANDOFF block at end
-- If target is empty: check for recently created {vocabulary.note_plural} or ask which {vocabulary.note}
-- If target is "recent" or "new": find connections for all {vocabulary.note_plural} created today
+- If target is empty: check for recently created claims or ask which claim
+- If target is "recent" or "new": find connections for all claims created today
 
 **Execute these steps:**
 
-1. Read the target {vocabulary.note} fully — understand its claim and context
-2. **Throughout discovery:** Capture which {vocabulary.topic_map_plural} you read, which queries you ran (with scores), which candidates you evaluated. This becomes the Discovery Trace — proving methodology was followed, not reconstructed.
+1. Read the target claim fully — understand its claim and context
+2. **Throughout discovery:** Capture which topic maps you read, which queries you ran (with scores), which candidates you evaluated. This becomes the Discovery Trace — proving methodology was followed, not reconstructed.
 3. Run Phase 0 (index freshness check)
 4. Use dual discovery in parallel:
-   - Browse relevant {vocabulary.topic_map}(s) for related {vocabulary.note_plural}
-   - Run semantic search for conceptually related {vocabulary.note_plural}
+   - Browse relevant topic map(s) for related claims
+   - Run semantic search for conceptually related claims
 5. Evaluate each candidate: does a genuine connection exist? Can you articulate WHY?
 6. Add inline wiki-links where connections pass the articulation test
-7. Update relevant {vocabulary.topic_map}(s) with this {vocabulary.note}
-8. If task file in context: update the {vocabulary.reflect} section
+7. Update relevant topic map(s) with this claim
+8. If task file in context: update the reflect section
 9. Report what was connected and why
 10. If `--handoff` in target: output RALPH HANDOFF block
 
@@ -63,27 +56,27 @@ Parse immediately:
 
 ## Quarantine Guard
 
-Before processing any {vocabulary.note}, check its frontmatter for `quarantine: true`. Quarantined notes are federation imports that have not been human-verified and must not participate in graph-building operations.
+Before processing any claim, check its frontmatter for `quarantine: true`. Quarantined notes are federation imports that have not been human-verified and must not participate in graph-building operations.
 
-**Action:** If a candidate note has `quarantine: true` in its YAML frontmatter, skip it with a log message: "Skipping quarantined note [[note-title]] -- awaiting human review." Do NOT add connections to or from quarantined notes, do NOT include them in {vocabulary.topic_map} updates, and do NOT use them as semantic search results.
+**Action:** If a candidate note has `quarantine: true` in its YAML frontmatter, skip it with a log message: "Skipping quarantined note [[note-title]] -- awaiting human review." Do NOT add connections to or from quarantined notes, do NOT include them in topic map updates, and do NOT use them as semantic search results.
 
 ---
 
 # Reflect
 
-Find connections, weave the knowledge graph, update {vocabulary.topic_map_plural}. This is the forward-connection phase of the processing pipeline.
+Find connections, weave the knowledge graph, update topic maps. This is the forward-connection phase of the processing pipeline.
 
 ## Philosophy
 
 **The network IS the knowledge.**
 
-Individual {vocabulary.note_plural} are less valuable than their relationships. A {vocabulary.note} with fifteen incoming links is an intersection of fifteen lines of thought. Connections create compound value as the vault grows.
+Individual claims are less valuable than their relationships. A claim with fifteen incoming links is an intersection of fifteen lines of thought. Connections create compound value as the vault grows.
 
-This is not keyword matching. This is semantic judgment — understanding what {vocabulary.note_plural} MEAN to determine how they relate. A {vocabulary.note} about "friction in systems" might deeply connect to "verification approaches" even though they share no words. You are building a traversable knowledge graph, not tagging documents.
+This is not keyword matching. This is semantic judgment — understanding what claims MEAN to determine how they relate. A claim about "friction in systems" might deeply connect to "verification approaches" even though they share no words. You are building a traversable knowledge graph, not tagging documents.
 
 **Quality over speed. Explicit over vague.**
 
-Every connection must pass the articulation test: can you say WHY these {vocabulary.note_plural} connect? "Related" is not a relationship. "Extends X by adding Y" or "contradicts X because Z" is a relationship.
+Every connection must pass the articulation test: can you say WHY these claims connect? "Related" is not a relationship. "Extends X by adding Y" or "contradicts X because Z" is a relationship.
 
 Bad connections pollute the graph. They create noise that makes real connections harder to find. When uncertain, do not connect.
 
@@ -92,21 +85,21 @@ Bad connections pollute the graph. They create noise that makes real connections
 ### /reflect (no argument)
 
 Check for recent additions:
-1. Look for {vocabulary.note_plural} modified in the last session
-2. If none obvious, ask user what {vocabulary.note_plural} to connect
+1. Look for claims modified in the last session
+2. If none obvious, ask user what claims to connect
 
 ### /reflect [note]
 
-Focus on connecting a specific {vocabulary.note}:
-1. Read the target {vocabulary.note}
+Focus on connecting a specific claim:
+1. Read the target claim
 2. Discover related content
-3. Add connections and update {vocabulary.topic_map_plural}
+3. Add connections and update topic maps
 
 ### /reflect [topic area]
 
 Synthesize an area:
-1. Read the relevant {vocabulary.topic_map}
-2. Identify {vocabulary.note_plural} that should connect
+1. Read the relevant topic map
+2. Identify claims that should connect
 3. Weave connections, update synthesis
 
 ### /reflect --handoff [note]
@@ -120,19 +113,19 @@ External loop mode for /ralph:
 
 ### Phase 0: Verify Index Freshness
 
-Before using semantic search, verify the index is current. This is self-healing: if {vocabulary.note_plural} were created outside the pipeline (manual edits, other skills), reflect catches the drift before searching.
+Before using semantic search, verify the index is current. This is self-healing: if claims were created outside the pipeline (manual edits, other skills), reflect catches the drift before searching.
 
 1. Try `mcp__qmd__status` to get the indexed document count for the target collection
 2. **If MCP unavailable** (tool fails or returns error): fall back to bash:
    ```bash
    LOCKDIR="ops/queue/.locks/qmd.lock"
    while ! mkdir "$LOCKDIR" 2>/dev/null; do sleep 2; done
-   qmd_count=$(qmd status 2>/dev/null | grep -A2 '{vocabulary.notes_collection}' | grep 'documents' | grep -oE '[0-9]+' | head -1)
+   qmd_count=$(qmd status 2>/dev/null | grep -A2 'notes' | grep 'documents' | grep -oE '[0-9]+' | head -1)
    rm -rf "$LOCKDIR"
    ```
 3. Count actual files:
    ```bash
-   file_count=$(ls -1 {vocabulary.notes}/*.md 2>/dev/null | wc -l | tr -d ' ')
+   file_count=$(ls -1 notes/*.md 2>/dev/null | wc -l | tr -d ' ')
    ```
 4. If the counts differ, sync the index:
    ```bash
@@ -145,8 +138,8 @@ Run this check before proceeding. If stale, sync and continue. If current, proce
 
 Before searching for connections, deeply understand the source material.
 
-For each {vocabulary.note} you are connecting:
-1. Read the full {vocabulary.note}, not just title and description
+For each claim you are connecting:
+1. Read the full claim, not just title and description
 2. Identify the core claim and supporting reasoning
 3. Note key concepts, mechanisms, implications
 4. Ask: what questions does this answer? What questions does it raise?
@@ -158,56 +151,56 @@ For each {vocabulary.note} you are connecting:
 - The scope (when does this apply? When not?)
 - The tensions (what might contradict this?)
 
-**If a task file exists** (pipeline execution): read the task file to see what the extraction phase discovered. The reduce notes, semantic neighbor field, and classification provide critical context about why this {vocabulary.note} was extracted and what it relates to.
+**If a task file exists** (pipeline execution): read the task file to see what the extraction phase discovered. The reduce notes, semantic neighbor field, and classification provide critical context about why this claim was extracted and what it relates to.
 
 ### Phase 2: Discovery (Find Candidates)
 
-Use dual discovery: {vocabulary.topic_map} exploration AND semantic search in parallel. These are complementary, not sequential.
+Use dual discovery: topic map exploration AND semantic search in parallel. These are complementary, not sequential.
 
-**Capture discovery trace as you go.** Note which {vocabulary.topic_map_plural} you read, which queries you ran (with scores), which searches you tried. This becomes the Discovery Trace section in output — proving methodology was followed, not reconstructed after the fact.
+**Capture discovery trace as you go.** Note which topic maps you read, which queries you ran (with scores), which searches you tried. This becomes the Discovery Trace section in output — proving methodology was followed, not reconstructed after the fact.
 
 **Primary discovery (run in parallel):**
 
-**Path 1: {vocabulary.topic_map} Exploration** — curated navigation
+**Path 1: topic map Exploration** — curated navigation
 
-If you know the topic (check the {vocabulary.note}'s Topics footer), start with the {vocabulary.topic_map}:
+If you know the topic (check the claim's Topics footer), start with the topic map:
 
-- Read the relevant {vocabulary.topic_map}(s)
+- Read the relevant topic map(s)
 - Follow curated links in Core Ideas — these are human/agent-curated connections
 - Note what is already connected to similar concepts
 - Check Tensions and Gaps for context
 - What do agent notes reveal about navigation?
 
-{vocabulary.topic_map_plural} tell you what thinking exists and how it is organized. Someone already decided what matters for this topic.
+topic maps tell you what thinking exists and how it is organized. Someone already decided what matters for this topic.
 
-**Path 2: Semantic Search** — find what {vocabulary.topic_map_plural} might miss
+**Path 2: Semantic Search** — find what topic maps might miss
 
 **Three-tier fallback for semantic search:**
 
 **Tier 1 — MCP tools (preferred):** Use `mcp__qmd__deep_search` (hybrid search with expansion + reranking):
-- query: "[{vocabulary.note}'s core concepts and mechanisms]"
+- query: "[claim's core concepts and mechanisms]"
 - limit: 15
 
 **Tier 2 — bash qmd with lock serialization:** If MCP tools fail or are unavailable:
 ```bash
 LOCKDIR="ops/queue/.locks/qmd.lock"
 while ! mkdir "$LOCKDIR" 2>/dev/null; do sleep 2; done
-qmd query "[note's core concepts]" --collection {vocabulary.notes_collection} --limit 15 2>/dev/null
+qmd query "[note's core concepts]" --collection notes --limit 15 2>/dev/null
 rm -rf "$LOCKDIR"
 ```
 
 The lock prevents multiple parallel workers from loading large models simultaneously.
 
-**Tier 3 — grep only:** If both MCP and bash fail, log "qmd unavailable, grep-only discovery" and rely on {vocabulary.topic_map} + keyword search only. This degrades quality but does not block work.
+**Tier 3 — grep only:** If both MCP and bash fail, log "qmd unavailable, grep-only discovery" and rely on topic map + keyword search only. This degrades quality but does not block work.
 
-Evaluate results by relevance — read any result where title or snippet suggests genuine connection. Semantic search finds {vocabulary.note_plural} that share MEANING even when vocabulary differs. A {vocabulary.note} about "iteration cycles" might connect to "learning from friction" despite sharing no words.
+Evaluate results by relevance — read any result where title or snippet suggests genuine connection. Semantic search finds claims that share MEANING even when vocabulary differs. A claim about "iteration cycles" might connect to "learning from friction" despite sharing no words.
 
 **Why both paths:**
 
-{vocabulary.topic_map} = what is already curated as relevant
+topic map = what is already curated as relevant
 semantic search = neighbors that have not been curated yet
 
-Using only search misses curated structure. Using only {vocabulary.topic_map} misses semantic neighbors outside the topic. Both together catch what either alone would miss.
+Using only search misses curated structure. Using only topic map misses semantic neighbors outside the topic. Both together catch what either alone would miss.
 
 **Secondary discovery (after primary):**
 
@@ -215,7 +208,7 @@ Using only search misses curated structure. Using only {vocabulary.topic_map} mi
 
 For specific terms and exact matches:
 ```bash
-grep -r "term" {vocabulary.notes}/ --include="*.md"
+grep -r "term" notes/ --include="*.md"
 ```
 
 Use grep when:
@@ -237,8 +230,8 @@ Use grep when:
 
 **Step 4: Description Scan**
 
-Use ripgrep to scan {vocabulary.note} descriptions for edge cases:
-- Does this extend the source {vocabulary.note}?
+Use ripgrep to scan claim descriptions for edge cases:
+- Does this extend the source claim?
 - Does this contradict or create tension?
 - Does this provide evidence or examples?
 
@@ -248,8 +241,8 @@ Flag candidates with a reason (not just "related").
 
 From promising candidates, follow their existing links:
 - What do THEY connect to?
-- Are there clusters of related {vocabulary.note_plural}?
-- Do chains emerge that your source {vocabulary.note} should join?
+- Are there clusters of related claims?
+- Do chains emerge that your source claim should join?
 
 This is graph traversal. You are exploring the neighborhood.
 
@@ -297,17 +290,17 @@ The vault is built for agent traversal. Every connection should help an agent DE
 
 **Synthesis Opportunity Detection:**
 
-While evaluating connections, watch for synthesis opportunities — two or more {vocabulary.note_plural} that together imply a higher-order claim not yet captured.
+While evaluating connections, watch for synthesis opportunities — two or more claims that together imply a higher-order claim not yet captured.
 
 Signs of a synthesis opportunity:
-- Two {vocabulary.note_plural} make complementary arguments that combine into something neither says alone
-- A pattern appears across three or more {vocabulary.note_plural} that has not been named
-- A tension between two {vocabulary.note_plural} suggests a resolution claim
+- Two claims make complementary arguments that combine into something neither says alone
+- A pattern appears across three or more claims that has not been named
+- A tension between two claims suggests a resolution claim
 
 When you detect a synthesis opportunity:
 1. Note it in the output report
-2. Do NOT create the synthesis {vocabulary.note} during reflect — flag it for future work
-3. Describe what the synthesis would argue and which {vocabulary.note_plural} contribute
+2. Do NOT create the synthesis claim during reflect — flag it for future work
+3. Describe what the synthesis would argue and which claims contribute
 
 ### Phase 4: Add Inline Connections
 
@@ -367,53 +360,53 @@ Add the reverse link only if following that path would be useful for agent trave
 
 **Reweave Task Filtering (when adding bidirectional links):**
 
-When you edit an older {vocabulary.note} to add a reverse link, you MAY flag it for full reconsideration via reweave. But SKIP reweave flagging if ANY of these apply:
+When you edit an older claim to add a reverse link, you MAY flag it for full reconsideration via reweave. But SKIP reweave flagging if ANY of these apply:
 
 | Skip Condition | Rationale |
 |----------------|-----------|
 | Note has >5 incoming links | Already a hub — one more link does not warrant full reconsideration |
 | Note has `type: tension` in YAML | Structural framework, not content that evolves |
 | Note was reweaved in current batch | Do not re-reweave what was just reweaved |
-| Note is a {vocabulary.topic_map} | {vocabulary.topic_map_plural} are navigation, not claims to reconsider |
+| Note is a topic map | topic maps are navigation, not claims to reconsider |
 
 **Check incoming links:**
 ```bash
-grep -r '\[\[note name\]\]' {vocabulary.notes}/*.md | wc -l
+grep -r '\[\[note name\]\]' notes/*.md | wc -l
 ```
 
 If >= 5, skip reweave flagging.
 
-### Phase 5: Update {vocabulary.topic_map_plural}
+### Phase 5: Update topic maps
 
-{vocabulary.topic_map_plural} are synthesis hubs, not just indexes.
+topic maps are synthesis hubs, not just indexes.
 
-**When to update a {vocabulary.topic_map}:**
+**When to update a topic map:**
 
-- New {vocabulary.note} belongs in Core Ideas
+- New claim belongs in Core Ideas
 - New tension discovered
 - Gap has been filled
 - Synthesis insight emerged
 - Navigation path worth documenting
 
-**{vocabulary.topic_map} Size Check:**
+**topic map Size Check:**
 
 After updating Core Ideas, count the links:
 
 ```bash
-grep -c '^\- \[\[' "{vocabulary.notes}/[moc-name].md"
+grep -c '^\- \[\[' "notes/[moc-name].md"
 ```
 
-If approaching the split threshold (configurable, default ~40): note in output "{vocabulary.topic_map} approaching split threshold (N links)"
-If exceeding: warn "{vocabulary.topic_map} exceeds recommended size — consider splitting"
+If approaching the split threshold (configurable, default ~40): note in output "topic map approaching split threshold (N links)"
+If exceeding: warn "topic map exceeds recommended size — consider splitting"
 
 Splitting is a human decision (architectural judgment required), but /reflect should surface the signal.
 
-**{vocabulary.topic_map} Structure:**
+**topic map Structure:**
 
 ```markdown
 # [Topic Name]
 
-[Opening synthesis: Claims about the topic. Not "this {vocabulary.topic_map} collects {vocabulary.note_plural}" but "the core insight is Y because Z." This IS thinking, not meta-description.]
+[Opening synthesis: Claims about the topic. Not "this topic map collects claims" but "the core insight is Y because Z." This IS thinking, not meta-description.]
 
 ## Core Ideas
 
@@ -438,16 +431,16 @@ Agent Notes:
 
 **Updating Core Ideas:**
 
-Add new {vocabulary.note_plural} with context phrase explaining contribution:
+Add new claims with context phrase explaining contribution:
 ```markdown
 - [[new note]] — extends the quality argument by showing how friction teaches you what to check
 ```
 
-Order matters. Place {vocabulary.note_plural} where they fit the logical flow, not alphabetically.
+Order matters. Place claims where they fit the logical flow, not alphabetically.
 
 **Updating Tensions:**
 
-If the new {vocabulary.note} creates or resolves tension:
+If the new claim creates or resolves tension:
 ```markdown
 ## Tensions
 
@@ -467,7 +460,7 @@ Agent notes are breadcrumbs for future navigation.
 **Add agent notes when:**
 - Non-obvious navigation path discovered
 - Dead end worth documenting
-- Productive {vocabulary.note} combination found
+- Productive claim combination found
 - Insight about topic cluster emerged
 
 **Format:**
@@ -484,7 +477,7 @@ Agent Notes:
 
 **Bad agent notes:**
 ```markdown
-- 2026-02-15: read the {vocabulary.topic_map} and added some links.
+- 2026-02-15: read the topic map and added some links.
 - 2026-02-15: connected [[note A]] to [[note B]].
 ```
 
@@ -511,9 +504,9 @@ Good: "since [[note]], the implication is..."
 For every A -> B link, explicitly decide: should B -> A exist?
 Document your reasoning if the relationship is asymmetric.
 
-### Gate 4: {vocabulary.topic_map} Coherence
+### Gate 4: topic map Coherence
 
-After updating a {vocabulary.topic_map}, read the opening synthesis. Does it still hold? Do new {vocabulary.note_plural} extend or challenge it?
+After updating a topic map, read the opening synthesis. Does it still hold? Do new claims extend or challenge it?
 
 If the synthesis is now wrong or incomplete, update it.
 
@@ -523,34 +516,34 @@ Verify every wiki link target exists. Never create links to non-existent files.
 
 ```bash
 # Check that a link target exists
-ls {vocabulary.notes}/"target name.md" 2>/dev/null
+ls notes/"target name.md" 2>/dev/null
 ```
 
 ## Handling Edge Cases
 
 ### No Connections Found
 
-Sometimes a {vocabulary.note} genuinely does not connect yet. That is fine.
+Sometimes a claim genuinely does not connect yet. That is fine.
 
-1. Ensure it is linked to at least one {vocabulary.topic_map} via Topics footer
-2. Note in {vocabulary.topic_map} Gaps that this area needs development
+1. Ensure it is linked to at least one topic map via Topics footer
+2. Note in topic map Gaps that this area needs development
 3. Do not force connections that are not there
 
 ### Too Many Connections (Split Detection)
 
-If a {vocabulary.note} connects to 5+ {vocabulary.note_plural} across different domains, it might be too broad.
+If a claim connects to 5+ claims across different domains, it might be too broad.
 
 **Split detection criteria:**
 
-1. **Domain spread:** Connections span 3+ distinct {vocabulary.topic_map_plural}/topic areas
-2. **Multiple claims:** The {vocabulary.note} makes more than one assertion that could stand alone
-3. **Linking drag:** You would want to link to part of the {vocabulary.note} but not all of it
+1. **Domain spread:** Connections span 3+ distinct topic maps/topic areas
+2. **Multiple claims:** The claim makes more than one assertion that could stand alone
+3. **Linking drag:** You would want to link to part of the claim but not all of it
 
 **How to evaluate:**
 
-Ask: "If I link to this {vocabulary.note} from context X, does irrelevant content Y come along?"
+Ask: "If I link to this claim from context X, does irrelevant content Y come along?"
 
-If yes, the {vocabulary.note} bundles multiple ideas that should be separate.
+If yes, the claim bundles multiple ideas that should be separate.
 
 **Split detection output:**
 
@@ -558,38 +551,38 @@ If yes, the {vocabulary.note} bundles multiple ideas that should be separate.
 ### Split Candidate: [[broad note]]
 
 **Indicators:**
-- Connects to 7 {vocabulary.note_plural} across 3 domains
+- Connects to 7 claims across 3 domains
 - Makes distinct claims about: (1) capture workflows, (2) synthesis patterns, (3) tool selection
 - Linking from [[note A]] would drag in unrelated content about tool selection
 
 **Proposed split:**
 - [[capture workflows matter less than synthesis]] — the first claim
 - [[tool selection follows from workflow needs]] — the third claim
-- Keep original {vocabulary.note} focused on synthesis patterns
+- Keep original claim focused on synthesis patterns
 
 **Action:** Flag for human decision, do not auto-split
 ```
 
 **When NOT to split:**
-- {vocabulary.note} is genuinely about one thing that touches many areas
+- claim is genuinely about one thing that touches many areas
 - Connections are all variations of the same relationship
-- Splitting would create {vocabulary.note_plural} too thin to stand alone
+- Splitting would create claims too thin to stand alone
 
 ### Conflicting Notes
 
-When new content contradicts existing {vocabulary.note_plural}:
+When new content contradicts existing claims:
 
-1. Document the tension in both {vocabulary.note_plural}
-2. Add to {vocabulary.topic_map} Tensions section
+1. Document the tension in both claims
+2. Add to topic map Tensions section
 3. Do not auto-resolve — flag for judgment
 
 ### Orphan Discovery
 
-If you find {vocabulary.note_plural} with no connections:
+If you find claims with no connections:
 
 1. Flag them in your output
 2. Attempt to connect them
-3. If genuinely orphaned, note in relevant {vocabulary.topic_map} Gaps
+3. If genuinely orphaned, note in relevant topic map Gaps
 
 ## Output Format
 
@@ -602,7 +595,7 @@ After reflecting, report:
 
 **Why this matters:** Shows methodology was followed. Blind delegation hides whether dual discovery happened. Trace enables verification.
 
-**{vocabulary.topic_map} exploration:**
+**topic map exploration:**
 - Read [[moc-name]] — found candidates: [[note A]], [[note B]], [[note C]]
 - Followed link from [[note A]] to [[note D]]
 
@@ -613,7 +606,7 @@ After reflecting, report:
   - [[note G]] (0.58) — evaluated: skip, different domain
 
 **Keyword search:**
-- grep "specific term" — found [[note H]] (already in {vocabulary.topic_map} candidates)
+- grep "specific term" — found [[note H]] (already in topic map candidates)
 
 ### Connections Added
 
@@ -622,7 +615,7 @@ After reflecting, report:
 - <- [[incoming]] — [relationship type]: [why]
 - inline: added link to [[note]] in paragraph about X
 
-### {vocabulary.topic_map} Updates
+### topic map Updates
 
 **[[moc-name]]**
 - Added [[note]] to Core Ideas — [contribution]
@@ -632,7 +625,7 @@ After reflecting, report:
 
 ### Synthesis Opportunities
 
-[{vocabulary.note_plural} that could be combined into higher-order insights, with proposed claim]
+[claims that could be combined into higher-order insights, with proposed claim]
 
 ### Flagged for Attention
 
@@ -646,7 +639,7 @@ After reflecting, report:
 Successful reflection:
 - Every connection passes the articulation test
 - Inline links read as natural prose
-- {vocabulary.topic_map_plural} gain synthesis, not just entries
+- topic maps gain synthesis, not just entries
 - Agent notes reveal non-obvious paths
 - The knowledge graph becomes more traversable
 - Future agents will navigate more effectively
@@ -666,7 +659,7 @@ The test: if someone follows the links you added, do they find genuinely useful 
 - Verify link targets exist
 - Explain WHY connections exist
 - Consider bidirectionality
-- Update relevant {vocabulary.topic_map_plural}
+- Update relevant topic maps
 - Add agent notes when navigation insights emerge
 - Capture discovery trace as you work
 
@@ -689,19 +682,19 @@ When invoked with `--handoff`, output this structured format at the END of the s
 **Handoff format:**
 
 ```
-=== RALPH HANDOFF: {vocabulary.reflect} ===
+=== RALPH HANDOFF: reflect ===
 Target: [[note name]]
 
 Work Done:
-- Discovery: {vocabulary.topic_map} [[moc-name]], query "[query]" (MCP|bash|grep-only), grep "[term]"
+- Discovery: topic map [[moc-name]], query "[query]" (MCP|bash|grep-only), grep "[term]"
 - Connections added: N (articulation test: PASS)
-- {vocabulary.topic_map} updates: [[moc-name]] Core Ideas section
+- topic map updates: [[moc-name]] Core Ideas section
 - Synthesis opportunities: [count or NONE]
 
 Files Modified:
-- {vocabulary.notes}/[note name].md (inline links added)
-- {vocabulary.notes}/[moc-name].md (Core Ideas updated)
-- [task file path] ({vocabulary.reflect} section)
+- notes/[note name].md (inline links added)
+- notes/[moc-name].md (Core Ideas updated)
+- [task file path] (reflect section)
 
 Learnings:
 - [Friction]: [description] | NONE
@@ -710,16 +703,16 @@ Learnings:
 - [Process gap]: [description] | NONE
 
 Queue Updates:
-- Advance phase: {vocabulary.reflect} -> {vocabulary.reweave}
+- Advance phase: reflect -> reweave
 - Reweave candidates (if any pass filter): [[note]] | NONE (filtered: hub/tension/recent)
 === END HANDOFF ===
 ```
 
 ### Task File Update (when invoked via ralph loop)
 
-When running in handoff mode via /ralph, the prompt includes the task file path. After completing the workflow, update the `## {vocabulary.reflect}` section of that task file with:
+When running in handoff mode via /ralph, the prompt includes the task file path. After completing the workflow, update the `## reflect` section of that task file with:
 - Connections added and why
-- {vocabulary.topic_map} updates made
+- topic map updates made
 - Articulation test results
 - Discovery trace summary
 
@@ -736,8 +729,8 @@ When running interactively (NOT via /ralph), YOU must advance the phase in the q
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # advance phase (current_phase -> next, append to completed_phases)
-jq '(.tasks[] | select(.id=="TASK_ID")).current_phase = "{vocabulary.reweave}" |
-    (.tasks[] | select(.id=="TASK_ID")).completed_phases += ["{vocabulary.reflect}"]' \
+jq '(.tasks[] | select(.id=="TASK_ID")).current_phase = "reweave" |
+    (.tasks[] | select(.id=="TASK_ID")).completed_phases += ["reflect"]' \
     ops/queue/queue.json > tmp.json && mv tmp.json ops/queue/queue.json
 ```
 
@@ -747,8 +740,8 @@ The handoff block's "Queue Updates" section is not just output — it is your ow
 
 After connection finding completes, output the next step based on `ops/config.yaml` pipeline.chaining mode:
 
-- **manual:** Output "Next: {vocabulary.cmd_reweave} [note]" — user decides when to proceed
-- **suggested:** Output next step AND advance task queue entry to `current_phase: "{vocabulary.reweave}"`
+- **manual:** Output "Next: /reweave [note]" — user decides when to proceed
+- **suggested:** Output next step AND advance task queue entry to `current_phase: "reweave"`
 - **automatic:** Queue entry advanced and backward pass proceeds immediately
 
-The chaining output uses domain-native command names from the derivation manifest.
+The chaining output uses the hardcoded command names: /reweave.

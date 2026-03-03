@@ -19,6 +19,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import shutil
 import subprocess
@@ -113,6 +114,7 @@ _FULL_SKILLS: list[str] = [
     "rethink",
     "ralph",
     "refactor",
+    "federation-sync",
 ]
 
 
@@ -409,6 +411,47 @@ def _register_vault(target: Path, vault_name: str) -> None:
         )
 
 
+def _create_settings_json(target: Path, source: Path) -> None:
+    """Create .claude/settings.json with hooks from source + skill permissions from disk.
+
+    Reads hooks from the source vault's settings.json and generates Skill()
+    permission entries by scanning the target's .claude/skills/ directory.
+    """
+    settings_dir = target / ".claude"
+    settings_dir.mkdir(exist_ok=True)
+
+    # Start with hooks from source settings.json (if present)
+    source_settings = source / ".claude" / "settings.json"
+    if source_settings.is_file():
+        try:
+            data = json.loads(source_settings.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
+    else:
+        data = {}
+
+    # Scan target's skills directory for Skill() permission entries
+    skills_dir = target / ".claude" / "skills"
+    skill_names: set[str] = set()
+    if skills_dir.is_dir():
+        skill_names = {
+            d.name
+            for d in skills_dir.iterdir()
+            if d.is_dir() and (d / "SKILL.md").is_file()
+        }
+
+    if skill_names:
+        allow = data.get("permissions", {}).get("allow", [])
+        non_skill = [e for e in allow if not e.startswith("Skill(")]
+        skill_entries = sorted(f"Skill({name})" for name in skill_names)
+        data.setdefault("permissions", {})["allow"] = non_skill + skill_entries
+
+    (settings_dir / "settings.json").write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8"
+    )
+    log.info("  created settings.json (hooks + %d skill permissions)", len(skill_names))
+
+
 def scaffold(
     target: Path,
     source: Path,
@@ -484,10 +527,8 @@ def scaffold(
     _create_goals_template(target)
     _create_reminders(target)
 
-    # 6. Create .claude/settings.json stub
-    settings_dir = target / ".claude"
-    settings_dir.mkdir(exist_ok=True)
-    (settings_dir / "settings.json").write_text("{}\n", encoding="utf-8")
+    # 6. Create .claude/settings.json with hooks + skill permissions
+    _create_settings_json(target, source)
 
     # 7. Initialize git
     if init_git:

@@ -50,5 +50,41 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Skill(dev)",
+      "Skill(eda)",
+      "Skill(evolve)",
+      "Skill(experiment)",
+      "Skill(federation-sync)",
+      "Skill(generate)",
+      "Skill(graph)",
+      "Skill(init)",
+      "Skill(landscape)",
+      "Skill(learn)",
+      "Skill(literature)",
+      "Skill(meta-review)",
+      "Skill(next)",
+      "Skill(onboard)",
+      "Skill(pipeline)",
+      "Skill(plot)",
+      "Skill(project)",
+      "Skill(ralph)",
+      "Skill(reduce)",
+      "Skill(refactor)",
+      "Skill(reflect)",
+      "Skill(remember)",
+      "Skill(research)",
+      "Skill(rethink)",
+      "Skill(review)",
+      "Skill(reweave)",
+      "Skill(seed)",
+      "Skill(stats)",
+      "Skill(tasks)",
+      "Skill(tournament)",
+      "Skill(validate)",
+      "Skill(verify)"
+    ]
   }
 }

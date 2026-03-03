@@ -30,12 +30,12 @@ Read these files to configure runtime behavior:
 2. **`_research/goals/`** -- active research goal (if `--goal` provided)
    - Parse `project_tag` from goal frontmatter for tag inheritance on literature notes
 
-3. **Preflight readiness check** (always run):
+3. **Preflight readiness check** (always run -- source `.env` so keys are visible):
 ```
-uv run --directory {vault_root}/_code python -c "
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
 import json, sys; sys.path.insert(0, 'src')
 from engram_r.search_interface import check_literature_readiness
-print(json.dumps(check_literature_readiness('ops/config.yaml')))
+print(json.dumps(check_literature_readiness('../ops/config.yaml')))
 "
 ```
 
@@ -51,7 +51,7 @@ Parse immediately:
 - If `$ARGUMENTS` contains `--goal [slug]` -> scope search to that research goal's domain
 - If `$ARGUMENTS` contains `--handoff` -> emit CO-SCIENTIST HANDOFF block at end
 - Remaining text in `$ARGUMENTS` -> search query
-- If no query and no `--setup` -> ask user for search query
+- If no query and no `--setup` -> read vault context for suggestions, then present query options
 
 **Execute these steps:**
 
@@ -59,10 +59,10 @@ Parse immediately:
 2. Run preflight readiness check. If not ready: enter setup flow.
 3. Present available sources to user: sources from config plus **all**. Default is `literature.default`.
 4. Ask for search query (if not provided in arguments) and source selection.
-5. Execute search via `search_all_sources()` with appropriate parameters.
-6. Display results table: #, Title, Authors, Year, Source, Journal, DOI/ID, Citations.
-7. Ask user which papers to save as literature notes.
-8. For each selected paper: build note via `build_literature_note()`, save to `_research/literature/`.
+5. Execute search via `search_all_sources()` with appropriate parameters. **CRITICAL**: Immediately save results to JSON via `save_results_json()` BEFORE displaying anything. This preserves full abstracts in Python memory. Use path `ops/queue/.literature_results.json`.
+6. Display results table: #, Title, Authors, Year, Source, Journal, DOI/ID, Citations. (Show abstract preview in table but DO NOT use these previews for note creation.)
+7. Ask user which papers to save as literature notes. Accept comma-separated numbers or "all".
+8. Create notes via `create_notes_from_results()` passing the saved JSON path, selected indices, output_dir=`_research/literature/`, and goal_tag if applicable. **NEVER manually construct abstract text or pass abstracts as arguments** -- the function reads full abstracts from the JSON file.
 9. Update `_research/literature/_index.md` (create if missing).
 10. Execute pipeline chaining per `processing.chaining` mode.
 11. Present saved note paths. If `--handoff`: emit CO-SCIENTIST HANDOFF block.
@@ -88,7 +88,7 @@ Implements the Literature agent supporting the co-scientist system (arXiv:2502.1
 
 ## Code
 
-- `_code/src/engram_r/search_interface.py` -- unified search interface, `check_literature_readiness()`, `resolve_literature_sources()`, `search_all_sources()`
+- `_code/src/engram_r/search_interface.py` -- unified search interface, `check_literature_readiness()`, `resolve_literature_sources()`, `search_all_sources()`, `save_results_json()`, `create_notes_from_results()`, `create_queue_entries()`
 - `_code/src/engram_r/pubmed.py` -- PubMed search via NCBI EUTILS
 - `_code/src/engram_r/arxiv.py` -- arXiv Atom API search
 - `_code/src/engram_r/semantic_scholar.py` -- Semantic Scholar Graph API search
@@ -108,27 +108,90 @@ Read and follow `.claude/skills/literature/reference/setup-flow.md`.
 Read `ops/config.yaml` `literature:` section via `resolve_literature_sources()`. Returns enabled source list and default.
 
 ### Step 2: Query and Source Selection
-Present available sources plus **all** option. Default is `literature.default` from config. If query provided in arguments, skip prompt.
 
-### Step 3: Execute Search
+**Context-aware suggestions (when no query provided):**
+
+Before prompting, read vault state to offer targeted suggestions:
+
+1. Read `self/goals.md` -- extract active research goals (title, scope, status)
+2. Count existing literature notes: `ls _research/literature/*.md 2>/dev/null | grep -cv '_index' || echo 0`
+3. For each active goal, read `_research/goals/{slug}.md` -- check `Key Literature` section
+
+**Condition for showing suggestions:** Only show goal-based search suggestions when the total literature note count (step 2) is below 5. If >= 5 literature notes already exist, the vault has literature -- even if individual goal files have empty `Key Literature` sections. Empty `Key Literature` sections with existing literature is a wiring gap (fix with linking), not a search gap.
+
+**If total literature count < 5 AND active goals exist** (true post-init state):
+- Derive 1-2 specific search queries per goal from the goal's Objective and domain
+- Present as a numbered menu with goal context:
+
+```
+Your active goals need literature grounding:
+
+  1. goal-slug: "domain-specific search query targeting primary facet"
+  2. goal-slug: "domain-specific search query targeting secondary facet"
+  ...
+
+Select numbers (comma-separated), type your own query, or "all" to run all suggestions.
+```
+
+- Queries should use domain-specific terms from the goal's Objective, not generic phrases
+- Each query targets a distinct facet of the goal (e.g., primary biomarkers vs confounders)
+- If `--goal [slug]` was provided, only suggest queries for that goal
+
+**Otherwise:** fall back to standard prompt: "What is your search query?"
+
+Present available sources plus **all** option. Default is `literature.default` from config. If query provided in arguments, skip all suggestion logic.
+
+### Step 3: Execute Search and Persist Results
 Always call `search_all_sources()` from `search_interface.py`:
 - **Single source**: `search_all_sources(query, sources=[chosen_source], config_path="ops/config.yaml")`
 - **All sources**: `search_all_sources(query, config_path="ops/config.yaml")`
 
-Both paths deduplicate by DOI, apply enrichment if configured, sort by citation count descending.
+Both paths deduplicate by DOI, apply enrichment if configured, fill missing abstracts via S2 DOI fallback, sort by citation count descending.
+
+**CRITICAL**: Immediately after search, call `save_results_json(results, "ops/queue/.literature_results.json")` to persist full results including complete abstracts. All downstream note creation MUST read from this JSON -- never from agent-rendered text.
+
+Example (single Python call):
+```python
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
+import json, sys; sys.path.insert(0, 'src')
+from engram_r.search_interface import search_all_sources, save_results_json
+results = search_all_sources('{query}', config_path='../ops/config.yaml')
+save_results_json(results, '../ops/queue/.literature_results.json')
+# Print summary for display (abstracts may be truncated here -- that is OK)
+for i, r in enumerate(results, 1):
+    abs_preview = (r.abstract[:80] + '...') if len(r.abstract) > 80 else r.abstract
+    print(f'{i}. {r.title[:60]} | {r.year} | {r.source_type} | {r.doi} | {r.citation_count or \"--\"} | abstract: {\"yes\" if r.abstract else \"MISSING\"}')
+print(f'Total: {len(results)} results saved to ops/queue/.literature_results.json')
+"
+```
 
 ### Step 4: Display Results
-Table columns: **#**, **Title**, **Authors**, **Year**, **Source**, **Journal**, **DOI/ID**, **Citations**.
-Source column shows backend name (PubMed, Semantic Scholar, etc.). Citations shows count or "--" when unavailable.
+Table columns: **#**, **Title**, **Authors**, **Year**, **Source**, **Journal**, **DOI/ID**, **Citations**, **Abstract** (yes/no).
+Source column shows backend name (PubMed, Semantic Scholar, etc.). Citations shows count or "--" when unavailable. Abstract column shows "yes" or "MISSING" to flag gaps.
 
 ### Step 5: User Selection
 Ask which papers to save as notes. Accept comma-separated numbers or "all".
 
-### Step 6: Build Notes
-For each selected paper:
-1. Build literature note via `build_literature_note()`, passing `source_type=result.source_type`.
-2. Save to `_research/literature/{year}-{first_author_last_name}-{slug}.md`.
-3. If `project_tag` inherited from `--goal`: add to note tags.
+### Step 6: Build Notes via Python (preserves full abstracts)
+Call `create_notes_from_results()` to build and write notes entirely in Python:
+
+```python
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
+import json, sys; sys.path.insert(0, 'src')
+from engram_r.search_interface import create_notes_from_results
+created = create_notes_from_results(
+    results_json='../ops/queue/.literature_results.json',
+    indices=[{comma_separated_indices}],
+    output_dir='../_research/literature/',
+    goal_tag='{goal_tag_or_empty}',
+)
+print(json.dumps(created, indent=2))
+"
+```
+
+**NEVER manually call `build_literature_note()` with abstract text from agent context.** The `create_notes_from_results()` function reads the full abstract from the JSON file, builds the note, handles filename generation, checks for DOI duplicates, and warns on empty/short abstracts (with automatic PubMed fallback for empty abstracts).
+
+The function returns a list of dicts with keys: `index`, `path`, `title`, `doi`, `status` (created/skipped/error), `abstract_status` (full/short/empty/pubmed_fallback).
 
 ### Step 7: Update Index
 Update `_research/literature/_index.md` under "Recent Additions" with wiki-link to new note.
@@ -154,28 +217,56 @@ After saving literature notes and updating `_index.md`, chain to the arscontexta
 
 | Mode | Action |
 |------|--------|
-| `manual` | Print `Next: /reduce [literature-note-path]` for each saved note |
-| `suggested` (default) | Print `Next: /reduce [path]` AND create queue entry in `ops/queue/queue.json` |
-| `automatic` | Print `Next: /reduce [path]` (automatic execution not yet implemented) |
+| `manual` | Print `Next: /ralph` to process queued literature notes (each starts with /reduce, then reflect/reweave/verify) |
+| `suggested` (default) | Create queue entries via `create_queue_entries()`, then print `Next: /ralph` (or `/ralph N` for N notes). Each task starts at the reduce phase |
+| `automatic` | Create queue entries via `create_queue_entries()`, then print `Next: /ralph` (automatic execution not yet implemented) |
 
-**Queue entry format** (for `suggested` mode):
-```json
-{
-  "id": "extract-{literature-note-basename}",
-  "type": "extract",
-  "status": "pending",
-  "source": "_research/literature/{filename}.md",
-  "created": "[ISO timestamp]",
-  "current_phase": "reduce",
-  "completed_phases": []
-}
+**CRITICAL: Always use `create_queue_entries()` to write queue entries.** Never manually construct queue JSON. The function uses actual file paths from `create_notes_from_results()`, preventing path truncation and author-name mismatches.
+
+```python
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
+import json, sys; sys.path.insert(0, 'src')
+from engram_r.search_interface import create_queue_entries
+# 'created' is the list returned by create_notes_from_results() in the previous step
+created = {created_json_list}
+entries = create_queue_entries(
+    created_notes=created,
+    queue_path='../ops/queue/queue.json',
+    vault_root='..',
+)
+print(json.dumps(entries, indent=2))
+"
+```
+
+Alternatively, combine note creation and queue entry creation in a single Python call:
+
+```python
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory {vault_root}/_code python -c "
+import json, sys; sys.path.insert(0, 'src')
+from engram_r.search_interface import create_notes_from_results, create_queue_entries
+created = create_notes_from_results(
+    results_json='../ops/queue/.literature_results.json',
+    indices=[{comma_separated_indices}],
+    output_dir='../_research/literature/',
+    goal_tag='{goal_tag_or_empty}',
+)
+entries = create_queue_entries(
+    created_notes=created,
+    queue_path='../ops/queue/queue.json',
+    vault_root='..',
+)
+print(json.dumps({'notes': created, 'queue_entries': entries}, indent=2))
+"
 ```
 
 **Output after all notes saved:**
 ```
 Pipeline chaining:
-- _research/literature/{note1}.md -> Next: /reduce _research/literature/{note1}.md
-- _research/literature/{note2}.md -> Next: /reduce _research/literature/{note2}.md
+- Queued: _research/literature/{note1}.md (reduce)
+- Queued: _research/literature/{note2}.md (reduce)
+
+Next: /ralph {N}  -- process all queued literature notes (reduce -> reflect -> reweave -> verify, fresh context per phase)
+  Or: /reduce _research/literature/{note}.md  -- process a single note manually
 ```
 
 ## Quality Gates
@@ -235,7 +326,7 @@ quality_gate_results:
   - gate: index-consistency -- {pass | fail: reason}
 
 recommendations:
-  next_suggested: reduce -- "process literature notes into claims via /reduce"
+  next_suggested: ralph -- "process queued literature notes with /ralph (runs /reduce then reflect/reweave/verify, fresh context per phase)"
 
 learnings:
   - {observation about search results or source quality} | NONE

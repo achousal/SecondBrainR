@@ -34,7 +34,6 @@ Parse immediately:
 
 ```
 ops/config.yaml             — research tools, depth, pipeline chaining
-ops/derivation-manifest.md  — domain vocabulary (inbox folder, reduce skill name)
 ```
 
 **From config.yaml** (defaults if missing):
@@ -48,10 +47,8 @@ pipeline:
   chaining: suggested             # manual | suggested | automatic
 ```
 
-**From derivation-manifest.md** (universal defaults if missing):
-- Inbox folder: `inbox/` (could be `journal/`, `encounters/`, etc.)
-- Reduce skill name: `/reduce` (could be `/surface`, `/break-down`, etc.)
-- Domain name and hub MOC name
+Inbox folder: `inbox/`
+Reduce skill name: `/reduce`
 
 ---
 
@@ -86,7 +83,7 @@ FAIL: Research failed — no research tools available
     2. [fallback] — [error]
     3. WebSearch — [error]
 
-  Try again later or manually add research to [inbox-folder]/
+  Try again later or manually add research to inbox/
 ```
 
 ### Tool Invocation Patterns
@@ -121,7 +118,7 @@ On completion: `Research complete — [source count] sources analyzed`
 
 **Filename:** `YYYY-MM-DD-[slugified-topic].md` — lowercase, spaces to hyphens, no special chars.
 
-**Write to** the domain inbox folder (from derivation-manifest, default `inbox/`). Create folder if missing.
+**Write to** `inbox/`. Create folder if missing.
 
 ### Provenance Frontmatter
 
@@ -136,7 +133,7 @@ exa_research_id: "[deep researcher ID, omit for web search]"
 exa_model: "[exa-research-fast | exa-research, omit for web search]"
 exa_tool: "[mcp tool name, omit for deep researcher]"
 generated: [ISO 8601 timestamp — run: date -u +"%Y-%m-%dT%H:%M:%SZ"]
-domain: "[domain name from derivation-manifest]"
+domain: "[domain name from ops/config.yaml domain.name]"
 topics: ["[[domain-hub-moc]]"]
 ---
 ```
@@ -176,15 +173,15 @@ Read chaining mode from config (default: `suggested`).
 ```
 Research complete
 
-  Filed to: [inbox-folder]/[filename]
+  Filed to: inbox/[filename]
 
-  Next: /[reduce-skill-name] [inbox-folder]/[filename]
+  Next: /reduce inbox/[filename]
 ```
 
 Append based on mode:
 - **manual:** (nothing extra)
 - **suggested:** `Ready for processing when you are.`
-- **automatic:** Replace "Next" line with `Queued for /[reduce-skill-name] -- processing will begin automatically.`
+- **automatic:** Replace "Next" line with `Queued for /reduce -- processing will begin automatically.`
 
 ---
 
@@ -218,9 +215,9 @@ Researching: [topic]
 
   Research complete -- [N] sources analyzed
 
-  Filed to: [inbox-folder]/[filename]
+  Filed to: inbox/[filename]
 
-  Next: /[reduce-skill-name] [inbox-folder]/[filename]
+  Next: /reduce inbox/[filename]
     [chaining context]
 
   [goals.md updated with N new research directions]
@@ -248,9 +245,9 @@ After /learn, the self-building loop continues:
 
 | Phase | Skill | Purpose |
 |-------|-------|---------|
-| Extract insights | /[reduce-name] | Mine research for atomic propositions |
-| Find connections | /[reflect-name] | Link new insights to existing graph |
-| Update old notes | /[reweave-name] | Backward pass on touched notes |
-| Quality check | /[verify-name] | Description quality, schema, links |
+| Extract insights | /reduce | Mine research for atomic propositions |
+| Find connections | /reflect | Link new insights to existing graph |
+| Update old notes | /reweave | Backward pass on touched notes |
+| Quality check | /verify | Description quality, schema, links |
 
 /learn is the entry point. Each run feeds the graph, and the graph feeds the next direction through goals.md.

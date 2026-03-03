@@ -21,11 +21,30 @@ Parse arguments:
 - --dry-run: show what would execute without running
 - --handoff: output structured RALPH HANDOFF block at end (for pipeline chaining)
 
-### Step 0: Read Vocabulary
-
-Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for domain vocabulary mapping. All output must use domain-native terms. If neither file exists, use universal terms.
-
 **START NOW.** Process queue tasks.
+
+---
+
+## Step 0: Queue Health Advisory
+
+Before processing, check for blocked stubs among reduce-phase tasks:
+
+1. Read the queue file and count tasks where `status == "pending"` AND `current_phase == "reduce"` AND the source file is missing or is a stub (both `## Key Points` and `## Relevance` sections are empty).
+2. If blocked stubs are found, print an advisory (never block):
+
+```
+[Advisory] N reduce-phase tasks are blocked on unpopulated literature stubs.
+Recommended: run /literature to populate stubs before processing.
+```
+
+3. If reweave-phase tasks coexist with blocked reduce stubs, add ordering guidance:
+
+```
+[Advisory] Reweave tasks will produce better connections after stub population.
+Recommended order: /literature (populate stubs) -> /ralph (reduce) -> /ralph (reweave)
+```
+
+4. **Always continue to Step 1.** This step is advisory only -- never abort processing.
 
 ---
 
@@ -51,10 +70,10 @@ Each phase maps to specific Task tool parameters. Use these EXACTLY when spawnin
 | Phase | Skill Invoked | Purpose |
 |-------|---------------|---------|
 | extract | /reduce | Extract claims from source material |
-| create | (inline note creation) | Write the {DOMAIN:note} file |
-| enrich | /enrich | Add content to existing {DOMAIN:note} |
-| reflect | /reflect | Find connections, update {DOMAIN:topic map}s |
-| reweave | /reweave | Update older {DOMAIN:note_plural} with new connections |
+| create | (inline note creation) | Write the claim file |
+| enrich | /enrich | Add content to existing claim |
+| reflect | /reflect | Find connections, update topic maps |
+| reweave | /reweave | Update older claims with new connections |
 | verify | /verify | Description quality + schema + health checks |
 
 **All phases use the same subagent configuration:**
@@ -122,7 +141,7 @@ Show this and STOP (do not process):
 ```
 --=={ ralph dry-run }==--
 
-Queue: X total tasks (Y pending, Z done)
+Queue: X total tasks (Y pending, Z done, B blocked on stubs)
 
 Phase distribution:
   Claims:       {create: N, reflect: N, reweave: N, verify: N}
@@ -188,7 +207,7 @@ Read the task file at ops/queue/{FILE} for context.
 You are processing task {ID} from the work queue.
 Phase: create | Target claim: {TARGET}
 
-Create a {DOMAIN:note} for this claim in {DOMAIN:notes}/[claim as sentence].md
+Create a claim for this claim in notes/[claim as sentence].md
 Follow note design patterns:
 - YAML frontmatter with description (adds info beyond title), topics
 - Body: 150-400 words showing reasoning with connective words
@@ -205,7 +224,7 @@ You are processing task {ID} from the work queue.
 Phase: enrich | Target: {TARGET}
 
 Run /enrich --handoff using the task file for context.
-The task file specifies which existing {DOMAIN:note} to enrich and what to add.
+The task file specifies which existing claim to enrich and what to add.
 ONE PHASE ONLY. Do NOT run reflect.
 ```
 
@@ -225,9 +244,9 @@ OTHER CLAIMS FROM THIS BATCH (check connections to these alongside regular disco
 {end for, or "None yet" if this is the first claim}
 
 Run /reflect --handoff on: {TARGET}
-Use dual discovery: {DOMAIN:topic map} exploration AND semantic search.
+Use dual discovery: topic map exploration AND semantic search.
 Add inline links where genuine connections exist — including sibling claims listed above.
-Update relevant {DOMAIN:topic map} with this {DOMAIN:note}.
+Update relevant topic map with this claim.
 ONE PHASE ONLY. Do NOT run reweave.
 ```
 
@@ -247,9 +266,9 @@ OTHER CLAIMS FROM THIS BATCH:
 {end for}
 
 Run /reweave --handoff for: {TARGET}
-This is the BACKWARD pass. Find OLDER {DOMAIN:note_plural} AND sibling claims
-that should reference this {DOMAIN:note} but don't.
-Add inline links FROM older {DOMAIN:note_plural} TO this {DOMAIN:note}.
+This is the BACKWARD pass. Find OLDER claims AND sibling claims
+that should reference this claim but don't.
+Add inline links FROM older claims TO this claim.
 ONE PHASE ONLY. Do NOT run verify.
 ```
 
@@ -264,7 +283,7 @@ Run /verify --handoff on: {TARGET}
 Combined verification: recite (cold-read prediction test), validate (schema check),
 review (per-note health).
 IMPORTANT: Recite runs FIRST — read only title+description, predict content,
-THEN read full {DOMAIN:note}.
+THEN read full claim.
 Final phase for this claim. ONE PHASE ONLY.
 ```
 
@@ -419,7 +438,7 @@ SIBLING CLAIMS IN THIS BATCH (link to these where genuine connections exist):
 {end for}
 
 During REFLECT and REWEAVE, check if your claim genuinely connects to any sibling.
-If a sibling {DOMAIN:note} exists in {DOMAIN:notes}/, link to it inline where the
+If a sibling claim exists in notes/, link to it inline where the
 connection is real. If it does not exist yet (still being created), skip —
 cross-connect will catch it after.
 
@@ -427,7 +446,7 @@ Read the task file for full context. Execute phases from current_phase onwards.
 If completed_phases is not empty, skip those phases (resumption mode).
 
 When complete, update the queue entry to status "done" and report the created
-{DOMAIN:note} title, path, and claim ID. The lead needs this for cross-connect.
+claim title, path, and claim ID. The lead needs this for cross-connect.
 ```
 
 Spawn via Task tool:
@@ -562,6 +581,39 @@ Queue Updates:
 **All tasks blocked:** Report which tasks are blocked and why. Suggest remediation.
 
 **Empty queue:** Report "Queue is empty. Use /seed or /pipeline to add sources."
+
+---
+
+## Skill Tool Fallback Protocol
+
+The Skill tool can intermittently fail with "Unknown skill" errors after ~6-7 invocations per session. This is a known platform limitation. Direct SKILL.md reads are a first-class recovery mechanism, not an ad-hoc workaround.
+
+### Recovery Procedure
+
+When a `/skill` invocation fails with "Unknown skill" or similar tool errors:
+
+1. **Read the SKILL.md directly** from the filesystem using the Read tool
+2. **Follow the instructions** in the SKILL.md as if the Skill tool had loaded them
+3. **Continue processing** -- do not abort the batch or retry the Skill tool
+
+### Phase-to-Path Lookup
+
+| Phase Skill | SKILL.md Path |
+|-------------|---------------|
+| /reduce | `.claude/skills/reduce/SKILL.md` |
+| /reflect | `.claude/skills/reflect/SKILL.md` |
+| /reweave | `.claude/skills/reweave/SKILL.md` |
+| /verify | `.claude/skills/verify/SKILL.md` |
+| /enrich | `.claude/skills/enrich/SKILL.md` |
+| /ralph | `.claude/skills/ralph/SKILL.md` |
+
+### Lead Session Responsibility
+
+The lead session (ralph orchestrator) applies the same fallback. If the Skill tool fails when building a subagent prompt that references a skill, read the SKILL.md directly and include the relevant instructions in the subagent prompt.
+
+### Subagent Responsibility
+
+Subagents spawned by ralph also apply this fallback. If a subagent's `/reduce --handoff` call fails, it reads `.claude/skills/reduce/SKILL.md` directly and executes accordingly.
 
 ---
 

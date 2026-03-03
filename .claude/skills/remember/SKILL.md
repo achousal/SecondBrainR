@@ -13,17 +13,11 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping, domain context
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` for the note type name in output
-   - Use `vocabulary.rethink` for rethink command name in threshold alerts
-   - Use `vocabulary.topic_map` for MOC references
-
-2. **`ops/config.yaml`** — thresholds
+1. **`ops/config.yaml`** — thresholds
    - `self_evolution.observation_threshold` (default: 10) — for threshold alerts
    - `self_evolution.tension_threshold` (default: 5) — for threshold alerts
 
-3. **`ops/methodology/`** — read existing methodology notes before creating new ones (prevents duplicates)
+2. **`ops/methodology/`** — read existing methodology notes before creating new ones (prevents duplicates)
 
 If these files don't exist (pre-init invocation or standalone use), use universal defaults.
 
@@ -151,12 +145,12 @@ Count methodology notes in the same category:
 grep -rl "^category: [CATEGORY]" ops/methodology/ 2>/dev/null | wc -l | tr -d ' '
 ```
 
-If 3+ notes exist in the same category, this is a signal for /{DOMAIN:rethink}:
+If 3+ notes exist in the same category, this is a signal for /rethink:
 
 ```
 This is friction capture #[N] in the "[category]" area.
 3+ captures in the same area suggest a systemic pattern.
-Consider running /{DOMAIN:rethink} to review [category] methodology patterns
+Consider running /rethink to review [category] methodology patterns
 and potentially elevate them to context file changes.
 ```
 
@@ -172,7 +166,7 @@ and potentially elevate them to context file changes.
 
   [If pattern threshold reached:]
   This is friction capture #[N] in the "[category]" area.
-  Consider running /{DOMAIN:rethink} to review [category] methodology patterns.
+  Consider running /rethink to review [category] methodology patterns.
 ```
 
 ---
@@ -359,7 +353,7 @@ Use Edit tool to add `mined: true` after the existing frontmatter fields. Do not
 
   [If pattern thresholds reached:]
   Category "[category]" now has [N] methodology notes.
-  Consider running /{DOMAIN:rethink} to review [category] patterns.
+  Consider running /rethink to review [category] patterns.
 ```
 
 ---

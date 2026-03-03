@@ -3,8 +3,7 @@ description: "Configuration reference -- ops/config.yaml structure, dimensions, 
 type: manual
 created: 2026-02-21
 ---
-
-# Configuration
+l# Configuration
 
 This page documents the system configuration: ops/config.yaml structure, dimension semantics, processing modes, and how to use /architect for structural changes.
 
@@ -90,7 +89,7 @@ processing:
 
 **extraction.selectivity** -- Controls how many claims are extracted per source. `strict` extracts only high-confidence, clearly novel claims. `moderate` includes supporting evidence and methodological comparisons. `permissive` extracts everything, including speculative connections.
 
-**extraction.categories** -- `auto` uses the categories from ops/derivation-manifest.md. Override with a custom list if needed.
+**extraction.categories** -- The list of extraction categories used by /reduce. Defined in ops/config.yaml under `processing.extraction.categories`.
 
 **verification** -- Toggle individual verification checks. All default to `true`.
 
@@ -160,32 +159,10 @@ ops/derivation-manifest.md is the machine-readable configuration snapshot. It co
 - **engine_version** -- arscontexta version used for derivation.
 - **dimensions** -- all dimension positions (mirrors config.yaml).
 - **active_blocks** -- which feature blocks are enabled.
-- **vocabulary** -- domain-specific term mappings (note=claim, MOC=topic map, etc.).
-- **extraction_categories** -- the 6 categories used by /reduce.
 - **platform_hints** -- allowed tools, context mode, semantic search availability.
 - **personality** -- warmth, opinionatedness, formality, emotional_awareness settings.
 
-Skills read the derivation manifest at invocation to adapt their behavior to the current configuration.
-
----
-
-## Vocabulary Mapping
-
-The derivation manifest maps universal terms to domain-specific vocabulary:
-
-| Universal Term | Domain Term |
-|---------------|-------------|
-| note | claim |
-| MOC | topic map |
-| reduce | reduce |
-| reflect | reflect |
-| reweave | reweave |
-| verify | verify |
-| validate | validate |
-| rethink | rethink |
-| description | description |
-| topics | topics |
-| relevant_notes | relevant claims |
+Skills read the derivation manifest at invocation for platform hints, dimensions, and personality settings.
 
 ---
 

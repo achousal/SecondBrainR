@@ -10,13 +10,7 @@ This vault operates two layers sharing the same three-space architecture (self/,
 
 ## Session Rhythm
 
-Every session follows: **Orient -> Work -> Persist**
-
-**Orient** -- Read `self/identity.md`, `self/methodology.md`, `self/goals.md`. Check `ops/reminders.md` for overdue items. Workboard reconciliation surfaces maintenance triggers automatically.
-
-**Work** -- Do the task. Surface connections as you go. If you discover something worth keeping, write it down immediately.
-
-**Persist** -- Write new insights as atomic claims. Update relevant topic maps. Update `self/goals.md` with current threads. Session capture hooks save transcript to `ops/sessions/`.
+Every session follows **Orient -> Work -> Persist**. Orient: read `self/identity.md`, `self/methodology.md`, `self/goals.md`; check `ops/reminders.md`. Work: do the task, surface connections, write down discoveries immediately. Persist: write insights as claims, update topic maps, update `self/goals.md`. Session hooks automate orient and capture. See [Workflows](docs/manual/workflows.md) for full details.
 
 ---
 
@@ -231,105 +225,12 @@ Standard inbox YAML fields: `source_type` (research|web-search|manual|import), `
 
 ## Co-Scientist System
 
-7 agents orchestrated by /research:
-
-| Skill | Agent Role | State Location |
-|---|---|---|
-| /research | Supervisor | _research/goals/ |
-| /generate | Hypothesis generation (4 modes) | _research/hypotheses/ |
-| /review | Multi-mode review (6 modes) | Hypothesis frontmatter |
-| /tournament | Elo-ranked pairwise debate | _research/tournaments/ |
-| /evolve | Hypothesis evolution (5 modes) | _research/hypotheses/ (gen N+1) |
-| /landscape | Proximity clustering | _research/landscape/ |
-| /meta-review | Pattern synthesis + feedback | _research/meta-reviews/ |
-
-Supporting skills: /literature, /plot, /eda, /experiment, /project, /onboard, /init.
-
-```
-/research -> /generate -> /review -> /tournament -> /meta-review
-                                                         |
-              (feedback feeds back into)                  |
-              /generate, /review, /evolve <--------------+
-```
-
-Meta-review output improves quality across cycles via vault state. No fine-tuning needed. For full co-scientist documentation, see docs/manual/co-scientist-guide.md.
+7 agents orchestrated by /research: generate, review, tournament, evolve, landscape, meta-review. Meta-review output improves quality across cycles via vault state (no fine-tuning needed). Supporting skills: /literature, /plot, /eda, /experiment, /project, /onboard, /init. See [Skills Reference](docs/manual/skills.md) for modes, I/O, and an example session.
 
 ---
 
-## Library and Testing
+## Library, Testing, and Administration
 
-All code in `_code/src/engram_r/`: note_builder, hypothesis_parser, elo, pii_filter, plot_theme, plot_stats, plot_builders, pubmed, arxiv, eda, schema_validator, daemon_config, daemon_scheduler, claim_exchange, decision_engine, federation_config, hypothesis_exchange, slack_bot, slack_client, slack_formatter, slack_notify, slack_skill_router, vault_registry, crossref, unpaywall, integrity, domain_profile, audit, literature_types, search_interface, metabolic_indicators, schedule_runner, experiment_resolver, hook_utils, _daemon_backoff. Optional: obsidian_client (not a runtime dependency).
-R code in `_code/R/`: theme_research, palettes, stats_helpers, plot_builders, plot_helpers.
+Code: `_code/src/engram_r/` (Python) and `_code/R/` (R). See [_code/README.md](_code/README.md) for modules, test commands, and environment variables.
 
-```bash
-cd _code
-uv run pytest tests/ -v --cov=engram_r    # run tests with coverage
-uv run ruff check src/                         # lint
-uv run black --check src/                      # format
-```
-
-Environment variables: see `_code/README.md` for the full table. Core vars: `VAULT_PATH`. Domain-specific API keys are documented in `_code/README.md` and loaded via domain profiles. Slack integration adds several more.
-
-Plot theme anchored to `_code/styles/STYLE_GUIDE.md` (visual identity) and `_code/styles/PLOT_DESIGN.md` (plot-type geometry). Domain overrides in profile `styles/PLOT_DESIGN.md` files.
-
----
-
-## Research Loop Daemon
-
-Autonomous background process for synthesis and maintenance, queuing generative work for human review. Config: `ops/daemon-config.yaml`. Inbox: `ops/daemon-inbox.md`. Run: `tmux new -s daemon 'bash ops/scripts/daemon.sh'`. See README.md for the full priority cascade and tier system.
-
----
-
-## Helper Scripts
-
-```bash
-./ops/scripts/rename-note.sh "old title" "new title"   # safe rename (updates all wiki links)
-./ops/scripts/orphan-notes.sh                           # find unlinked claims
-./ops/scripts/dangling-links.sh                         # find broken links
-./ops/scripts/backlinks.sh "title"                      # count incoming links
-./ops/scripts/link-density.sh                           # average links per claim
-./ops/scripts/validate-schema.sh                        # check all claims against templates
-./ops/scripts/section-check.sh                          # code section health (all sections)
-./ops/scripts/section-check.sh core-lib                 # single section, verbose
-./ops/scripts/section-check.sh --changed                # auto-detect from git diff
-./ops/scripts/section-check.sh --affected core-lib      # section + dependents
-```
-
-## Code Section Health
-
-Two complementary health surfaces:
-- `/health` -- vault integrity (schema, orphans, links). Scans knowledge graph directories.
-- `/stats --dev` -- code integrity (tests, lint, build). Scans code sections.
-
-6 sections defined in `ops/sections.yaml`: core-lib, r-lib, skills, ops-infra, site, docs-templates. Each has paths, checks, and a dependency graph. When core-lib changes, also check skills and ops-infra (they depend on it).
-
-Before releases: run both `/health` and `/stats --dev`.
-
-## Health Check Scope
-
-`/health` must scan only knowledge graph directories, not operational artifacts. Configuration in `ops/config.yaml` under `health:`. Canonical scoping reference: `ops/scripts/dangling-links.sh`.
-
-- **Graph directories** (scan these): `notes/`, `_research/`, `self/`, `projects/`
-- **Excluded** (never scan): `ops/`, `.claude/`, `_code/templates/`, `_dev/`, `docs/`, `inbox/archive/`
-- **Topics convention**: check for `Topics:` body section (per `_code/templates/claim-note.md`), not `topics:` YAML field
-- Queue files, health reports, and skill docs contain shorthand wiki links that are not graph edges
-
----
-
-## Active Skills
-
-**Co-Scientist Pipeline**: /research, /generate, /review, /tournament, /evolve, /landscape, /meta-review
-**Supporting Research**: /literature, /experiment, /eda, /plot, /project, /onboard, /init
-**Knowledge Processing**: /reduce, /reflect, /reweave, /verify, /validate, /seed, /ralph, /pipeline
-**Vault Operations**: /tasks, /stats, /graph, /next, /learn, /remember, /rethink, /refactor
-
----
-
-## References
-
-- Architecture, installation, daemon: [README.md](README.md)
-- Motivation and workflow scenarios: [docs/EngramR.md](docs/EngramR.md)
-- Pipeline phases, maintenance, graph queries: [docs/manual/manual.md](docs/manual/manual.md)
-- Library modules, hooks, hypothesis format: [_code/README.md](_code/README.md)
-- Derivation rationale: [ops/derivation.md](ops/derivation.md)
-- Vault self-knowledge: ops/methodology/
+Health surfaces: `/stats` (vault metrics and growth), `/health` (vault integrity -- scans `notes/`, `_research/`, `self/`, `projects/` only), and `/dev` (code integrity). See [Administration](docs/manual/administration.md) for daemon, hooks, helper scripts, code section health, and the decision engine.

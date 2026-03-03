@@ -1,11 +1,11 @@
-# ops/sections.yaml -- Code section definitions for /stats --dev
+# ops/sections.yaml -- Code section definitions for /dev
 #
 # Each section defines a logical boundary of the codebase with:
 #   paths: directories that belong to this section
 #   checks: commands that verify section health
 #   depends_on: sections whose changes can break this one
 #
-# Used by: ops/scripts/section-check.sh, /stats --dev
+# Used by: ops/scripts/section-check.sh, /dev
 
 sections:
 

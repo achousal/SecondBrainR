@@ -17,11 +17,7 @@ argument-hint: "[file] — path to source file to process end-to-end"
 Parse immediately:
 - Source file path: the file to process (required)
 - `--handoff`: output RALPH HANDOFF block at end (for chaining)
-- If target is empty: list files in {DOMAIN:inbox}/ and ask which to process
-
-### Step 0: Read Vocabulary
-
-Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for domain vocabulary mapping. All output must use domain-native terms. If neither file exists, use universal terms.
+- If target is empty: list files in inbox/ and ask which to process
 
 **START NOW.** Run the full pipeline.
 
@@ -64,7 +60,7 @@ Use the Skill tool if available, otherwise execute the /seed workflow directly:
 - Validate source exists
 - Check for prior processing (duplicate detection)
 - Create archive folder
-- Move source from {DOMAIN:inbox} to archive
+- Move source from inbox/ to archive
 - Create extract task file
 - Add extract task to queue
 
@@ -103,7 +99,7 @@ Check how many pending tasks exist for this batch. The reduce phase creates 1 qu
 
 Report:
 ```
-$ Extracted: {N} {DOMAIN:note_plural}, {M} enrichments
+$ Extracted: {N} claims, {M} enrichments
   Processing {total_tasks} tasks through the pipeline...
 ```
 
@@ -137,10 +133,10 @@ Each phase runs in an isolated subagent with fresh context. /ralph handles all t
 
 The /ralph invocation reports progress per task. The pipeline relays this:
 ```
-$ Processing {DOMAIN:note} 1/{total}: {title}
+$ Processing claim 1/{total}: {title}
   $ create... done
   $ reflect... done (3 connections found)
-  $ reweave... done (2 {DOMAIN:note_plural} updated)
+  $ reweave... done (2 claims updated)
   $ verify... done (PASS)
 ```
 
@@ -183,7 +179,7 @@ The summary should include:
 - Source file name and original location
 - Number of claims extracted
 - Number of enrichments
-- List of created {DOMAIN:note_plural} with titles
+- List of created claims with titles
 - Any notable learnings from the batch
 
 ---
@@ -197,15 +193,15 @@ Source: {source_file}
 Batch: {batch_id}
 
 Extraction:
-  {DOMAIN:note_plural} extracted: {N}
+  claims extracted: {N}
   Enrichments identified: {M}
 
 Processing:
-  {DOMAIN:note_plural} created: {N}
-  Existing {DOMAIN:note_plural} enriched: {M}
+  claims created: {N}
+  Existing claims enriched: {M}
   Connections added: {C}
-  {DOMAIN:topic map}s updated: {T}
-  Older {DOMAIN:note_plural} updated via reweave: {R}
+  topic maps updated: {T}
+  Older claims updated via reweave: {R}
 
 Quality:
   All verify checks: {PASS/FAIL count}
@@ -213,7 +209,7 @@ Quality:
 Archive: ops/queue/archive/{date}-{batch_id}/
 Summary: {batch_id}-summary.md
 
-{DOMAIN:note_plural} created:
+claims created:
 - [[claim title 1]]
 - [[claim title 2]]
 - ...
@@ -227,12 +223,12 @@ Target: {source_file}
 
 Work Done:
 - Seeded source: {batch_id}
-- Extracted {N} {DOMAIN:note_plural} and {M} enrichments
+- Extracted {N} claims and {M} enrichments
 - Processed all claims through 4-phase pipeline
 - Archived batch to {archive_path}
 
 Files Modified:
-- {DOMAIN:notes}/ ({N} new {DOMAIN:note_plural})
+- notes/ ({N} new claims)
 - ops/queue/archive/{date}-{batch_id}/ (archived)
 
 Learnings:
@@ -288,13 +284,11 @@ State lives in the queue file. The pipeline reads queue state, not session state
 
 ## Edge Cases
 
-**No target file:** List {DOMAIN:inbox}/ candidates, suggest the best one based on age and relevance.
+**No target file:** List inbox/ candidates, suggest the best one based on age and relevance.
 
 **Source already seeded:** /seed detects this and asks the user. If they decline, the pipeline stops cleanly.
 
 **Large source (2500+ lines):** /reduce handles chunking automatically. The pipeline does not need special handling.
-
-**No ops/derivation-manifest.md:** Use universal vocabulary for all output.
 
 ---
 
@@ -309,6 +303,5 @@ State lives in the queue file. The pipeline reads queue state, not session state
 **always:**
 - Report progress at each phase boundary
 - Verify all tasks are done before archiving
-- Show the user what was created (list of {DOMAIN:note_plural})
+- Show the user what was created (list of claims)
 - Suggest next steps if interrupted
-- Use domain-native vocabulary from derivation manifest

@@ -30,10 +30,10 @@ All backends use stdlib `urllib` only -- no third-party HTTP dependency. 30-seco
 
 Two optional post-processing layers fill gaps in search results:
 
-| Enricher | API | Auth | What it adds |
-| --- | --- | --- | --- |
-| **CrossRef** | `https://api.crossref.org/works/{doi}` | `LITERATURE_ENRICHMENT_EMAIL` (optional; enables polite pool for faster rate limits) | Citation count, PDF URL (prefers version-of-record) |
-| **Unpaywall** | `https://api.unpaywall.org/v2/{doi}` | `LITERATURE_ENRICHMENT_EMAIL` (required per TOS) | Open-access PDF URL, OA status |
+| Enricher      | API                     | Auth                                                         | What it adds                                        |
+| ------------- | ----------------------- | ------------------------------------------------------------ | --------------------------------------------------- |
+| **CrossRef**  | [CrossRef](https://api.crossref.org/) `/works/{doi}` | `LITERATURE_ENRICHMENT_EMAIL` (optional; faster rate limits) | Citation count, PDF URL (prefers version-of-record) |
+| **Unpaywall** | [Unpaywall](https://unpaywall.org/) `/v2/{doi}`      | `LITERATURE_ENRICHMENT_EMAIL` (required per TOS)             | Open-access PDF URL, OA status                      |
 
 Enable enrichers in `ops/config.yaml` under `literature.enrichment.enabled`.
 Enrichment never overwrites existing data -- it only fills missing fields.

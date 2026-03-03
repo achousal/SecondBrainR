@@ -25,6 +25,10 @@ _CODE_DIR = _SCRIPT_DIR.parent.parent  # _code/
 # Ensure src/ is importable for engram_r package
 sys.path.insert(0, str(_CODE_DIR / "src"))
 
+from engram_r.daemon_scheduler import (  # noqa: E402
+    _count_queue_blocked,
+    _count_queue_pending,
+)
 from engram_r.hook_utils import load_config, resolve_vault  # noqa: E402
 
 
@@ -156,12 +160,15 @@ def _count_md_files(directory: Path) -> int:
 
 
 def _vault_state_counts(vault: Path) -> dict[str, int]:
-    """Count claims, inbox items, observations, and tensions."""
+    """Count claims, inbox items, observations, tensions, and queue state."""
+    queue_file = vault / "ops" / "queue" / "queue.json"
     return {
         "claims": _count_md_files(vault / "notes"),
         "inbox": _count_md_files(vault / "inbox"),
         "observations": _count_md_files(vault / "ops" / "observations"),
         "tensions": _count_md_files(vault / "ops" / "tensions"),
+        "queue_pending": _count_queue_pending(queue_file),
+        "queue_blocked": _count_queue_blocked(queue_file),
     }
 
 
@@ -203,6 +210,56 @@ def _overdue_reminders(vault: Path, max_lines: int = 5) -> list[str]:
         return []
 
 
+def _metabolic_dashboard(vault: Path, claim_count: int) -> str:
+    """Build condensed metabolic dashboard line. Never raises."""
+    if claim_count == 0:
+        return ""
+    try:
+        from engram_r.metabolic_history import (
+            compute_trends,
+            format_trend_line,
+            load_latest,
+        )
+        from engram_r.metabolic_indicators import MetabolicState
+
+        latest = load_latest(vault)
+        if latest is None:
+            return ""
+
+        ind = latest.indicators
+        line = (
+            f"  QPR {ind.get('qpr', 0):.1f}d | "
+            f"CMR {ind.get('cmr', 0):.0f}:1 | "
+            f"TPV {ind.get('tpv', 0):.1f}/d | "
+            f"GCR {ind.get('gcr', 1):.2f} | "
+            f"IPR {ind.get('ipr', 0):.1f} | "
+            f"VDR {ind.get('vdr', 0):.0f}%"
+        )
+
+        # Trend line from history
+        from engram_r.metabolic_history import load_history
+
+        history = load_history(vault)
+        if len(history) >= 2:
+            current_state = MetabolicState(
+                qpr=ind.get("qpr", 0),
+                cmr=ind.get("cmr", 0),
+                tpv=ind.get("tpv", 0),
+                hcr=ind.get("hcr", 0),
+                gcr=ind.get("gcr", 1),
+                ipr=ind.get("ipr", 0),
+                vdr=ind.get("vdr", 0),
+            )
+            trends = compute_trends(current_state, history[:-1])
+            trend_str = format_trend_line(trends)
+            if trend_str:
+                line += f"\n  {trend_str}"
+
+        return line
+    except Exception:
+        return ""
+
+
 def _slack_inbound(vault: Path) -> str:
     """Fetch inbound Slack messages for orientation. Never raises."""
     try:
@@ -236,6 +293,14 @@ def main() -> None:
     # Check .arscontexta marker exists (skip if not an arscontexta vault)
     if not (vault / ".arscontexta").exists():
         return
+
+    # Self-heal skill permissions on every session start
+    try:
+        from engram_r.skill_permissions import sync_skill_permissions
+
+        sync_skill_permissions(vault)
+    except Exception:
+        pass
 
     parts = []
 
@@ -295,12 +360,23 @@ def main() -> None:
     counts = _vault_state_counts(vault)
     parts.append("")
     parts.append("### Vault State")
+    queue_str = f"{counts['queue_pending']} pending"
+    if counts["queue_blocked"] > 0:
+        queue_str += f" ({counts['queue_blocked']} blocked)"
     parts.append(
         f"  Claims: {counts['claims']} | "
         f"Inbox: {counts['inbox']} | "
         f"Observations: {counts['observations']} | "
-        f"Tensions: {counts['tensions']}"
+        f"Tensions: {counts['tensions']} | "
+        f"Queue: {queue_str}"
     )
+
+    # Metabolic dashboard (condensed, only when enabled + vault non-empty)
+    metabolic_line = _metabolic_dashboard(vault, counts["claims"])
+    if metabolic_line:
+        parts.append("")
+        parts.append("### Metabolic")
+        parts.append(metabolic_line)
 
     # Maintenance signals
     if counts["inbox"] > 0:
@@ -309,6 +385,11 @@ def main() -> None:
         parts.append("  -> 10+ observations pending -- consider running /rethink")
     if counts["tensions"] >= 5:
         parts.append("  -> 5+ tensions pending -- consider running /rethink")
+    if counts["queue_blocked"] > 0:
+        parts.append(
+            f"  -> {counts['queue_blocked']} queue tasks blocked on "
+            f"unpopulated stubs -- populate via /literature before /ralph"
+        )
 
     # Methodology directives
     methodology = _load_methodology(vault)

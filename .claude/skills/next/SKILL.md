@@ -13,21 +13,9 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** -- vocabulary mapping, domain context
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.inbox` for the inbox folder name
-   - Use `vocabulary.note` for the note type name in output
-   - Use `vocabulary.topic_map` for MOC references
-   - Use `vocabulary.cmd_reduce` for process/extract command
-   - Use `vocabulary.cmd_reflect` for connection-finding command
-   - Use `vocabulary.cmd_reweave` for backward-pass command
-   - Use `vocabulary.rethink` for rethink command name
-
-2. **`ops/config.yaml`** -- thresholds, processing preferences
+1. **`ops/config.yaml`** -- thresholds, processing preferences
    - `self_evolution.observation_threshold` (default: 10)
    - `self_evolution.tension_threshold` (default: 5)
-
-If these files don't exist, use universal defaults and generic command names.
 
 ## EXECUTE NOW
 
@@ -37,13 +25,7 @@ If these files don't exist, use universal defaults and generic command names.
 
 ---
 
-### Step 1: Read Vocabulary
-
-Read `ops/derivation-manifest.md` (or fall back to `ops/derivation.md`) for domain vocabulary mapping. All output must use domain-native terms. If neither file exists, use universal terms (notes, inbox, topic map, etc).
-
----
-
-### Step 2: Get Recommendation from Decision Engine
+### Step 1: Get Recommendation from Decision Engine
 
 Run the unified decision engine CLI:
 
@@ -89,11 +71,11 @@ Parse the JSON output. The engine returns:
 }
 ```
 
-**If exit code 1 (error):** Fall back to Step 2-fallback.
+**If exit code 1 (error):** Fall back to Step 1-fallback.
 
 ---
 
-### Step 2-fallback: Manual Signal Collection
+### Step 1-fallback: Manual Signal Collection
 
 If the decision engine CLI fails (Python not available, import error, missing config), fall back to manual bash-based signal collection:
 
@@ -249,10 +231,6 @@ The engine returns priority "clean". Say so explicitly. Recommend exploratory wo
 ### No Goals File
 
 Recommend creating `self/goals.md` first. Without priorities, recommendations lack grounding.
-
-### No ops/derivation-manifest.md
-
-Use universal vocabulary. Do not fail.
 
 ### Daemon Running But No "For You" Items
 

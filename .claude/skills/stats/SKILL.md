@@ -1,43 +1,33 @@
 ---
 name: stats
-description: Show vault statistics and knowledge graph metrics. Provides a shareable snapshot of vault health, growth, and progress. With --dev, shows code section health instead. Triggers on "/stats", "vault stats", "show metrics", "how big is my vault".
+description: Show vault statistics and knowledge graph metrics. Provides a shareable snapshot of vault health, growth, and progress. Triggers on "/stats", "vault stats", "show metrics", "how big is my vault".
 version: "1.1"
 generated_from: "arscontexta-v1.6"
 user-invocable: true
 context: fork
 model: sonnet
 allowed-tools: Read, Grep, Glob, Bash
-argument-hint: "[--share | --dev [section]] — vault stats, shareable output, or code section health"
+argument-hint: "[--share] -- vault stats or shareable output"
 ---
 
 ## Runtime Configuration (Step 0 — before any processing)
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` / `vocabulary.note_plural` for note type references
-   - Use `vocabulary.topic_map` / `vocabulary.topic_map_plural` for MOC references
-   - Use `vocabulary.inbox` for the inbox folder name
-   - Use `vocabulary.notes_collection` for semantic search collection name
-
-2. **`ops/config.yaml`** — processing depth, automation settings
-
-If no derivation file exists, use universal terms (notes, MOCs, etc.).
+1. **`ops/config.yaml`** — processing depth, automation settings
 
 ---
 
 ## EXECUTE NOW
 
-**Target: $ARGUMENTS**
+**Target: `$ARGUMENTS`** (if blank or empty -> DEFAULT)
 
-Parse immediately:
-- If target contains `--dev`: **route to Dev Mode** (see Dev Mode section below)
-- If target contains `--share`: output compact shareable format after full stats
-- If target is empty: output full stats display
-- If target names a specific category (e.g., "health", "growth", "pipeline"): show only that category
+**STRICT ROUTING -- follow exactly, no exceptions:**
+1. If target contains `--share` -> output compact shareable format after full vault stats.
+2. If target names a specific category (e.g., "health", "growth", "pipeline") -> show only that category of vault stats.
+3. **DEFAULT** -- if target is empty, blank, missing, or does not match any flag above -> **show vault stats.** Collect vault metrics from Steps 1-4 below and present them.
 
-**START NOW.** Collect metrics and present them.
+**START NOW.** Collect vault metrics and present them.
 
 ---
 
@@ -47,7 +37,7 @@ Parse immediately:
 
 The knowledge graph grows silently. Without metrics, the user cannot tell whether their system is healthy, growing, stagnating, or fragmenting. /stats provides a snapshot that makes growth tangible — numbers that show progress, health indicators that catch problems, and trends that reveal trajectory.
 
-The output should make the user feel informed, not overwhelmed. Metrics are evidence, not judgment. "12 orphans" is a fact. What to DO about it belongs to /graph or /{vocabulary.cmd_reflect}.
+The output should make the user feel informed, not overwhelmed. Metrics are evidence, not judgment. "12 orphans" is a fact. What to DO about it belongs to /graph or /reflect.
 
 ---
 
@@ -58,7 +48,7 @@ Gather all metrics. Run these checks in parallel where possible to minimize late
 ### 1a. Knowledge Graph Metrics
 
 ```bash
-NOTES_DIR="{vocabulary.notes}"
+NOTES_DIR="notes/"
 
 # Note count (excluding MOCs)
 TOTAL_FILES=$(ls -1 "$NOTES_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
@@ -137,7 +127,7 @@ fi
 
 ```bash
 # Inbox items
-INBOX_COUNT=$(find {vocabulary.inbox}/ -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+INBOX_COUNT=$(find inbox/ -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
 
 # Queue pending (check both YAML and JSON formats)
 QUEUE_FILE=""
@@ -208,8 +198,8 @@ OBS_PENDING=$(grep -rl '^status: pending' ops/observations/ 2>/dev/null | wc -l 
 # Tensions pending
 TENSION_PENDING=$(grep -rl '^status: open\|^status: pending' ops/tensions/ 2>/dev/null | wc -l | tr -d ' ')
 
-# Sessions captured
-SESSION_COUNT=$(ls -1 ops/sessions/*.md 2>/dev/null | wc -l | tr -d ' ')
+# Sessions captured (JSON format)
+SESSION_COUNT=$(ls -1 ops/sessions/*.json 2>/dev/null | wc -l | tr -d ' ')
 ```
 
 Adapt all directory names to domain vocabulary. Skip checks for directories that do not exist — report "N/A" instead of errors.
@@ -218,13 +208,16 @@ Adapt all directory names to domain vocabulary. Skip checks for directories that
 
 ```bash
 # Metabolic indicators (daemon self-regulation metrics)
+# 7 indicators in 3 tiers: QPR/CMR/TPV (governance), HCR/GCR/IPR (awareness), VDR (observational)
 METABOLIC_JSON=$(cd _code && uv run python -m engram_r.metabolic_indicators "$PWD/.." 2>/dev/null)
 if [[ -n "$METABOLIC_JSON" && "$METABOLIC_JSON" != *"error"* ]]; then
   MET_QPR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['qpr'])")
-  MET_VDR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['vdr'])")
   MET_CMR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['cmr'])")
+  MET_TPV=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['tpv'])")
   MET_HCR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['hcr'])")
-  MET_SWR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['swr'])")
+  MET_GCR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['gcr'])")
+  MET_IPR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['ipr'])")
+  MET_VDR=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['vdr'])")
   MET_ALARMS=$(echo "$METABOLIC_JSON" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)['alarm_keys']) or 'none')")
   METABOLIC_AVAILABLE="true"
 else
@@ -252,9 +245,9 @@ Progress bar calculation:
 
   Knowledge Graph
   ===============
-  {vocabulary.note_plural}:  [NOTE_COUNT]
-  Connections:               [LINK_COUNT] (avg [AVG_LINKS] per {vocabulary.note})
-  {vocabulary.topic_map_plural}:   [MOC_COUNT] (covering [COVERAGE]% of {vocabulary.note_plural})
+  claims:      [NOTE_COUNT]
+  Connections:               [LINK_COUNT] (avg [AVG_LINKS] per claim)
+  topic maps:  [MOC_COUNT] (covering [COVERAGE]% of claims)
   Topics:                    [TOPIC_COUNT]
 
   Health
@@ -265,11 +258,16 @@ Progress bar calculation:
 
   Metabolic Health          (if METABOLIC_AVAILABLE)
   ================
-  QPR   [MET_QPR]d   [OK|ALARM]   Queue pressure (days of backlog)
-  VDR   [MET_VDR]%   INFO         Verification debt
-  CMR   [MET_CMR]:1  [OK|ALARM]   Creation:Maintenance ratio
-  HCR   [MET_HCR]%   [OK|ALARM]   Hypothesis conversion rate
-  SWR   [MET_SWR]    [OK|ALARM]   Sessions per artifact
+  Tier 1 (Governance)
+  QPR   [MET_QPR]d    [OK|ALARM]   Queue pressure (days of backlog)
+  CMR   [MET_CMR]:1   [OK|ALARM]   Creation:Maintenance ratio
+  TPV   [MET_TPV]/d   [OK|ALARM]   Throughput velocity (claims/day)
+  Tier 2 (Awareness)
+  HCR   [MET_HCR]%    [OK|ALARM]   Hypothesis conversion rate
+  GCR   [MET_GCR]     [OK|ALARM]   Graph connectivity ratio
+  IPR   [MET_IPR]     [OK|ALARM]   Inbox pressure ratio
+  Tier 3 (Observational)
+  VDR   [MET_VDR]%    INFO         Verification debt
 
   Pipeline
   ========
@@ -279,7 +277,7 @@ Progress bar calculation:
 
   Growth
   ======
-  This week:    +[THIS_WEEK_NOTES] {vocabulary.note_plural}, +[THIS_WEEK_LINKS] connections
+  This week:    +[THIS_WEEK_NOTES] claims, +[THIS_WEEK_LINKS] connections
   Graph density: [DENSITY]
 
   System
@@ -299,15 +297,15 @@ After the stats block, add brief interpretation for any notable findings:
 
 | Condition | Note |
 |-----------|------|
-| ORPHAN_COUNT > 0 | "[N] orphan {vocabulary.note_plural} — run `/graph health` for details" |
+| ORPHAN_COUNT > 0 | "[N] orphan claims — run `/graph health` for details" |
 | DANGLING_COUNT > 0 | "[N] dangling links — run `/graph health` to identify broken links" |
-| COMPLIANCE < 90 | "Schema compliance below 90% — some {vocabulary.note_plural} missing required fields" |
-| OBS_PENDING >= 10 | "[N] pending observations — consider running /{vocabulary.rethink}" |
-| TENSION_PENDING >= 5 | "[N] open tensions — consider running /{vocabulary.rethink}" |
-| DENSITY < 0.02 | "Graph density is low — connections are thin. Run /{vocabulary.cmd_reflect} to strengthen the network" |
-| PROCESSED_PCT < 50 | "More content in inbox than in {vocabulary.notes}/ — consider processing backlog" |
-| THIS_WEEK_NOTES == 0 | "No new {vocabulary.note_plural} this week" |
-| MET_ALARMS != "none" | "Metabolic alarms active ([MET_ALARMS]) -- daemon is suppressing generation. Run `/next` for recommended action." |
+| COMPLIANCE < 90 | "Schema compliance below 90% — some claims missing required fields" |
+| OBS_PENDING >= 10 | "[N] pending observations — consider running /rethink" |
+| TENSION_PENDING >= 5 | "[N] open tensions — consider running /rethink" |
+| DENSITY < 0.02 | "Graph density is low — connections are thin. Run /reflect to strengthen the network" |
+| PROCESSED_PCT < 50 | "More content in inbox than in notes/ — consider processing backlog" |
+| THIS_WEEK_NOTES == 0 | "No new claims this week" |
+| MET_ALARMS != "none" | "Metabolic alarms active ([MET_ALARMS]) -- tier 1 alarms suppress daemon generation. Run `/next` for recommended action." |
 
 Only show interpretation notes when conditions are notable. A healthy vault gets just the stats, no warnings.
 
@@ -320,10 +318,10 @@ If invoked with `--share`, output a compact markdown block suitable for sharing 
 ```markdown
 ## My Knowledge Graph
 
-- **[NOTE_COUNT]** {vocabulary.note_plural} with **[LINK_COUNT]** connections (avg [AVG_LINKS] per {vocabulary.note})
-- **[MOC_COUNT]** {vocabulary.topic_map_plural} covering [COVERAGE]% of {vocabulary.note_plural}
+- **[NOTE_COUNT]** claims with **[LINK_COUNT]** connections (avg [AVG_LINKS] per claim)
+- **[MOC_COUNT]** topic maps covering [COVERAGE]% of claims
 - Schema compliance: [COMPLIANCE]%
-- This week: +[THIS_WEEK_NOTES] {vocabulary.note_plural}, +[THIS_WEEK_LINKS] connections
+- This week: +[THIS_WEEK_NOTES] claims, +[THIS_WEEK_LINKS] connections
 - Graph density: [DENSITY]
 
 *Built with [Ars Contexta](https://github.com/arscontexta) v1.6*
@@ -344,7 +342,7 @@ If previous /stats runs are logged in `ops/stats-history.yaml` (or similar), com
 
 ```
   Trend (vs last check):
-    {vocabulary.note_plural}: [N] (+[delta] since [date])
+    claims: [N] (+[delta] since [date])
     Connections:              [N] (+[delta])
     Density:                  [N] ([up/down/stable])
     Orphans:                  [N] ([improved/worsened/stable])
@@ -366,9 +364,9 @@ Show zeros gracefully:
 
   Knowledge Graph
   ===============
-  {vocabulary.note_plural}:  0
+  claims:  0
   Connections:               0
-  {vocabulary.topic_map_plural}:   0
+  topic maps:  0
   Topics:                    0
 
   Generated with Ars Contexta v1.6 + EngramR v0.6
@@ -384,13 +382,9 @@ Skip the Pipeline section entirely. Do not show an error.
 
 Show "disabled" for self space line. Do not show an error.
 
-### No ops/derivation-manifest.md
-
-Use universal vocabulary (notes, MOCs, etc.). All metrics work identically.
-
 ### Very Large Vault (500+ notes)
 
-The orphan and MOC coverage checks may be slow for large vaults. If {vocabulary.notes}/ has >200 files:
+The orphan and MOC coverage checks may be slow for large vaults. If notes/ has >200 files:
 1. Run orphan detection with a simpler heuristic (check only for presence in any MOC, not full backlink scan)
 2. Note: "Metrics approximate for large vault. Run /graph health for precise analysis."
 
@@ -398,110 +392,3 @@ The orphan and MOC coverage checks may be slow for large vaults. If {vocabulary.
 
 macOS uses `date -v-7d`, Linux uses `date -d '7 days ago'`. The script tries both. If neither works, report "?" for growth metrics instead of failing.
 
----
-
-## Dev Mode (`--dev`)
-
-When `$ARGUMENTS` contains `--dev`, skip ALL vault metrics above. Instead, run code section health checks using `ops/scripts/section-check.sh` and `ops/sections.yaml`.
-
-### Routing
-
-| Invocation | Behavior |
-|---|---|
-| `/stats --dev` | Run all sections, show summary |
-| `/stats --dev core-lib` | Run single section, verbose output |
-| `/stats --dev --changed` | Auto-detect sections touched by recent git changes |
-| `/stats --dev --affected core-lib` | Run section + all sections that depend on it |
-
-### Step D1: Run Section Checks
-
-```bash
-# All sections
-bash ops/scripts/section-check.sh 2>&1
-
-# Single section (verbose)
-bash ops/scripts/section-check.sh core-lib 2>&1
-
-# Changed sections only
-bash ops/scripts/section-check.sh --changed 2>&1
-
-# Section + dependents
-bash ops/scripts/section-check.sh --affected core-lib 2>&1
-```
-
-Capture and display the output directly. The script handles formatting, colors, and exit codes.
-
-### Step D2: Collect Module Metrics
-
-After running checks, gather quick metrics for the summary:
-
-```bash
-# Python module count + total lines
-PY_MODULES=$(find _code/src/engram_r -name '*.py' -not -name '__*' | wc -l | tr -d ' ')
-PY_LINES=$(cat _code/src/engram_r/*.py 2>/dev/null | wc -l | tr -d ' ')
-
-# Test count + total lines
-TEST_FILES=$(find _code/tests -name 'test_*.py' | wc -l | tr -d ' ')
-TEST_LINES=$(cat _code/tests/test_*.py 2>/dev/null | wc -l | tr -d ' ')
-
-# Test:code ratio
-if [[ "$PY_LINES" -gt 0 ]]; then
-  RATIO=$(echo "scale=1; $TEST_LINES / $PY_LINES" | bc)
-else
-  RATIO="N/A"
-fi
-
-# R module count
-R_MODULES=$(find _code/R -name '*.R' -not -path '*/tests/*' 2>/dev/null | wc -l | tr -d ' ')
-R_TESTS=$(find _code/R/tests -name 'test_*.R' 2>/dev/null | wc -l | tr -d ' ')
-
-# Skill count
-SKILL_COUNT=$(find .claude/skills -name 'SKILL.md' | wc -l | tr -d ' ')
-
-# Site components
-SITE_COMPONENTS=$(find site/src -name '*.astro' 2>/dev/null | wc -l | tr -d ' ')
-
-# Script count
-SCRIPT_COUNT=$(find ops/scripts -name '*.sh' | wc -l | tr -d ' ')
-```
-
-### Step D3: Format Dev Output
-
-```
---=={ stats --dev }==--
-
-  Codebase
-  ========
-  Python modules:  [PY_MODULES] ([PY_LINES] lines)
-  Python tests:    [TEST_FILES] ([TEST_LINES] lines, [RATIO]:1 test:code)
-  R modules:       [R_MODULES] + [R_TESTS] tests
-  Skills:          [SKILL_COUNT]
-  Site components: [SITE_COMPONENTS]
-  Scripts:         [SCRIPT_COUNT]
-
-  Section Health
-  ==============
-  [section-check.sh output here]
-
-  Generated with EngramR v0.7
-```
-
-### Step D4: Dev Interpretation Notes
-
-| Condition | Note |
-|---|---|
-| Any section FAIL | "[section] needs attention -- run `/stats --dev [section]` for details" |
-| RATIO < 1.0 | "Test:code ratio below 1:1 -- core logic may be undertested" |
-| section-check.sh exits non-zero | "Run failing section checks individually for verbose output" |
-
-### Relationship to /health
-
-`/stats --dev` checks **code** health (tests pass, lint clean, builds work).
-`/health` checks **vault** health (schema compliance, orphans, link integrity).
-
-They are complementary. A healthy project has both green. Recommend running both before releases:
-
-```
-/health       # vault integrity
-/stats --dev  # code integrity
-```

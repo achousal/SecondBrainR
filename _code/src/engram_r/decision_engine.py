@@ -75,6 +75,8 @@ def classify_signals(state: VaultState, config: DaemonConfig) -> list[Signal]:
     if state.metabolic and config.metabolic.enabled:
         m = state.metabolic
         alarm_keys = getattr(m, "alarm_keys", [])
+
+        # Tier 1: Governance (session-priority)
         if "qpr_critical" in alarm_keys:
             signals.append(
                 Signal(
@@ -102,6 +104,22 @@ def classify_signals(state: VaultState, config: DaemonConfig) -> list[Signal]:
                     ),
                 )
             )
+        if "tpv_stalled" in alarm_keys:
+            signals.append(
+                Signal(
+                    name="metabolic_tpv",
+                    count=1,
+                    speed="session",
+                    action="/reduce",
+                    rationale=(
+                        f"Throughput velocity {m.tpv:.2f}/day "
+                        f"(<{config.metabolic.tpv_stalled}). "
+                        f"Process queue or run /ralph."
+                    ),
+                )
+            )
+
+        # Tier 2: Awareness (multi-session)
         if "hcr_low" in alarm_keys:
             signals.append(
                 Signal(
@@ -113,6 +131,34 @@ def classify_signals(state: VaultState, config: DaemonConfig) -> list[Signal]:
                         f"Hypothesis conversion {m.hcr:.0f}% "
                         f"(<{config.metabolic.hcr_redirect:.0f}%). "
                         f"Write SAPs."
+                    ),
+                )
+            )
+        if "gcr_fragmented" in alarm_keys:
+            signals.append(
+                Signal(
+                    name="metabolic_gcr",
+                    count=int((1 - m.gcr) * 100),
+                    speed="multi_session",
+                    action="/reflect --connect-orphans",
+                    rationale=(
+                        f"Graph connectivity {m.gcr:.2f} "
+                        f"(<{config.metabolic.gcr_fragmented}). "
+                        f"Connect orphan notes."
+                    ),
+                )
+            )
+        if "ipr_overflow" in alarm_keys:
+            signals.append(
+                Signal(
+                    name="metabolic_ipr",
+                    count=int(m.ipr),
+                    speed="session",
+                    action="/reduce",
+                    rationale=(
+                        f"Inbox pressure {m.ipr:.1f} "
+                        f"(>{config.metabolic.ipr_overflow}). "
+                        f"Process inbox backlog."
                     ),
                 )
             )
@@ -195,6 +241,20 @@ def classify_signals(state: VaultState, config: DaemonConfig) -> list[Signal]:
                 rationale=(
                     f"{state.queue_backlog} pipeline tasks pending, "
                     f"blocking downstream connections"
+                ),
+            )
+        )
+
+    if state.queue_blocked > 0:
+        signals.append(
+            Signal(
+                name="queue_blocked",
+                count=state.queue_blocked,
+                speed="multi_session",
+                action="/literature",
+                rationale=(
+                    f"{state.queue_blocked} queue tasks blocked on "
+                    f"unpopulated stubs -- populate before /ralph"
                 ),
             )
         )
@@ -526,6 +586,7 @@ def _build_state_summary(state: VaultState) -> dict:
         "observations": state.observation_count,
         "tensions": state.tension_count,
         "queue_backlog": state.queue_backlog,
+        "queue_blocked": state.queue_blocked,
         "orphan_notes": state.orphan_count,
         "inbox": state.inbox_count,
         "unmined_sessions": state.unmined_session_count,
@@ -545,10 +606,12 @@ def _build_state_summary(state: VaultState) -> dict:
         m = state.metabolic
         summary["metabolic"] = {
             "qpr": round(m.qpr, 1),
-            "vdr": round(m.vdr, 1),
             "cmr": round(m.cmr, 1),
+            "tpv": round(m.tpv, 2),
             "hcr": round(m.hcr, 1),
-            "swr": round(m.swr, 1),
+            "gcr": round(m.gcr, 2),
+            "ipr": round(m.ipr, 1),
+            "vdr": round(m.vdr, 1),
             "alarm_keys": list(m.alarm_keys),
         }
     return summary

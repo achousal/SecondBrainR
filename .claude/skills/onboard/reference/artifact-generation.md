@@ -61,7 +61,7 @@ has_git: {true/false}
 has_tests: {true/false}
 created: {today YYYY-MM-DD}
 updated: {today YYYY-MM-DD}
-tags: [project, {lab-slug}-lab]
+tags: [project, {lab_slug}]
 ---
 
 {One-line description from CLAUDE.md or user correction}
@@ -192,7 +192,7 @@ tags: [lab]
 ---
 ```
 
-The body should list the lab's projects and datasets. Filename becomes the `[[lab_slug-lab]]` link target.
+The body should list the lab's projects and datasets. Filename becomes the `[[lab_slug]]` link target.
 
 Infrastructure fields are populated from scan auto-detection + institution lookup + lab website fetch + user corrections. Identity and infrastructure fields were user-reviewed. Convention fields (statistical_conventions, style_conventions, containers) were silently auto-detected and are NOT user-reviewed during onboarding -- they are included here for downstream skill use (/eda, /plot, /experiment).
 

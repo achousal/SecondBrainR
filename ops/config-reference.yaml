@@ -155,13 +155,9 @@ processing:
                                    # but more noise.
 
     categories:
-      auto:                        # [default] Categories derived from domain
-                                   # vocabulary in ops/derivation.md.
-      # Or provide a YAML list:
-      # - mechanism
-      # - evidence
-      # - methodology
-      # - pattern
+      # YAML list of extraction categories used by /reduce.
+      # Each entry has: name, what_to_find, output_type.
+      # See ops/config.yaml for the active list.
 
   verification:
 

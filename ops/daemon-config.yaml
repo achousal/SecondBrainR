@@ -95,24 +95,36 @@ timeout:
 
 # ---------------------------------------------------------------------------
 # Metabolic Feedback
-# Derived indicators regulate daemon behavior. When indicators enter
+# 7 indicators in 3 tiers regulate daemon behavior. When indicators enter
 # alarm state, the daemon suppresses creation and prioritizes maintenance.
 #
-# Indicators:
+# Tier 1 (Governance -- auto-suppress generative tasks):
 #   QPR  -- Queue Pressure Ratio (days of backlog at current processing rate)
-#   VDR  -- Verification Debt Ratio (% claims not human-verified, info only)
 #   CMR  -- Creation:Maintenance Ratio (new vs maintained artifacts per week)
+#   TPV  -- Throughput Velocity (claims processed per day)
+#
+# Tier 2 (Awareness -- user-facing signals via /next):
 #   HCR  -- Hypothesis Conversion Rate (% with empirical engagement)
-#   SWR  -- Session Waste Ratio (sessions per useful artifact)
+#   GCR  -- Graph Connectivity Ratio (1 - orphans/total)
+#   IPR  -- Inbox Pressure Ratio (inbox growth / processing rate)
+#
+# Tier 3 (Observational -- logged, no automated action):
+#   VDR  -- Verification Debt Ratio (% claims not human-verified)
 # ---------------------------------------------------------------------------
 metabolic:
   enabled: true
+  # Tier 1: Governance
   qpr_critical: 3.0               # QPR > 3.0 triggers generation halt
   cmr_hot: 10.0                    # CMR > 10:1 = running hot
+  tpv_stalled: 0.1                # TPV < 0.1/day = stalled throughput
+  # Tier 2: Awareness
   hcr_redirect: 15.0              # HCR < 15% redirects to SAP support
-  swr_archive: 5.0                # SWR > 5.0 triggers stub archival
+  gcr_fragmented: 0.3             # GCR < 0.3 = fragmented graph
+  ipr_overflow: 3.0               # IPR > 3.0 = inbox overflowing
+  # Tier 3: Observational (VDR informational only)
   vdr_warn: 80.0                  # VDR > 80% = informational warning
   lookback_days: 7                # Window for rate computations
+  history_max_snapshots: 90       # Max historical snapshots to retain
 
 # ---------------------------------------------------------------------------
 # Health Checks

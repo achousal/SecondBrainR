@@ -30,7 +30,10 @@ from engram_r.daemon_scheduler import (
     _check_p3,
     _check_p3_5,
     _check_schedules,
+    _count_queue_blocked,
+    _count_queue_pending,
     _count_orphan_notes,
+    _is_literature_stub,
     _default_vault_path,
     _extract_root_causes,
     _goal_slug,
@@ -946,7 +949,7 @@ class TestSelectTask:
                 qpr=5.0,
                 cmr=2.0,
                 hcr=50.0,
-                swr=1.0,
+                tpv=1.0,
                 alarm_keys=["qpr_critical"],
             ),
         )
@@ -971,7 +974,7 @@ class TestSelectTask:
                 qpr=5.0,
                 cmr=15.0,
                 hcr=10.0,
-                swr=1.0,
+                tpv=1.0,
                 alarm_keys=["qpr_critical", "cmr_hot"],
             ),
         )
@@ -995,8 +998,30 @@ class TestSelectTask:
                 qpr=1.0,
                 cmr=15.0,
                 hcr=50.0,
-                swr=1.0,
+                tpv=1.0,
                 alarm_keys=["cmr_hot"],
+            ),
+        )
+        task = select_task(state, default_config)
+        assert task.tier == 2
+
+    def test_metabolic_governor_tpv_stalled_suppresses_p1(self, default_config):
+        """TPV stalled alarm also suppresses generative P1."""
+        state = VaultState(
+            observation_count=15,
+            goals=[
+                GoalState(
+                    goal_id="goal-test-analysis",
+                    hypothesis_count=12,
+                    undermatched_count=5,
+                ),
+            ],
+            metabolic=MetabolicState(
+                qpr=1.0,
+                cmr=2.0,
+                tpv=0.0,
+                hcr=50.0,
+                alarm_keys=["tpv_stalled"],
             ),
         )
         task = select_task(state, default_config)
@@ -1275,7 +1300,7 @@ class TestBuildTier3Entries:
                 vdr=95.0,
                 cmr=19.0,
                 hcr=10.0,
-                swr=1.5,
+                tpv=1.5,
                 alarm_keys=["qpr_critical", "cmr_hot"],
             ),
         )
@@ -1293,7 +1318,7 @@ class TestBuildTier3Entries:
                 vdr=50.0,
                 cmr=2.0,
                 hcr=50.0,
-                swr=1.0,
+                tpv=1.0,
                 alarm_keys=[],
             ),
         )
@@ -1462,9 +1487,12 @@ class TestConfigLoading:
         assert cfg.metabolic.qpr_critical == 3.0
         assert cfg.metabolic.cmr_hot == 10.0
         assert cfg.metabolic.hcr_redirect == 15.0
-        assert cfg.metabolic.swr_archive == 5.0
+        assert cfg.metabolic.tpv_stalled == 0.1
+        assert cfg.metabolic.gcr_fragmented == 0.3
+        assert cfg.metabolic.ipr_overflow == 3.0
         assert cfg.metabolic.vdr_warn == 80.0
         assert cfg.metabolic.lookback_days == 7
+        assert cfg.metabolic.history_max_snapshots == 90
 
     def test_metabolic_config_from_yaml(self, tmp_path):
         p = tmp_path / "daemon-config.yaml"
@@ -2170,7 +2198,7 @@ class TestSelectTaskAudited:
                 vdr=80.0,
                 cmr=15.0,
                 hcr=10.0,
-                swr=1.0,
+                tpv=1.0,
                 alarm_keys=["qpr_critical"],
             ),
         )
@@ -2226,7 +2254,7 @@ class TestSelectTaskAudited:
 
 
 class TestVaultSummaryDict:
-    def test_returns_8_keys(self, idle_state):
+    def test_returns_9_keys(self, idle_state):
         summary = vault_summary_dict(idle_state)
         expected_keys = {
             "health_fails",
@@ -2234,6 +2262,7 @@ class TestVaultSummaryDict:
             "observations",
             "tensions",
             "queue_backlog",
+            "queue_blocked",
             "orphan_notes",
             "inbox",
             "unmined_sessions",
@@ -2298,14 +2327,15 @@ class TestScanOnlyMode:
         audit_path = vault / "ops" / "daemon" / "logs" / "audit.jsonl"
         assert not audit_path.exists()
 
-    def test_scan_only_8_keys(self, tmp_path, capsys):
+    def test_scan_only_9_keys(self, tmp_path, capsys):
         vault = self._make_vault(tmp_path)
         main(["--scan-only", str(vault)])
         captured = capsys.readouterr()
         parsed = json.loads(captured.out.strip())
         expected_keys = {
             "health_fails", "health_stale", "observations", "tensions",
-            "queue_backlog", "orphan_notes", "inbox", "unmined_sessions",
+            "queue_backlog", "queue_blocked", "orphan_notes", "inbox",
+            "unmined_sessions",
         }
         assert set(parsed.keys()) == expected_keys
 
@@ -2408,3 +2438,202 @@ class TestValidateTaskSkillSlack:
         assert "tasks" in SLACK_READONLY_SKILLS
         # Should not overlap with DAEMON_ALLOWED_SKILLS
         assert SLACK_READONLY_SKILLS & DAEMON_ALLOWED_SKILLS == frozenset()
+
+
+# ---------------------------------------------------------------------------
+# _count_queue_pending -- flat list bug fix regression tests
+# ---------------------------------------------------------------------------
+
+
+class TestCountQueuePending:
+    def test_missing_file_returns_0(self, tmp_path):
+        assert _count_queue_pending(tmp_path / "missing.json") == 0
+
+    def test_flat_list_format(self, tmp_path):
+        """Regression: flat list queue (live format) must not AttributeError."""
+        qf = tmp_path / "queue.json"
+        qf.write_text(json.dumps([
+            {"id": "a", "status": "pending"},
+            {"id": "b", "status": "done"},
+            {"id": "c", "status": "pending"},
+        ]))
+        assert _count_queue_pending(qf) == 2
+
+    def test_dict_format(self, tmp_path):
+        qf = tmp_path / "queue.json"
+        qf.write_text(json.dumps({
+            "tasks": [
+                {"id": "a", "status": "pending"},
+                {"id": "b", "status": "archived"},
+            ]
+        }))
+        assert _count_queue_pending(qf) == 1
+
+    def test_blocked_status_excluded(self, tmp_path):
+        qf = tmp_path / "queue.json"
+        qf.write_text(json.dumps([
+            {"id": "a", "status": "blocked"},
+            {"id": "b", "status": "pending"},
+        ]))
+        assert _count_queue_pending(qf) == 1
+
+    def test_empty_list(self, tmp_path):
+        qf = tmp_path / "queue.json"
+        qf.write_text("[]")
+        assert _count_queue_pending(qf) == 0
+
+    def test_malformed_json(self, tmp_path):
+        qf = tmp_path / "queue.json"
+        qf.write_text("{bad json")
+        assert _count_queue_pending(qf) == 0
+
+
+# ---------------------------------------------------------------------------
+# _is_literature_stub tests
+# ---------------------------------------------------------------------------
+
+
+class TestIsLiteratureStub:
+    def test_empty_text_is_stub(self):
+        assert _is_literature_stub("") is True
+
+    def test_populated_is_not_stub(self):
+        text = (
+            "## Key Points\n"
+            "- Important finding\n"
+            "## Relevance\n"
+            "Relevant to our work\n"
+        )
+        assert _is_literature_stub(text) is False
+
+    def test_missing_relevance_is_stub(self):
+        text = "## Key Points\n- Finding\n"
+        assert _is_literature_stub(text) is True
+
+    def test_missing_key_points_is_stub(self):
+        text = "## Relevance\nRelevant\n"
+        assert _is_literature_stub(text) is True
+
+    def test_empty_sections_are_stub(self):
+        text = "## Key Points\n\n## Relevance\n\n## Notes\n"
+        assert _is_literature_stub(text) is True
+
+
+# ---------------------------------------------------------------------------
+# _count_queue_blocked tests
+# ---------------------------------------------------------------------------
+
+
+class TestCountQueueBlocked:
+    def test_missing_file_returns_0(self, tmp_path):
+        assert _count_queue_blocked(tmp_path / "ops" / "queue" / "queue.json") == 0
+
+    def test_all_ready_returns_0(self, tmp_path):
+        """Tasks with populated sources are not blocked."""
+        vault = tmp_path / "vault"
+        qdir = vault / "ops" / "queue"
+        qdir.mkdir(parents=True)
+        lit_dir = vault / "_research" / "literature"
+        lit_dir.mkdir(parents=True)
+        source = lit_dir / "good-paper.md"
+        source.write_text(
+            "## Key Points\n- Finding\n## Relevance\nMatters\n"
+        )
+        qf = qdir / "queue.json"
+        qf.write_text(json.dumps([
+            {
+                "id": "extract-good",
+                "status": "pending",
+                "current_phase": "reduce",
+                "source": "_research/literature/good-paper.md",
+            },
+        ]))
+        assert _count_queue_blocked(qf) == 0
+
+    def test_stubs_counted(self, tmp_path):
+        """Tasks with stub sources are counted as blocked."""
+        vault = tmp_path / "vault"
+        qdir = vault / "ops" / "queue"
+        qdir.mkdir(parents=True)
+        lit_dir = vault / "_research" / "literature"
+        lit_dir.mkdir(parents=True)
+        stub = lit_dir / "stub-paper.md"
+        stub.write_text("## Key Points\n\n## Relevance\n\n")
+        qf = qdir / "queue.json"
+        qf.write_text(json.dumps([
+            {
+                "id": "extract-stub",
+                "status": "pending",
+                "current_phase": "reduce",
+                "source": "_research/literature/stub-paper.md",
+            },
+        ]))
+        assert _count_queue_blocked(qf) == 1
+
+    def test_missing_source_counted(self, tmp_path):
+        vault = tmp_path / "vault"
+        qdir = vault / "ops" / "queue"
+        qdir.mkdir(parents=True)
+        qf = qdir / "queue.json"
+        qf.write_text(json.dumps([
+            {
+                "id": "extract-missing",
+                "status": "pending",
+                "current_phase": "reduce",
+                "source": "_research/literature/nonexistent.md",
+            },
+        ]))
+        assert _count_queue_blocked(qf) == 1
+
+    def test_non_reduce_tasks_ignored(self, tmp_path):
+        """Tasks at reflect/reweave phase are not blocked on stubs."""
+        vault = tmp_path / "vault"
+        qdir = vault / "ops" / "queue"
+        qdir.mkdir(parents=True)
+        qf = qdir / "queue.json"
+        qf.write_text(json.dumps([
+            {
+                "id": "claim-001",
+                "status": "pending",
+                "current_phase": "reflect",
+                "source": "_research/literature/nonexistent.md",
+            },
+        ]))
+        assert _count_queue_blocked(qf) == 0
+
+    def test_explicit_blocked_status(self, tmp_path):
+        vault = tmp_path / "vault"
+        qdir = vault / "ops" / "queue"
+        qdir.mkdir(parents=True)
+        qf = qdir / "queue.json"
+        qf.write_text(json.dumps([
+            {"id": "blocked-task", "status": "blocked"},
+        ]))
+        assert _count_queue_blocked(qf) == 1
+
+    def test_flat_list_format_handled(self, tmp_path):
+        """Flat list format (live queue) is handled correctly."""
+        vault = tmp_path / "vault"
+        qdir = vault / "ops" / "queue"
+        qdir.mkdir(parents=True)
+        qf = qdir / "queue.json"
+        qf.write_text(json.dumps([
+            {"id": "a", "status": "blocked"},
+            {"id": "b", "status": "done"},
+        ]))
+        assert _count_queue_blocked(qf) == 1
+
+    def test_dict_format_handled(self, tmp_path):
+        vault = tmp_path / "vault"
+        qdir = vault / "ops" / "queue"
+        qdir.mkdir(parents=True)
+        qf = qdir / "queue.json"
+        qf.write_text(json.dumps({
+            "tasks": [{"id": "a", "status": "blocked"}]
+        }))
+        assert _count_queue_blocked(qf) == 1
+
+
+# ---------------------------------------------------------------------------
+# vault_summary_dict -- 9 key update
+# ---------------------------------------------------------------------------

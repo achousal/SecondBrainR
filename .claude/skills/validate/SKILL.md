@@ -11,16 +11,11 @@ model: sonnet
 
 Read these files to configure domain-specific behavior:
 
-1. **`ops/derivation-manifest.md`** — vocabulary mapping, platform hints
-   - Use `vocabulary.notes` for the notes folder name
-   - Use `vocabulary.note` / `vocabulary.note_plural` for note type references
-   - Use `vocabulary.topic_map` for MOC references
-   - Use `vocabulary.templates` for the templates folder path
+1. **`ops/derivation-manifest.md`** — platform hints
+   - Platform-specific behavior and dimension configuration
 
 2. **`ops/config.yaml`** — processing depth
    - `processing.depth`: deep | standard | quick
-
-If these files don't exist, use universal defaults.
 
 **Processing depth adaptation:**
 
@@ -37,7 +32,7 @@ If these files don't exist, use universal defaults.
 Parse immediately:
 - If target contains a note name: validate that specific note
 - If target contains `--handoff`: output RALPH HANDOFF block at end
-- If target is "all" or "notes": validate all notes in {DOMAIN:notes}/ directory
+- If target is "all" or "notes": validate all notes in notes/ directory
 - If target is empty: ask which note to validate
 
 **Execute these steps:**
@@ -46,7 +41,7 @@ Parse immediately:
 
 Determine which template applies to the target note:
 
-1. Check the note's location — notes in {DOMAIN:notes}/ use the standard note template
+1. Check the note's location — notes in notes/ use the standard note template
 2. Check the `type` field in frontmatter — specialized types may have dedicated templates
 3. Look for the templates directory at `_code/templates/` (or domain-specific path from derivation manifest)
 4. If the template has a `_schema` block, read it — this is the authoritative schema definition
@@ -75,7 +70,7 @@ Run ALL validation checks. Each check produces PASS, WARN, or FAIL.
 | Check | Rule | How to Verify |
 |-------|------|---------------|
 | `description` | Must exist and be non-empty | Check YAML frontmatter for `description:` field with non-empty value |
-| Topics | Must link to at least one {DOMAIN:topic map} | Check for `topics:` in YAML or `Topics:` section in footer. Must contain at least one wiki link |
+| Topics | Must link to at least one topic map | Check for `topics:` in YAML or `Topics:` section in footer. Must contain at least one wiki link |
 
 A missing required field is a hard failure. The note cannot pass validation without these.
 
@@ -131,7 +126,7 @@ If a field has a value not in the enum list, report the invalid value and list t
 | Check | Rule | How to Verify |
 |-------|------|---------------|
 | Body wiki-links | Each `[[link]]` should point to an existing file | Extract all `[[...]]` patterns from body, check each against file tree |
-| Topics links | {DOMAIN:topic map} referenced in Topics must exist | Verify each topic wiki link resolves |
+| Topics links | topic map referenced in Topics must exist | Verify each topic wiki link resolves |
 | Relevant notes links | Each note in `relevant_notes` must exist | Verify each wiki link in relevant_notes resolves |
 | Backtick exclusion | Wiki links inside backticks are examples, not real links | Skip `[[...]]` patterns inside single or triple backtick blocks |
 
@@ -162,7 +157,7 @@ If a field has a value not in the enum list, report the invalid value and list t
 
 When validating all notes (target is "all" or "notes"):
 
-1. Discover all .md files in {DOMAIN:notes}/ directory
+1. Discover all .md files in notes/ directory
 2. Optionally include additional directories (e.g., self/memory/) if they exist
 3. Run all schema checks on each note
 4. Produce summary report:

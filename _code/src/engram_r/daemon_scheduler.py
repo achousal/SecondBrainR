@@ -271,6 +271,7 @@ class VaultState:
     federation_exchange_dir: str = ""
     federation_peers_count: int = 0
     quarantine_count: int = 0
+    queue_blocked: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -322,15 +323,93 @@ def _count_unmined_sessions(sessions_dir: Path, marker_dir: Path) -> int:
 
 
 def _count_queue_pending(queue_file: Path) -> int:
-    """Count pending tasks in the queue.json."""
+    """Count pending tasks in the queue.json.
+
+    Handles both flat-list format (live queue) and dict-with-tasks format.
+    """
     if not queue_file.is_file():
         return 0
     try:
-        data = json.loads(queue_file.read_text())
-        tasks = data.get("tasks", [])
-        return sum(1 for t in tasks if t.get("status") not in ("done", "archived"))
+        raw = json.loads(queue_file.read_text())
+        tasks = raw if isinstance(raw, list) else raw.get("tasks", [])
+        return sum(
+            1 for t in tasks if t.get("status") not in ("done", "archived", "blocked")
+        )
     except (json.JSONDecodeError, OSError):
         return 0
+
+
+def _is_literature_stub(text: str) -> bool:
+    """Return True if text lacks populated Key Points and Relevance sections."""
+    has_key_points = False
+    has_relevance = False
+    lines = text.splitlines()
+    current_section = ""
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("## Key Points"):
+            current_section = "key_points"
+            continue
+        elif stripped.startswith("## Relevance"):
+            current_section = "relevance"
+            continue
+        elif stripped.startswith("## "):
+            current_section = ""
+            continue
+        is_content = stripped and not stripped.startswith("---")
+        if current_section == "key_points" and is_content:
+            has_key_points = True
+        if current_section == "relevance" and is_content:
+            has_relevance = True
+    return not (has_key_points and has_relevance)
+
+
+def _count_queue_blocked(queue_file: Path) -> int:
+    """Count queue tasks blocked on unpopulated literature stubs.
+
+    A task is considered blocked when:
+    - status == "blocked", OR
+    - status == "pending" AND current_phase == "reduce" AND the source file
+      is missing or is a stub (Key Points and Relevance both empty).
+
+    Args:
+        queue_file: Path to ops/queue/queue.json.
+
+    Returns:
+        Number of blocked tasks.
+    """
+    if not queue_file.is_file():
+        return 0
+    try:
+        raw = json.loads(queue_file.read_text())
+        tasks = raw if isinstance(raw, list) else raw.get("tasks", [])
+    except (json.JSONDecodeError, OSError):
+        return 0
+
+    vault_root = queue_file.parent.parent.parent  # ops/queue/queue.json -> vault
+    count = 0
+    for t in tasks:
+        status = t.get("status", "")
+        if status == "blocked":
+            count += 1
+            continue
+        if status == "pending" and t.get("current_phase") == "reduce":
+            source = t.get("source", "")
+            if not source:
+                count += 1
+                continue
+            source_path = vault_root / source
+            if not source_path.is_file():
+                count += 1
+                continue
+            try:
+                text = source_path.read_text(errors="replace")
+            except OSError:
+                count += 1
+                continue
+            if _is_literature_stub(text):
+                count += 1
+    return count
 
 
 def _count_orphan_notes(vault_path: Path) -> int:
@@ -710,6 +789,7 @@ def scan_vault(vault_path: Path, config: DaemonConfig) -> VaultState:
     state.tension_count = _count_files(tens_dir)
     state.inbox_count = _count_files(inbox_dir)
     state.queue_backlog = _count_queue_pending(queue_file)
+    state.queue_blocked = _count_queue_blocked(queue_file)
     state.orphan_count = _count_orphan_notes(vault_path)
     state.unmined_session_count = _count_unmined_sessions(sessions_dir, marker_dir)
 
@@ -843,6 +923,21 @@ def scan_vault(vault_path: Path, config: DaemonConfig) -> VaultState:
         )
         state.goals.append(gs)
 
+    # Stale note count (notes not updated in stale_notes_days)
+    notes_dir = vault_path / "notes"
+    if notes_dir.is_dir():
+        stale_cutoff = time.time() - (config.thresholds.stale_notes_days * 86400)
+        stale = 0
+        for nf in notes_dir.iterdir():
+            if nf.suffix != ".md" or nf.name == "_index.md":
+                continue
+            try:
+                if nf.stat().st_mtime < stale_cutoff:
+                    stale += 1
+            except OSError:
+                pass
+        state.stale_note_count = stale
+
     # Metabolic indicators
     if config.metabolic.enabled:
         from engram_r.metabolic_indicators import compute_metabolic_state
@@ -858,10 +953,13 @@ def scan_vault(vault_path: Path, config: DaemonConfig) -> VaultState:
             vault_path,
             queue_data=queue_json,
             lookback_days=config.metabolic.lookback_days,
+            orphan_count=state.orphan_count,
             qpr_critical=config.metabolic.qpr_critical,
             cmr_hot=config.metabolic.cmr_hot,
+            tpv_stalled=config.metabolic.tpv_stalled,
             hcr_redirect=config.metabolic.hcr_redirect,
-            swr_archive=config.metabolic.swr_archive,
+            gcr_fragmented=config.metabolic.gcr_fragmented,
+            ipr_overflow=config.metabolic.ipr_overflow,
         )
 
     return state
@@ -926,7 +1024,7 @@ class SelectionResult:
 
 
 def vault_summary_dict(state: VaultState) -> dict:
-    """Build the 8-key vault summary dict from a VaultState snapshot.
+    """Build the 9-key vault summary dict from a VaultState snapshot.
 
     Used by ``select_task_audited`` (audit trail), ``main`` (idle output),
     and ``--scan-only`` mode.  Single source of truth for the summary shape.
@@ -937,6 +1035,7 @@ def vault_summary_dict(state: VaultState) -> dict:
         "observations": state.observation_count,
         "tensions": state.tension_count,
         "queue_backlog": state.queue_backlog,
+        "queue_blocked": state.queue_blocked,
         "orphan_notes": state.orphan_count,
         "inbox": state.inbox_count,
         "unmined_sessions": state.unmined_session_count,
@@ -962,11 +1061,12 @@ def select_task_audited(state: VaultState, config: DaemonConfig) -> SelectionRes
     # Build vault summary for audit
     audit.vault_summary = vault_summary_dict(state)
 
-    # Metabolic governor: suppress generative P1 if system running hot
+    # Metabolic governor: suppress generative P1 if tier 1 alarm active
     metabolic_suppress_p1 = False
     if state.metabolic and config.metabolic.enabled:
         alarms = getattr(state.metabolic, "alarm_keys", [])
-        if "qpr_critical" in alarms or "cmr_hot" in alarms:
+        tier1_alarms = {"qpr_critical", "cmr_hot", "tpv_stalled"}
+        if tier1_alarms & set(alarms):
             metabolic_suppress_p1 = True
     audit.metabolic_suppressed = metabolic_suppress_p1
 
@@ -1435,9 +1535,9 @@ def build_tier3_entries(state: VaultState, config: DaemonConfig) -> list[str]:
         m = state.metabolic
         alarm_str = ", ".join(m.alarm_keys) if m.alarm_keys else "none"
         entries.append(
-            f"- Metabolic: QPR={m.qpr:.1f}d VDR={m.vdr:.0f}% "
-            f"CMR={m.cmr:.0f}:1 HCR={m.hcr:.0f}% SWR={m.swr:.1f} "
-            f"[ALARM: {alarm_str}]"
+            f"- Metabolic: QPR={m.qpr:.1f}d CMR={m.cmr:.0f}:1 "
+            f"TPV={m.tpv:.1f}/d GCR={m.gcr:.2f} IPR={m.ipr:.1f} "
+            f"VDR={m.vdr:.0f}% [ALARM: {alarm_str}]"
         )
 
     # Task stack active items first

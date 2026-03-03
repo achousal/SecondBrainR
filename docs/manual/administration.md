@@ -113,16 +113,16 @@ Two complementary health surfaces:
 
 - `/health` -- vault integrity (schema, orphans, links). Scans `notes/`,
   `_research/`, `self/`, `projects/` only.
-- `/stats --dev` -- code integrity (tests, lint, build). Scans code sections.
+- `/dev` -- code integrity (tests, lint, build). Scans code sections.
 
 6 sections defined in `ops/sections.yaml`: core-lib, r-lib, skills, ops-infra,
 site, docs-templates. Each has paths, checks, and a dependency graph.
 
 ```bash
-./ops/scripts/section-check.sh                    # all sections
-./ops/scripts/section-check.sh core-lib            # single section, verbose
-./ops/scripts/section-check.sh --changed           # auto-detect from git diff
-./ops/scripts/section-check.sh --affected core-lib # section + dependents
+./ops/scripts/section-check.sh                    # all sections (or: /dev)
+./ops/scripts/section-check.sh core-lib            # single section, verbose (or: /dev core-lib)
+./ops/scripts/section-check.sh --changed           # auto-detect from git diff (or: /dev --changed)
+./ops/scripts/section-check.sh --affected core-lib # section + dependents (or: /dev --affected core-lib)
 ```
 
 ---

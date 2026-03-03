@@ -190,6 +190,44 @@ def _parse_article(elem: ET.Element) -> PubMedArticle:
     )
 
 
+def fetch_abstract_by_doi(doi: str, timeout: int = 10) -> str | None:
+    """Fetch abstract from PubMed by DOI (search for PMID, then EFetch).
+
+    Args:
+        doi: The DOI to look up.
+        timeout: HTTP timeout in seconds.
+
+    Returns:
+        Abstract text if found, None otherwise.
+    """
+    # Step 1: search for PMID by DOI
+    params = _build_params({"db": "pubmed", "term": f"{doi}[doi]", "retmode": "xml"})
+    search_url = f"{EUTILS_BASE}/esearch.fcgi?{urllib.parse.urlencode(params)}"
+    try:
+        req = urllib.request.Request(search_url)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            root = ET.fromstring(resp.read())
+        id_list = root.find("IdList")
+        if id_list is None:
+            return None
+        pmids = [el.text for el in id_list.findall("Id") if el.text]
+        if not pmids:
+            return None
+    except Exception:
+        logger.debug("PubMed DOI search failed for %s", doi)
+        return None
+
+    # Step 2: fetch article and extract abstract
+    try:
+        articles = fetch_articles(pmids[:1])
+        if articles and articles[0].abstract:
+            return articles[0].abstract
+    except Exception:
+        logger.debug("PubMed EFetch failed for DOI %s", doi)
+
+    return None
+
+
 def search_and_fetch(
     query: str,
     max_results: int = 10,
