@@ -1,0 +1,17 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+htmlcov/
+.coverage
+*.pdf
+*.png
+*.jpg
+.DS_Store
+examples/output/
