@@ -67,26 +67,29 @@ The lead session's ONLY job is: read queue, spawn subagent, evaluate return, upd
 
 Each phase maps to specific Agent tool parameters. Use these EXACTLY when spawning subagents.
 
-| Phase | Skill Invoked | Purpose |
-|-------|---------------|---------|
-| extract | /reduce | Extract claims from source material |
-| create | (inline note creation) | Write the claim file |
-| enrich | /enrich | Add content to existing claim |
-| reflect | /reflect | Find connections, update topic maps |
-| reweave | /reweave | Update older claims with new connections |
-| verify | /verify | Description quality + schema + health checks |
+| Phase | Skill Invoked | Model | max_turns | Rationale |
+|-------|---------------|-------|-----------|-----------|
+| extract | /reduce | sonnet | 25 | Large sources need many passes |
+| create | (inline note creation) | sonnet | 8 | Bounded: read task, write note |
+| enrich | /enrich | sonnet | 8 | Bounded: read note, augment |
+| reflect | /reflect | sonnet | 15 | Dual discovery + MOC update |
+| reweave | /reweave | sonnet | 15 | Find + update older notes |
+| verify | /verify | haiku | 8 | Schema + recite + review |
+| cross-connect | (inline validation) | sonnet | 15 | Validate sibling links |
 
-**All phases use the same subagent configuration:**
-- subagent_type: knowledge-worker (if available) or default
-- mode: dontAsk
+**Model and turn budgets are read from `ops/daemon-config.yaml`** (sections `models:` and `max_turns:`). Read this file at Step 1 alongside the queue. If daemon-config is missing or unreadable, use the defaults in the table above.
 
-Subagents inherit the session model. Users running opus get opus quality on processing phases. Users running sonnet get sonnet everywhere. Fresh context per phase already ensures efficiency — every phase gets full capability in the smart zone.
+Turn budgets are circuit breakers, not throttles. A bounded phase hitting its cap is probably lost; a semi-bounded phase hitting its cap was doing genuine work. Set high enough that normal execution never hits them, low enough that runaway agents get stopped.
 
 ---
 
-## Step 1: Read Queue State
+## Step 1: Read Queue State and Phase Config
 
-Read the queue file. Check these locations in order:
+Read **two** files:
+
+**1a. Daemon config** — read `ops/daemon-config.yaml`. Extract the `models:` and `max_turns:` blocks. Store phase-to-model and phase-to-turns mappings for use in Agent calls. If unreadable, use Phase Configuration table defaults.
+
+**1b. Queue file** — check these locations in order:
 1. `ops/queue.yaml`
 2. `ops/queue/queue.yaml`
 3. `ops/queue/queue.json`
@@ -305,15 +308,19 @@ Final phase for this claim. ONE PHASE ONLY.
 
 ### 4c. Spawn Subagent (MANDATORY — NEVER SKIP)
 
-Call the Agent tool with the constructed prompt:
+Call the Agent tool with the constructed prompt. Use the model and max_turns from daemon-config (loaded in Step 1a):
 
 ```
 Agent(
   subagent_type = "general-purpose",
   prompt = {the constructed prompt from 4b},
-  description = "{current_phase}: {short target}" (5 words max)
+  description = "{current_phase}: {short target}" (5 words max),
+  model = {daemon-config models[current_phase] — e.g. "haiku" for verify, "sonnet" for reflect},
+  max_turns = {daemon-config max_turns[current_phase] — e.g. 8 for verify, 15 for reflect}
 )
 ```
+
+**Phase-to-model lookup:** Map `current_phase` to daemon-config `models:` key: extract->reduce, create->create, enrich->enrich, reflect->reflect, reweave->reweave, verify->verify. Use the model value from that key. If key missing, default to sonnet (haiku for verify).
 
 **REPEAT: You MUST call the Agent tool here.** Do NOT execute the prompt yourself. Do NOT "optimize" by running the task inline. The Agent tool call is the ONLY acceptable action at this step.
 
@@ -382,7 +389,9 @@ Notes created in this batch:
 Verify sibling connections exist between batch notes. Add any that were missed
 because sibling notes did not exist yet when the earlier claim's reflect ran.
 Check backward link gaps. Output RALPH HANDOFF block when done.",
-  description = "cross-connect: batch {BATCH}"
+  description = "cross-connect: batch {BATCH}",
+  model = {daemon-config models.cross_connect — default "sonnet"},
+  max_turns = {daemon-config max_turns.cross_connect — default 15}
 )
 ```
 
@@ -481,12 +490,14 @@ When complete, update the queue entry to status "done" and report the created
 claim title, path, and claim ID. The lead needs this for cross-connect.
 ```
 
-Spawn via Agent tool:
+Spawn via Agent tool with parallel worker budget from daemon-config:
 ```
 Agent(
   subagent_type = "general-purpose",
   prompt = {the constructed prompt},
-  description = "claim: {short target}" (5 words max)
+  description = "claim: {short target}" (5 words max),
+  model = "sonnet",
+  max_turns = {daemon-config max_turns.parallel_worker — default 30}
 )
 ```
 
@@ -533,7 +544,9 @@ Notes created in this batch:
 Verify sibling connections exist between these notes. Add any connections that
 workers missed because sibling notes did not exist yet when a worker's reflect ran.
 Check backward link gaps. Output RALPH HANDOFF block when done.",
-  description = "cross-connect: batch {BATCH}"
+  description = "cross-connect: batch {BATCH}",
+  model = {daemon-config models.cross_connect — default "sonnet"},
+  max_turns = {daemon-config max_turns.cross_connect — default 15}
 )
 ```
 

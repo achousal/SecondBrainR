@@ -38,6 +38,28 @@ models:
   validate: haiku              # Frontmatter schema validation
   remember: haiku              # Friction signal capture from sessions
   rethink: sonnet              # Observation/tension triage and proposals
+  create: sonnet               # Claim note creation from task file
+  enrich: sonnet               # Content augmentation for existing claims
+  cross_connect: sonnet        # Post-batch sibling link validation
+
+# ---------------------------------------------------------------------------
+# Max Turns (Circuit Breakers)
+# Phase-specific turn budgets for ralph subagents. These are safety ceilings,
+# not performance targets. A phase hitting its limit is probably lost or stuck.
+#
+# Bounded phases (single read-write cycle) get tight caps.
+# Semi-bounded phases (search + link) get generous caps.
+# Unbounded phases (source-size-dependent) get the most headroom.
+# ---------------------------------------------------------------------------
+max_turns:
+  create: 8                    # Read task file, write note
+  verify: 8                    # Recite + validate + review
+  enrich: 8                    # Read note, augment content
+  reflect: 15                  # Dual discovery + MOC update
+  reweave: 15                  # Find + update older notes
+  extract: 25                  # Large sources need many passes
+  cross_connect: 15            # Validate sibling links post-batch
+  parallel_worker: 30          # Full claim pipeline (create+reflect+reweave+verify)
 
 # ---------------------------------------------------------------------------
 # Cooldowns
