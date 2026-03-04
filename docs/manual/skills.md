@@ -417,6 +417,7 @@ Run a comprehensive vault health check.
 
 | Property | Value |
 |----------|-------|
+| Requires | arscontexta plugin |
 | Input | None |
 | Output | Health report with actionable items |
 
@@ -429,6 +430,7 @@ Show available commands and brief descriptions.
 
 | Property | Value |
 |----------|-------|
+| Requires | arscontexta plugin |
 | Input | Optional command name for detailed help |
 | Output | Command list or detailed usage |
 
@@ -439,6 +441,7 @@ Restructure system design by modifying configuration dimensions.
 
 | Property | Value |
 |----------|-------|
+| Requires | arscontexta plugin |
 | Input | Question or change request about system structure |
 | Output | Updated ops/config.yaml, ops/methodology/ |
 
@@ -451,6 +454,7 @@ Query the methodology knowledge base.
 
 | Property | Value |
 |----------|-------|
+| Requires | arscontexta plugin |
 | Input | Question about system design or methodology |
 | Output | Answer grounded in ops/methodology/ and the bundled research base |
 
@@ -463,6 +467,7 @@ Initialize a new vault or re-initialize an existing one.
 
 | Property | Value |
 |----------|-------|
+| Requires | arscontexta plugin |
 | Input | None (interactive) |
 | Output | Vault structure, templates, hooks, skills, config |
 
@@ -475,6 +480,7 @@ Re-derive the system configuration from updated dimension choices.
 
 | Property | Value |
 |----------|-------|
+| Requires | arscontexta plugin |
 | Input | Updated dimension positions or preset |
 | Output | Updated CLAUDE.md, config.yaml, derivation records |
 
@@ -487,8 +493,9 @@ Interactive walkthrough of system features.
 
 | Property | Value |
 |----------|-------|
-| Input | Optional topic |
-| Output | Guided interactive session |
+| Requires | arscontexta plugin |
+| Input | Optional track (researcher, manager, personal) |
+| Output | Real vault content created via guided steps -- claims, topic maps, and connections that teach by doing |
 
 ---
 
@@ -497,28 +504,31 @@ Add a new research domain to the vault.
 
 | Property | Value |
 |----------|-------|
+| Requires | arscontexta plugin |
 | Input | Domain name and description |
-| Output | New domain topic map, templates, folder structure |
+| Output | Domain-specific folders, templates, vocabulary, and topic map integrated with existing architecture |
 
 ---
 
 #### /recommend
-Get recommendations based on vault state and goals.
+Get research-backed architecture advice for your knowledge system.
 
 | Property | Value |
 |----------|-------|
-| Input | None |
-| Output | Prioritized recommendations |
+| Requires | arscontexta plugin |
+| Input | Use case description, constraints, and goals |
+| Output | Specific architecture recommendations grounded in TFT research with rationale for each decision |
 
 ---
 
 #### /upgrade
-Upgrade vault components to a newer version.
+Apply plugin knowledge base updates to the existing system.
 
 | Property | Value |
 |----------|-------|
-| Input | Target version |
-| Output | Updated skills, hooks, templates |
+| Requires | arscontexta plugin |
+| Input | None (consults arscontexta research graph automatically) |
+| Output | Proposed skill upgrades with research justification -- never auto-implements, requires approval |
 
 ---
 

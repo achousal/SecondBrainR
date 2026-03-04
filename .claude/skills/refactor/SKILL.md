@@ -154,7 +154,7 @@ For content-impacting changes:
 
 ### Interaction Constraint Check
 
-Read `${CLAUDE_PLUGIN_ROOT}/reference/interaction-constraints.md` and check:
+Read `ops/methodology/interaction-constraints.md` and check:
 
 1. **Hard blocks:** Would the new configuration create a combination that WILL fail?
    - Example: atomic granularity + 2-tier navigation at high volume
