@@ -45,7 +45,7 @@ If `$ADVISOR_EXIT` is 0 and `$ADVISOR` contains suggestions with `channel: "pipe
 - {tip message} ({tip rationale})
 ```
 
-If the advisor fails or returns no pipeline tips, proceed silently. This enrichment is advisory only -- never block processing.
+If the advisor fails or returns no pipeline tips, proceed silently. Pipeline tips are displayed for transparency -- the actual enforcement is in the Phase Eligibility Gate (Step 2).
 
 **0b. Abstract-Only Source Advisory**
 
@@ -144,6 +144,28 @@ Build a list of **actionable tasks** — tasks where `status == "pending"`. Orde
 Apply filters:
 - If `--batch` specified: keep only tasks where `batch` matches
 - If `--type` specified: keep only tasks where `current_phase` matches (e.g., `--type reflect` finds tasks whose `current_phase` is "reflect")
+
+**Phase Eligibility Gate (after user filters, before batch grouping):**
+
+Enforce phase ordering across all pending tasks. Later phases cannot run while earlier phases have pending work, because later phases depend on the graph state produced by earlier phases.
+
+1. Count pending tasks by `current_phase` across the **full queue** (not just the user-filtered subset -- the gate considers global queue state).
+2. Apply blocking rules:
+   - If **any** tasks are pending at `create` or `enrich`: **exclude** tasks at `reflect` and `reweave` from the actionable list.
+   - If **any** tasks are pending at `reflect`: **exclude** tasks at `reweave` from the actionable list.
+3. `extract` and `verify` tasks are **never blocked** by this gate. Extract is upstream of everything; verify is a quality check that does not create new connections.
+4. Remove ineligible tasks from the actionable list.
+
+If the gate removes tasks that would otherwise match a `--type` filter, report what was blocked and why:
+```
+[Phase Gate] {N} {phase} task(s) held back -- {M} {earlier_phase} task(s) must complete first.
+```
+
+If the gate removes ALL actionable tasks, report the blockage and suggest processing the earlier phase:
+```
+[Phase Gate] All requested tasks blocked. {M} {earlier_phase} task(s) must complete first.
+Suggested: /ralph {M} --type {earlier_phase}
+```
 
 **Batch Grouping (after filtering):**
 
