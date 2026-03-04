@@ -28,7 +28,7 @@ Extract mode from $ARGUMENTS:
 
 Run:
 ```bash
-cd /Users/andreschousal/EngramR && uv run --directory _code python -c "
+cd "$(git rev-parse --show-toplevel)" && uv run --directory _code python -c "
 import sys, json
 sys.path.insert(0, 'src')
 from engram_r.domain_profile import discover_profiles, load_profile
@@ -57,7 +57,7 @@ Return the output verbatim.
 
 Run:
 ```bash
-cd /Users/andreschousal/EngramR && uv run --directory _code python -c "
+cd "$(git rev-parse --show-toplevel)" && uv run --directory _code python -c "
 import sys, json
 sys.path.insert(0, 'src')
 from engram_r.domain_profile import load_profile
