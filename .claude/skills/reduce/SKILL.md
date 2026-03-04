@@ -548,7 +548,9 @@ Topics:
 
 **d. Create the file**
 
-Write to: `notes/[title].md`
+**INTERACTIVE MODE ONLY (no --handoff flag):** Write to: `notes/[title].md`
+
+**HANDOFF MODE (--handoff flag):** Do NOT write to `notes/`. Instead, create a task file in `ops/queue/` (see Handoff Mode section below). The create phase subagent writes the actual claim to `notes/` later. Writing directly to `notes/` during handoff mode is a pipeline compliance violation.
 
 ---
 
@@ -974,6 +976,8 @@ The research_prompt is the most critical field — it captures the intellectual 
 ## Handoff Mode (--handoff flag)
 
 When invoked with `--handoff`, this skill handles queue management for orchestrated execution. This includes creating per-claim task files and updating the task queue.
+
+**CRITICAL CONSTRAINT:** In handoff mode, NEVER write claim files directly to `notes/`. All claims are written as task files to `ops/queue/`. The create phase (dispatched separately by ralph) is the ONLY phase that writes to `notes/`. Writing to `notes/` during the extract/reduce phase is a pipeline compliance violation.
 
 **Detection:** Check if `$ARGUMENTS` contains `--handoff`.
 

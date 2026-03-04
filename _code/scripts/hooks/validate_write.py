@@ -36,6 +36,7 @@ from engram_r.hook_utils import load_config, resolve_vault  # noqa: E402
 from engram_r.integrity import MONITORED_DIRS, PROTECTED_PATHS  # noqa: E402
 from engram_r.schema_validator import (  # noqa: E402
     check_notes_provenance,
+    check_queue_provenance,
     detect_unicode_issues,
     detect_yaml_safety_issues,
     validate_filename,
@@ -248,6 +249,27 @@ def main() -> None:
             print(json.dumps(response))
             sys.exit(0)
 
+        # Queue provenance: verify a task file exists for new claims.
+        # Only applies to Write (new files), not Edit (updates to existing).
+        # Skipped when ENGRAMR_PIPELINE_BYPASS is set (for /init seeding
+        # and other direct-write workflows that predate the queue).
+        tool_name = hook_input.get("tool_name", "")
+        if (
+            tool_name == "Write"
+            and not os.environ.get("ENGRAMR_PIPELINE_BYPASS")
+            and not file_path.exists()
+        ):
+            queue_dir = vault / "ops" / "queue"
+            claim_title = file_path.stem
+            queue_prov = check_queue_provenance(claim_title, queue_dir)
+            if not queue_prov.valid:
+                response = {
+                    "decision": "block",
+                    "reason": "; ".join(queue_prov.errors),
+                }
+                print(json.dumps(response))
+                sys.exit(0)
+
         # Source warnings only for new files (Write tool), not edits.
         # Design choice: Write warns on missing source field because new notes
         # should have provenance. Edit suppresses because most edits add
@@ -255,7 +277,6 @@ def main() -> None:
         # warning on every /reflect or /reweave edit would produce noise.
         # To enforce source on all writes, set schema_validation_strict: true
         # in ops/config.yaml.
-        tool_name = hook_input.get("tool_name", "")
         if prov.warnings and tool_name == "Write":
             for w in prov.warnings:
                 print(f"WARN: {w}", file=sys.stderr)

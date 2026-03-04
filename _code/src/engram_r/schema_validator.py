@@ -15,6 +15,7 @@ import html.parser
 import re
 import unicodedata
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import yaml
 
@@ -401,6 +402,66 @@ _SOURCE_EXEMPT_TYPES = frozenset({"moc", "index", "hub", "topic-map"})
 _CLAIM_FAMILY_TYPES = frozenset(
     {"claim", "evidence", "methodology", "question", "contradiction", "pattern"}
 )
+
+
+def check_queue_provenance(
+    claim_title: str,
+    queue_dir: Path,
+) -> ValidationResult:
+    """Verify that a claim being written to notes/ has a queue task file.
+
+    Checks that at least one task file in *queue_dir* references the claim
+    title in its ``claim:`` frontmatter field.  This prevents pipeline
+    bypass where a reduce subagent writes directly to notes/ instead of
+    creating a task file first.
+
+    Args:
+        claim_title: The claim title (filename stem without .md).
+        queue_dir: Path to ``ops/queue/`` directory.
+
+    Returns:
+        A ``ValidationResult``.  ``valid=True`` when a matching task file
+        exists or the queue directory is absent (pre-init vaults).
+    """
+    if not queue_dir.is_dir():
+        # Pre-init vault or queue not yet created -- skip check.
+        return ValidationResult(valid=True)
+
+    # Normalize for comparison: lowercase, strip whitespace.
+    normalized_title = claim_title.strip().lower()
+
+    for task_file in queue_dir.glob("*.md"):
+        try:
+            text = task_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        fm_match = _FM_PATTERN.match(text)
+        if not fm_match:
+            continue
+
+        try:
+            fm = yaml.safe_load(fm_match.group(1))
+        except yaml.YAMLError:
+            continue
+
+        if not isinstance(fm, dict):
+            continue
+
+        task_claim = fm.get("claim", "")
+        if isinstance(task_claim, str) and task_claim.strip().lower() == normalized_title:
+            return ValidationResult(valid=True)
+
+    return ValidationResult(
+        valid=False,
+        errors=[
+            f"No queue task file found for claim '{claim_title}'. "
+            f"Claims must route through the pipeline: "
+            f"inbox/ -> /reduce (creates task file in ops/queue/) -> "
+            f"create phase (writes to notes/). "
+            f"Direct writes to notes/ are a pipeline compliance violation."
+        ],
+    )
 
 
 def check_notes_provenance(content: str) -> ValidationResult:

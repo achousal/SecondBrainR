@@ -211,6 +211,9 @@ ONE PHASE ONLY. Do NOT run reflect or other phases.
 ```
 
 For **create** phase:
+
+**Pre-dispatch validation:** Before spawning the subagent, verify the task file exists on disk using `Glob` with `ops/queue/{FILE}`. If the task file does not exist, do NOT dispatch the create. Instead, mark the task as blocked with a note: `"blocked": "task file does not exist — reduce phase may not have completed"`. Report it in the summary as a blocked task. This prevents writes to notes/ without pipeline provenance.
+
 ```
 Read the task file at ops/queue/{FILE} for context.
 
