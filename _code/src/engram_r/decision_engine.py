@@ -189,12 +189,17 @@ def classify_signals(state: VaultState, config: DaemonConfig) -> list[Signal]:
         )
 
     if state.inbox_count > 5:
+        _inbox_action = (
+            f"/ralph {state.inbox_count}"
+            if state.inbox_count > 1
+            else "/reduce"
+        )
         signals.append(
             Signal(
                 name="inbox_pressure",
                 count=state.inbox_count,
                 speed="session",
-                action="/reduce",
+                action=_inbox_action,
                 rationale=(f"{state.inbox_count} items in inbox, risking idea loss"),
             )
         )
