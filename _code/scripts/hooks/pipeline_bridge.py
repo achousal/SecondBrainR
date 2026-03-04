@@ -68,6 +68,19 @@ def _is_already_queued(queue_path: Path, rel_path: str) -> bool:
     return False
 
 
+def _pending_queue_count(queue_path: Path) -> int:
+    """Count non-done tasks in queue.json."""
+    if not queue_path.exists():
+        return 0
+    try:
+        data = json.loads(queue_path.read_text(encoding="utf-8"))
+        return sum(
+            1 for t in data.get("tasks", []) if t.get("status") != "done"
+        )
+    except (json.JSONDecodeError, Exception):
+        return 0
+
+
 def main() -> None:
     try:
         raw = sys.stdin.read()
@@ -103,7 +116,14 @@ def main() -> None:
         return
 
     basename = Path(rel_path).name
-    suggestion = f"New {note_type}: {basename}. Consider: /reduce {rel_path}"
+    pending = _pending_queue_count(queue_path)
+    if pending > 1:
+        suggestion = (
+            f"New {note_type}: {basename}. "
+            f"{pending} queued items -- consider: /ralph {pending}"
+        )
+    else:
+        suggestion = f"New {note_type}: {basename}. Consider: /reduce {rel_path}"
     print(f"[Pipeline Bridge] {suggestion}")
 
     # D1: audit trail

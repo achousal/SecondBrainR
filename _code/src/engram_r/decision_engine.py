@@ -105,16 +105,21 @@ def classify_signals(state: VaultState, config: DaemonConfig) -> list[Signal]:
                 )
             )
         if "tpv_stalled" in alarm_keys:
+            _tpv_action = (
+                f"/ralph {state.queue_backlog}"
+                if state.queue_backlog > 1
+                else "/reduce"
+            )
             signals.append(
                 Signal(
                     name="metabolic_tpv",
                     count=1,
                     speed="session",
-                    action="/reduce",
+                    action=_tpv_action,
                     rationale=(
                         f"Throughput velocity {m.tpv:.2f}/day "
                         f"(<{config.metabolic.tpv_stalled}). "
-                        f"Process queue or run /ralph."
+                        f"Process queue."
                     ),
                 )
             )
@@ -149,12 +154,17 @@ def classify_signals(state: VaultState, config: DaemonConfig) -> list[Signal]:
                 )
             )
         if "ipr_overflow" in alarm_keys:
+            _ipr_action = (
+                f"/ralph {state.queue_backlog}"
+                if state.queue_backlog > 1
+                else "/reduce"
+            )
             signals.append(
                 Signal(
                     name="metabolic_ipr",
                     count=int(m.ipr),
                     speed="session",
-                    action="/reduce",
+                    action=_ipr_action,
                     rationale=(
                         f"Inbox pressure {m.ipr:.1f} "
                         f"(>{config.metabolic.ipr_overflow}). "
