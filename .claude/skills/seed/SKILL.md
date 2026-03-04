@@ -142,6 +142,28 @@ NEXT_CLAIM_START=$((QUEUE_MAX > ARCHIVE_MAX ? QUEUE_MAX + 1 : ARCHIVE_MAX + 1))
 
 Claim numbers are globally unique and never reused across batches. This ensures every claim file name (`{source}-{NNN}.md`) is unique vault-wide.
 
+## Step 5b: Content Depth Detection
+
+Read the source file's frontmatter for `content_depth`:
+
+- **`content_depth: stub`** -- metadata only, no abstract. Warn the user:
+  ```
+  [Content Depth] Source is a DOI stub (metadata only, no abstract).
+  Recommended: run /enrich-stubs first to fetch the abstract.
+  Proceed anyway? (y/n)
+  ```
+  If user declines, stop. If user confirms, continue with `scope: stub` (extraction limited to title-level claim only).
+
+- **`content_depth: abstract`** -- abstract present, no full text. Auto-set `scope: abstract_only` and inform:
+  ```
+  [Content Depth] Source is abstract-only. Extraction scope set to abstract_only
+  (claims, evidence, open-questions only -- no methods or design patterns).
+  ```
+
+- **`content_depth: full_text`** or absent -- normal processing, `scope: full` (unless overridden by `--methods-only`).
+
+Write the detected `content_depth` into the extract task file frontmatter.
+
 ## Step 6: Create Extract Task File
 
 Write the task file to `ops/queue/${SOURCE_BASENAME}.md`:
@@ -155,7 +177,8 @@ original_path: "{original file path before move}"
 archive_folder: "{ARCHIVE_DIR}"
 created: "{UTC timestamp}"
 next_claim_start: {NEXT_CLAIM_START}
-scope: "{full | methods_only — default full, set methods_only if --methods-only flag}"
+scope: "{full | methods_only | abstract_only — default full}"
+content_depth: "{stub | abstract | full_text — detected in Step 5b}"
 ---
 
 # Extract claims from {source filename}
