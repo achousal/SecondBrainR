@@ -237,7 +237,7 @@ After saving literature notes and updating `_index.md`, chain to the arscontexta
 |------|--------|
 | `manual` | Print `Next: /ralph` to process queued literature notes (each starts with /reduce, then reflect/reweave/verify) |
 | `suggested` (default) | Create queue entries via `create_queue_entries()`, then print `Next: /ralph` (or `/ralph N` for N notes). Each task starts at the reduce phase |
-| `automatic` | Create queue entries via `create_queue_entries()`, then print `Next: /ralph` (automatic execution not yet implemented) |
+| `automatic` | Create queue entries via `create_queue_entries()`, then invoke `/ralph N` via Skill tool to process all queued notes. After ralph completes, invoke `/archive-batch {batch}` for each batch. See **Automatic Chaining Implementation** below |
 
 **CRITICAL: Always use `create_queue_entries()` to write queue entries.** Never manually construct queue JSON. The function uses actual file paths from `create_notes_from_results()`, preventing path truncation and author-name mismatches.
 
@@ -278,7 +278,7 @@ print(json.dumps({'notes': created, 'queue_entries': entries}, indent=2))
 "
 ```
 
-**Output after all notes saved:**
+**Output after all notes saved (manual/suggested modes):**
 ```
 Pipeline chaining:
 - Queued: _research/literature/{note1}.md (reduce)
@@ -286,6 +286,36 @@ Pipeline chaining:
 
 Next: /ralph {N}  -- process all queued literature notes (reduce -> reflect -> reweave -> verify, fresh context per phase)
   Or: /reduce _research/literature/{note}.md  -- process a single note manually
+```
+
+### Automatic Chaining Implementation
+
+When `processing.chaining` is `automatic`, after `create_queue_entries()` completes:
+
+1. Extract unique batch values from the created queue entries.
+2. For each batch, run extraction then full processing:
+   ```
+   Skill("ralph", "1 --batch {batch} --type extract")
+   ```
+   After extract completes, count claim tasks for the batch, then:
+   ```
+   Skill("ralph", "{N} --batch {batch}")
+   ```
+3. After all ralph invocations complete, archive each batch:
+   ```
+   Skill("archive-batch", "{batch}")
+   ```
+4. If the Skill tool fails for any invocation, fall back to reading `.claude/skills/ralph/SKILL.md` directly and following the instructions inline (existing ralph fallback pattern).
+
+**Output (automatic mode):**
+```
+Pipeline chaining (automatic):
+- Processing: _research/literature/{note1}.md (reduce -> reflect -> reweave -> verify)
+- Processing: _research/literature/{note2}.md (reduce -> reflect -> reweave -> verify)
+
+[ralph output for each batch]
+
+Archived: {batch1}, {batch2}
 ```
 
 ## Quality Gates

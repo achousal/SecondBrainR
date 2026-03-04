@@ -50,6 +50,18 @@ The pipeline is the convenience wrapper. /ralph is the engine. /seed is the entr
 
 ---
 
+## Phase 0: Capture Baseline Metrics
+
+Before any processing, capture the current note count for the throughput report:
+
+```bash
+notes_before=$(find notes/ -maxdepth 1 -name "*.md" ! -name "_index.md" 2>/dev/null | wc -l | tr -d ' ')
+```
+
+Store `notes_before` for use in Phase 6.
+
+---
+
 ## Phase 1: Seed
 
 Invoke /seed on the target file to create the extract task, check for duplicates, and move the source to its archive folder.
@@ -188,6 +200,16 @@ The summary should include:
 
 ## Phase 6: Final Report
 
+After all phases complete, capture post-processing metrics:
+
+```bash
+VAULT=$(pwd)
+notes_after=$(find notes/ -maxdepth 1 -name "*.md" ! -name "_index.md" 2>/dev/null | wc -l | tr -d ' ')
+metrics=$(uv run --directory _code python -m engram_r.metabolic_indicators "$VAULT" 2>/dev/null)
+```
+
+Parse `metrics` JSON for `tpv`, `qpr`, `ipr`, and `alarms` fields. If `uv run` fails, set `metrics_available=false`.
+
 ```
 --=={ pipeline }==--
 
@@ -208,6 +230,11 @@ Processing:
 Quality:
   All verify checks: {PASS/FAIL count}
 
+Vault health:
+  Notes created: {notes_after - notes_before}
+  TPV: {tpv} claims/day | QPR: {qpr}d backlog | IPR: {ipr}
+  Alarms: {alarm_keys or "none"}
+
 Archive: ops/queue/archive/{date}-{batch_id}/
 Summary: {batch_id}-summary.md
 
@@ -215,6 +242,11 @@ claims created:
 - [[claim title 1]]
 - [[claim title 2]]
 - ...
+```
+
+If metabolic indicators are unavailable, replace the "Vault health" section with:
+```
+Vault health: [Metabolic snapshot unavailable]
 ```
 
 If `--handoff` flag was set, also output:

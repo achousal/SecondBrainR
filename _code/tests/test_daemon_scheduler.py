@@ -690,12 +690,18 @@ class TestOrphanCounting:
 
 
 class TestP2_5:
-    def test_inbox_triggers_reduce(self, default_config):
+    def test_inbox_triggers_ralph(self, default_config):
         state = VaultState(inbox_count=3)
         task = _check_p2_5(state, default_config)
         assert task is not None
-        assert task.skill == "reduce"
-        assert "quarantine" in task.prompt
+        assert task.skill == "ralph"
+        assert task.task_key == "p2.5-ralph-inbox"
+
+    def test_p2_5_prompt_is_daemon_safe(self, default_config):
+        state = VaultState(inbox_count=1)
+        task = _check_p2_5(state, default_config)
+        assert task is not None
+        assert "NEVER use AskUserQuestion" in task.prompt
 
     def test_empty_inbox_returns_none(self, default_config):
         state = VaultState(inbox_count=0)

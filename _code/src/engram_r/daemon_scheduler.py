@@ -1337,23 +1337,55 @@ def _check_p2(state: VaultState, config: DaemonConfig) -> DaemonTask | None:
 
 
 def _check_p2_5(state: VaultState, config: DaemonConfig) -> DaemonTask | None:
-    """P2.5: Inbox processing -- reduce with quarantine."""
+    """P2.5: Inbox processing -- full pipeline via /ralph.
+
+    Seeds the oldest inbox file (inline, no /seed invocation to avoid
+    interactive duplicate-confirmation), then processes through the full
+    claim pipeline (extract -> create -> reflect -> reweave -> verify).
+    No quarantine -- the full pipeline IS the quality gate.
+    """
     if state.inbox_count > 0:
         return DaemonTask(
-            skill="reduce",
-            args="--quarantine",
+            skill="ralph",
+            args="",
             model=config.models.reduce,
             tier=2,
-            task_key="p2.5-reduce-inbox",
+            task_key="p2.5-ralph-inbox",
             prompt=(
                 f"{_SKILL_PREAMBLE}\n\n"
-                f"Your task: Process inbox items with /reduce.\n\n"
-                f"There are {state.inbox_count} items in inbox/. "
-                f"Process the oldest item. Extract claims normally "
-                f"(links, topic maps) but add 'quarantine: true' to "
-                f"each claim's YAML frontmatter. After processing, "
-                f"append a summary to ops/daemon-inbox.md noting how "
-                f"many claims were created and from which source."
+                f"Your task: Process the oldest inbox item through the "
+                f"full pipeline.\n\n"
+                f"There are {state.inbox_count} items in inbox/.\n\n"
+                f"Step 1 -- Inline seed (do NOT invoke /seed -- it has "
+                f"interactive duplicate-confirmation that hangs in daemon "
+                f"mode):\n"
+                f"  a. Find the oldest .md file in inbox/ (exclude "
+                f"_index.md). Use file modification time to determine "
+                f"oldest.\n"
+                f"  b. Compute SOURCE_BASENAME from the filename "
+                f"(lowercase, hyphens for spaces).\n"
+                f"  c. Create archive dir: "
+                f"ops/queue/archive/{{date}}-{{SOURCE_BASENAME}}/. "
+                f"If this archive dir already exists, this file was "
+                f"already processed -- skip it and log 'Skipped "
+                f"{{file}}: duplicate detected (daemon --no-confirm)' "
+                f"to ops/daemon-inbox.md, then exit.\n"
+                f"  d. Move the file from inbox/ to the archive dir.\n"
+                f"  e. Compute next_claim_start from existing queue + "
+                f"archive numbering.\n"
+                f"  f. Create extract task file in ops/queue/ and add "
+                f"the extract entry to the queue file.\n\n"
+                f"Step 2 -- Extract: Run /ralph 1 --batch "
+                f"{{SOURCE_BASENAME}} --type extract\n\n"
+                f"Step 3 -- Process: Count resulting claim tasks for "
+                f"this batch, then run /ralph N --batch "
+                f"{{SOURCE_BASENAME}} where N is the total pending "
+                f"task count.\n\n"
+                f"Step 4 -- Summary: Append a summary to "
+                f"ops/daemon-inbox.md noting how many claims were "
+                f"created and from which source.\n\n"
+                f"NEVER use AskUserQuestion or EnterPlanMode. "
+                f"All decisions are autonomous."
             ),
         )
     return None

@@ -130,6 +130,16 @@ Apply filters:
 - If `--batch` specified: keep only tasks where `batch` matches
 - If `--type` specified: keep only tasks where `current_phase` matches (e.g., `--type reflect` finds tasks whose `current_phase` is "reflect")
 
+**Batch Grouping (after filtering):**
+
+After filtering, sort actionable tasks so tasks from the same batch appear consecutively:
+1. Collect unique batch values in order of first appearance.
+2. Group tasks by batch, preserving original order within each group.
+3. Tasks with no batch field retain original relative order, placed at end.
+4. Flatten into final ordered list.
+
+This changes only order, not which tasks are processed. When `--batch` is set, this is a no-op (all tasks share the same batch already).
+
 The `phase_order` header defines the phase sequence:
 - `claim`: create -> reflect -> reweave -> verify
 - `enrichment`: enrich -> reflect -> reweave -> verify
