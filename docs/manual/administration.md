@@ -24,28 +24,47 @@ notify-scheduled). This set is immutable at runtime.
 
 ### Priority cascade (P0 highest)
 
-| Tier | Trigger | Example task |
-| --- | --- | --- |
-| P0 | Health gate failures | Schema violations -> `/validate`, orphans -> `/reflect` |
-| P1 | Metabolic alarms | Queue pressure -> `/ralph`, creation overload -> `/reflect` |
-| P2 | Maintenance signals | Observations -> `/rethink`, queue backlog -> `/ralph`, unmined sessions -> `/remember` |
-| P3 | Research cycle | Under-matched hypotheses -> `/tournament`, stale meta-review -> `/meta-review` |
-| P4 | Generative | Stale cycles -> `/landscape`, hypothesis generation |
+| Tier | Label | Trigger | Example task |
+| --- | --- | --- | --- |
+| P0 | Health gate | Health report stale or has FAILs | Schema violations -> `/validate`, orphans -> `/reflect` |
+| P1 | Research cycle | Unresolved experiments, undermatched hypotheses, stale meta-review/landscape | `/experiment --resolve`, `/tournament`, `/meta-review`, `/landscape` |
+| P2 | Maintenance | Observations/tensions above threshold, queue backlog, orphan notes | `/rethink`, `/reflect`, `/reweave` |
+| P2.5 | Inbox processing | Any items in inbox/ | `/reduce --quarantine` |
+| P2.7 | Slack queue | Pending entries in ops/daemon/slack-queue.json | Any Slack-allowed skill |
+| P3 | Background | Unmined sessions, stale notes | `/remember --mine-sessions`, `/reweave --handoff` |
+| P3.5 | Federation | Federation enabled in ops/federation.yaml | `/federation-sync` |
+| P3.6 | Schedules | Cadence/day/hour matched and marker not set | `notify-scheduled` (Python direct, no LLM) |
+| P4 | Idle | No triggers met | Queues `/generate`, `/evolve` suggestions to daemon-inbox.md |
 
 ### Metabolic self-regulation
 
-Five derived indicators govern daemon behavior:
+Seven indicators in three tiers govern daemon behavior:
+
+**Tier 1 -- Governance** (auto-suppress P1 generative tasks when any fires):
 
 | Indicator | What it measures | Alarm threshold |
 | --- | --- | --- |
-| QPR (Queue Pressure Ratio) | Days of queue backlog at current processing rate | > 3.0 -- halts generation |
-| VDR (Verification Debt Ratio) | % of claims not human-verified | > 80% (informational) |
-| CMR (Creation:Maintenance Ratio) | New notes vs maintenance completions (7-day window) | > 10:1 -- redirects to consolidation |
-| HCR (Hypothesis Conversion Rate) | % hypotheses with empirical engagement | < 15% -- redirects to SAP support |
-| SWR (Session Waste Ratio) | Sessions per useful artifact | > 5.0 -- triggers stub archival |
+| QPR (Queue Pressure Ratio) | Days of queue backlog at current processing rate | > 3.0 |
+| CMR (Creation:Maintenance Ratio) | New notes vs maintenance completions (7-day window) | > 10:1 |
+| TPV (Throughput Velocity) | Claims processed per day | < 0.1 |
 
-When metabolic alarms fire, the daemon suppresses P3/P4 (creation) tasks
-and redirects to P1/P2 (maintenance). Check indicators via CLI:
+**Tier 2 -- Awareness** (user-facing signals via /next, no auto-suppression):
+
+| Indicator | What it measures | Alarm threshold |
+| --- | --- | --- |
+| HCR (Hypothesis Conversion Rate) | % hypotheses with empirical engagement | < 15% |
+| GCR (Graph Connectivity Ratio) | 1 - (orphans / total notes) | < 0.3 |
+| IPR (Inbox Pressure Ratio) | Inbox growth rate / processing rate | > 3.0 |
+
+**Tier 3 -- Observational** (logged, no automated action):
+
+| Indicator | What it measures | Alarm threshold |
+| --- | --- | --- |
+| VDR (Verification Debt Ratio) | % of claims not human-verified | informational only |
+
+When Tier 1 alarms fire, the daemon suppresses P1 generative work
+(tournament, meta-review, landscape) but still allows P1 experiment
+resolution and all P2+ maintenance tasks. Check indicators via CLI:
 
 ```bash
 cd _code
