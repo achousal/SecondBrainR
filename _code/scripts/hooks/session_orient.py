@@ -211,6 +211,20 @@ def _overdue_reminders(vault: Path, max_lines: int = 5) -> list[str]:
         return []
 
 
+def _session_tip(vault: Path) -> str:
+    """Get the highest-priority session tip from vault advisor. Never crashes."""
+    try:
+        from engram_r.vault_advisor import build_vault_snapshot, detect_session_tips
+
+        snapshot = build_vault_snapshot(vault)
+        tips = detect_session_tips(snapshot)
+        if tips:
+            return f"  Tip: {tips[0].message}"
+        return ""
+    except Exception:
+        return ""
+
+
 def _metabolic_dashboard(vault: Path, claim_count: int) -> str:
     """Build condensed metabolic dashboard line. Never raises."""
     if claim_count == 0:
@@ -398,6 +412,11 @@ def main() -> None:
             f"  -> {counts['queue_blocked']} queue tasks blocked on "
             f"unpopulated stubs -- populate via /literature before /ralph"
         )
+
+    # Session tip (highest-priority actionable suggestion)
+    tip = _session_tip(vault)
+    if tip:
+        parts.append(tip)
 
     # Methodology directives
     methodology = _load_methodology(vault)

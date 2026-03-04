@@ -322,3 +322,84 @@ def test_integrity_check_does_not_crash_on_error(
     output = capsys.readouterr().out
     # Should still produce normal output without crashing
     assert "[Session Orient]" in output
+
+
+# --- Session tip tests ---
+
+
+def test_session_tip_appears_when_triggered(
+    vault: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When inbox has items and no recent reduce, tip appears in output."""
+    (vault / "inbox" / "paper.md").write_text("x", encoding="utf-8")
+    (vault / "ops" / "queue").mkdir(exist_ok=True)
+    (vault / "_research" / "hypotheses").mkdir(exist_ok=True)
+
+    with (
+        patch("session_orient.resolve_vault", return_value=vault),
+        patch.object(session_orient, "_slack_inbound", return_value=""),
+        patch.object(session_orient, "_slack_session_start"),
+    ):
+        session_orient.main()
+
+    output = capsys.readouterr().out
+    assert "Tip:" in output
+    assert "/reduce" in output or "/pipeline" in output
+
+
+def test_no_tip_when_nothing_triggers(
+    vault: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Healthy vault produces no tip line."""
+    (vault / "ops" / "queue").mkdir(exist_ok=True)
+    (vault / "_research" / "hypotheses").mkdir(exist_ok=True)
+
+    with (
+        patch("session_orient.resolve_vault", return_value=vault),
+        patch.object(session_orient, "_slack_inbound", return_value=""),
+        patch.object(session_orient, "_slack_session_start"),
+    ):
+        session_orient.main()
+
+    output = capsys.readouterr().out
+    assert "Tip:" not in output
+
+
+def test_session_tip_import_failure_does_not_crash(
+    vault: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """If vault_advisor import fails, orient still works."""
+    with (
+        patch("session_orient.resolve_vault", return_value=vault),
+        patch.object(session_orient, "_slack_inbound", return_value=""),
+        patch.object(session_orient, "_slack_session_start"),
+        patch(
+            "session_orient._session_tip",
+            side_effect=Exception("import failed"),
+        ),
+    ):
+        # _session_tip is wrapped in try/except internally, but even if
+        # the mock raises, orient must not crash. Since we're patching
+        # the function itself to raise, we need to handle this differently.
+        # Let's instead verify the internal try/except works by testing
+        # _session_tip directly with a broken import.
+        pass
+
+    # Test the function directly with a broken vault_advisor
+    with patch(
+        "engram_r.vault_advisor.build_vault_snapshot",
+        side_effect=ImportError("no module"),
+    ):
+        result = session_orient._session_tip(vault)
+        assert result == ""
+
+    # Verify orient still produces output
+    with (
+        patch("session_orient.resolve_vault", return_value=vault),
+        patch.object(session_orient, "_slack_inbound", return_value=""),
+        patch.object(session_orient, "_slack_session_start"),
+    ):
+        session_orient.main()
+
+    output = capsys.readouterr().out
+    assert "[Session Orient]" in output

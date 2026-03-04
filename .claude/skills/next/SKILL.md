@@ -218,9 +218,12 @@ If daemon alerts exist, surface them before the recommendation:
 | Good | Bad |
 |------|-----|
 | `/reduce inbox/article-on-spaced-repetition.md` | "process some inbox items" |
-| `/ralph 5` | "work on the queue" |
+| `/ralph` or `/ralph 5` | "work on the queue" |
 | `/rethink` | "review your observations" |
 | `/reweave [[note title here]]` | "update some old notes" |
+
+**Tool behavior constraints (do not contradict in rationale):**
+- `/ralph` without N shows a queue overview and asks the user how many to process. It NEVER processes the full queue automatically. Never say "without a batch limit" or imply unlimited processing.
 
 **State display rules:**
 - Show only 2-4 decision-relevant signals -- not all fields from state_summary

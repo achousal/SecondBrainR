@@ -6,7 +6,7 @@ generated_from: "arscontexta-v1.6"
 user-invocable: true
 context: normal
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
-argument-hint: "N [--parallel] [--batch id] [--type extract] [--dry-run] — N = number of tasks to process"
+argument-hint: "[N] [--parallel] [--batch id] [--type extract] [--dry-run] — N = number of tasks to process (optional: omit for overview)"
 ---
 
 ## EXECUTE NOW
@@ -14,7 +14,7 @@ argument-hint: "N [--parallel] [--batch id] [--type extract] [--dry-run] — N =
 **Target: $ARGUMENTS**
 
 Parse arguments:
-- N (required unless --dry-run): number of tasks to process
+- N (optional): number of tasks to process. If omitted (bare `/ralph`), run Steps 0-3 to show the queue overview, then ask the user how many to process before continuing to Step 4.
 - --parallel: concurrent claim workers (max 5) + cross-connect validation
 - --batch [id]: process only tasks from specific batch
 - --type [type]: process only tasks at a specific phase (extract, create, reflect, reweave, verify, enrich)
@@ -169,12 +169,12 @@ The `phase_order` header defines the phase sequence:
 - `claim`: create -> reflect -> reweave -> verify
 - `enrichment`: enrich -> reflect -> reweave -> verify
 
-## Step 3: If --dry-run, Report and Stop
+## Step 3: Queue Overview
 
-Show this and STOP (do not process):
+Show the queue overview:
 
 ```
---=={ ralph dry-run }==--
+--=={ ralph }==--
 
 Queue: X total tasks (Y pending, Z done, B blocked on stubs)
 
@@ -186,9 +186,13 @@ Next tasks to process:
 1. {id} — phase: {current_phase} — {target}
 2. {id} — phase: {current_phase} — {target}
 ...
-
-Estimated: ~{N} subagent spawns
 ```
+
+**If `--dry-run`:** STOP here. Do not process.
+
+**If N was provided as argument:** Continue directly to Step 4 (serial) or Step 6 (parallel).
+
+**If N was NOT provided (bare `/ralph`):** Ask the user how many tasks to process. Show the overview first so they can make an informed choice. Wait for their answer before proceeding. Accept a number, `--batch [id]`, `--type [phase]`, or any combination.
 
 ---
 

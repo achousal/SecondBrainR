@@ -99,6 +99,197 @@ class PipelineTip:
     priority: int  # lower = more urgent
 
 
+@dataclass
+class SessionTip:
+    """A session-level tip detected from vault state."""
+
+    tip_id: str
+    message: str
+    rationale: str
+    priority: int  # lower = more urgent
+
+
+@dataclass
+class VaultSnapshot:
+    """Lightweight vault state counts for session tip detection."""
+
+    claim_count: int = 0
+    inbox_count: int = 0
+    observation_count: int = 0
+    tension_count: int = 0
+    queue_pending: int = 0
+    hypothesis_count: int = 0
+    has_recent_reduce: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Vault snapshot building
+# ---------------------------------------------------------------------------
+
+
+def _count_md_files(directory: Path) -> int:
+    """Count .md files in a directory (non-recursive, excludes dotfiles)."""
+    if not directory.is_dir():
+        return 0
+    return sum(
+        1
+        for f in directory.iterdir()
+        if f.suffix == ".md" and not f.name.startswith(".")
+    )
+
+
+def _has_recent_reduce(vault_path: Path, window_hours: int = 24) -> bool:
+    """Check if any queue task file was modified within the window."""
+    import time
+
+    queue_dir = vault_path / "ops" / "queue"
+    if not queue_dir.is_dir():
+        return False
+    cutoff = time.time() - (window_hours * 3600)
+    for f in queue_dir.iterdir():
+        if f.suffix == ".md":
+            try:
+                if f.stat().st_mtime >= cutoff:
+                    return True
+            except OSError:
+                continue
+    return False
+
+
+def build_vault_snapshot(vault_path: Path) -> VaultSnapshot:
+    """Build a lightweight vault state snapshot for session tip detection."""
+    return VaultSnapshot(
+        claim_count=_count_md_files(vault_path / "notes"),
+        inbox_count=_count_md_files(vault_path / "inbox"),
+        observation_count=_count_md_files(vault_path / "ops" / "observations"),
+        tension_count=_count_md_files(vault_path / "ops" / "tensions"),
+        queue_pending=_count_md_files(vault_path / "ops" / "queue"),
+        hypothesis_count=_count_md_files(
+            vault_path / "_research" / "hypotheses"
+        ),
+        has_recent_reduce=_has_recent_reduce(vault_path),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Session tip detection
+# ---------------------------------------------------------------------------
+
+
+def detect_session_tips(snapshot: VaultSnapshot) -> list[SessionTip]:
+    """Detect session tips from vault state. Returns sorted by priority."""
+    tips: list[SessionTip] = []
+
+    # Tip 1: reduce_inbox -- inbox has items and no recent reduce activity
+    if snapshot.inbox_count > 0 and not snapshot.has_recent_reduce:
+        tips.append(
+            SessionTip(
+                tip_id="reduce_inbox",
+                message=(
+                    f"{snapshot.inbox_count} inbox items waiting "
+                    "-- run /reduce or /pipeline to process them"
+                ),
+                rationale=(
+                    "Inbox items lose context over time. Processing them "
+                    "while the source material is fresh improves extraction "
+                    "quality."
+                ),
+                priority=0,
+            )
+        )
+
+    # Tip 2: unblock_queue -- queue has pending tasks
+    if snapshot.queue_pending > 0:
+        tips.append(
+            SessionTip(
+                tip_id="unblock_queue",
+                message=(
+                    f"{snapshot.queue_pending} queue tasks pending "
+                    "-- run /ralph to process them"
+                ),
+                rationale=(
+                    "Pending queue tasks block downstream phases. "
+                    "Processing them unblocks reflect and reweave."
+                ),
+                priority=1,
+            )
+        )
+
+    # Tip 3: generate_hypotheses -- enough claims but no hypotheses
+    if snapshot.claim_count >= 20 and snapshot.hypothesis_count == 0:
+        tips.append(
+            SessionTip(
+                tip_id="generate_hypotheses",
+                message=(
+                    f"{snapshot.claim_count} claims accumulated with no "
+                    "hypotheses -- run /generate to synthesize them"
+                ),
+                rationale=(
+                    "A critical mass of claims enables hypothesis "
+                    "generation. Without hypotheses the knowledge graph "
+                    "lacks a forward-looking dimension."
+                ),
+                priority=1,
+            )
+        )
+
+    # Tip 4: rethink_observations -- observation backlog
+    if snapshot.observation_count >= 10:
+        tips.append(
+            SessionTip(
+                tip_id="rethink_observations",
+                message=(
+                    f"{snapshot.observation_count} observations accumulated "
+                    "-- run /rethink to triage them"
+                ),
+                rationale=(
+                    "Observations capture friction signals. Triaging them "
+                    "prevents recurring issues and surfaces improvement "
+                    "opportunities."
+                ),
+                priority=2,
+            )
+        )
+
+    # Tip 5: rethink_tensions -- tension backlog
+    if snapshot.tension_count >= 5:
+        tips.append(
+            SessionTip(
+                tip_id="rethink_tensions",
+                message=(
+                    f"{snapshot.tension_count} tensions accumulated "
+                    "-- run /rethink to resolve them"
+                ),
+                rationale=(
+                    "Tensions represent contradictions in the knowledge "
+                    "graph. Resolving them improves internal consistency."
+                ),
+                priority=2,
+            )
+        )
+
+    tips.sort(key=lambda t: t.priority)
+    return tips
+
+
+def generate_session_suggestions(
+    tips: list[SessionTip], max_suggestions: int = 1
+) -> list[Suggestion]:
+    """Convert SessionTip objects to Suggestion objects."""
+    suggestions: list[Suggestion] = []
+    for tip in tips[:max_suggestions]:
+        suggestions.append(
+            Suggestion(
+                channel="session_tip",
+                query=tip.message,
+                rationale=tip.rationale,
+                priority=tip.priority,
+                goal_ref="",
+            )
+        )
+    return suggestions
+
+
 # ---------------------------------------------------------------------------
 # Goal file parsing
 # ---------------------------------------------------------------------------
@@ -662,6 +853,7 @@ def advise(
     max_suggestions: int = 4,
     no_cache: bool = False,
     include_pipeline_tips: bool = False,
+    include_session_tips: bool = False,
 ) -> tuple[list[Suggestion], bool]:
     """Top-level: scan + gaps + suggestions, with caching.
 
@@ -672,6 +864,7 @@ def advise(
         max_suggestions: Max suggestions to return.
         no_cache: Skip cache read/write.
         include_pipeline_tips: Include pipeline ordering tips from queue state.
+        include_session_tips: Include session-level tips from vault state.
 
     Returns:
         (suggestions, cached) tuple.
@@ -688,6 +881,7 @@ def advise(
                 and cached.get("context") == context
                 and cached.get("max_suggestions") == max_suggestions
                 and cached.get("include_pipeline_tips", False) == include_pipeline_tips
+                and cached.get("include_session_tips", False) == include_session_tips
             ):
                 return [
                     Suggestion(**s) for s in cached.get("suggestions", [])
@@ -715,8 +909,17 @@ def advise(
         tips = detect_pipeline_tips(phase_state)
         pipeline_suggestions = generate_pipeline_suggestions(tips, max_suggestions)
 
-    # Merge: pipeline tips first (priority 0), then goal suggestions
-    suggestions = pipeline_suggestions + goal_suggestions
+    # Session tips channel
+    session_suggestions: list[Suggestion] = []
+    if include_session_tips:
+        snapshot = build_vault_snapshot(vault_path)
+        session_tips = detect_session_tips(snapshot)
+        session_suggestions = generate_session_suggestions(
+            session_tips, max_suggestions
+        )
+
+    # Merge: session tips + pipeline tips + goal suggestions
+    suggestions = session_suggestions + pipeline_suggestions + goal_suggestions
     suggestions = suggestions[:max_suggestions]
 
     # Write cache
@@ -752,6 +955,8 @@ def main(argv: list[str] | None = None) -> int:
     max_suggestions = 4
     no_cache = False
     include_pipeline_tips = False
+    include_session_tips = False
+    all_tips = False
 
     i = 0
     while i < len(args):
@@ -769,6 +974,12 @@ def main(argv: list[str] | None = None) -> int:
             i += 1
         elif args[i] == "--include-pipeline-tips":
             include_pipeline_tips = True
+            i += 1
+        elif args[i] == "--include-session-tips":
+            include_session_tips = True
+            i += 1
+        elif args[i] == "--all-tips":
+            all_tips = True
             i += 1
         elif not args[i].startswith("--"):
             vault_path_str = args[i]
@@ -790,6 +1001,29 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(msg), file=sys.stderr)
         return 1
 
+    # --all-tips: show all eligible session tips (for curious users)
+    if all_tips:
+        try:
+            snapshot = build_vault_snapshot(vault_path)
+            tips = detect_session_tips(snapshot)
+            result = {
+                "all_session_tips": [
+                    {
+                        "tip_id": t.tip_id,
+                        "message": t.message,
+                        "rationale": t.rationale,
+                        "priority": t.priority,
+                    }
+                    for t in tips
+                ],
+            }
+            print(json.dumps(result, indent=2))
+            return 0 if tips else 2
+        except Exception as exc:
+            msg = {"error": str(exc)}
+            print(json.dumps(msg), file=sys.stderr)
+            return 1
+
     try:
         suggestions, cached = advise(
             vault_path,
@@ -797,6 +1031,7 @@ def main(argv: list[str] | None = None) -> int:
             max_suggestions=max_suggestions,
             no_cache=no_cache,
             include_pipeline_tips=include_pipeline_tips,
+            include_session_tips=include_session_tips,
         )
     except Exception as exc:
         msg = {"error": str(exc)}

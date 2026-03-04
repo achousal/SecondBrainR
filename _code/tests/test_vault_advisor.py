@@ -12,11 +12,16 @@ from engram_r.vault_advisor import (
     GoalProfile,
     PipelineTip,
     QueuePhaseState,
+    SessionTip,
     Suggestion,
+    VaultSnapshot,
     advise,
+    build_vault_snapshot,
     detect_gaps,
     detect_pipeline_tips,
+    detect_session_tips,
     generate_pipeline_suggestions,
+    generate_session_suggestions,
     generate_suggestions,
     load_cache,
     main,
@@ -1007,3 +1012,172 @@ class TestSuggestionScope:
         assert loaded is not None
         # Old caches lack scope key -- callers must handle default
         assert "scope" not in loaded["suggestions"][0]
+
+
+# ---------------------------------------------------------------------------
+# Session Tip Channel
+# ---------------------------------------------------------------------------
+
+
+class TestBuildVaultSnapshot:
+    def test_correct_counts(self, tmp_path: Path):
+        """Counts .md files in the right directories."""
+        (tmp_path / "notes").mkdir()
+        (tmp_path / "notes" / "a.md").write_text("x")
+        (tmp_path / "notes" / "b.md").write_text("x")
+        (tmp_path / "notes" / ".hidden.md").write_text("x")
+        (tmp_path / "inbox").mkdir()
+        (tmp_path / "inbox" / "item.md").write_text("x")
+        (tmp_path / "ops" / "observations").mkdir(parents=True)
+        (tmp_path / "ops" / "tensions").mkdir(parents=True)
+        (tmp_path / "ops" / "queue").mkdir(parents=True)
+        (tmp_path / "_research" / "hypotheses").mkdir(parents=True)
+
+        snap = build_vault_snapshot(tmp_path)
+        assert snap.claim_count == 2
+        assert snap.inbox_count == 1
+        assert snap.observation_count == 0
+        assert snap.tension_count == 0
+        assert snap.queue_pending == 0
+        assert snap.hypothesis_count == 0
+
+    def test_missing_dirs(self, tmp_path: Path):
+        """Missing directories produce zero counts, no error."""
+        snap = build_vault_snapshot(tmp_path)
+        assert snap.claim_count == 0
+        assert snap.inbox_count == 0
+        assert snap.has_recent_reduce is False
+
+    def test_recent_reduce_detected(self, tmp_path: Path):
+        """A recently-modified queue file sets has_recent_reduce."""
+        queue_dir = tmp_path / "ops" / "queue"
+        queue_dir.mkdir(parents=True)
+        (queue_dir / "task.md").write_text("x")
+        # File just created -> mtime is within 24h
+        snap = build_vault_snapshot(tmp_path)
+        assert snap.has_recent_reduce is True
+
+
+class TestDetectSessionTips:
+    def test_reduce_inbox_fires(self):
+        snap = VaultSnapshot(inbox_count=5, has_recent_reduce=False)
+        tips = detect_session_tips(snap)
+        assert any(t.tip_id == "reduce_inbox" for t in tips)
+
+    def test_reduce_inbox_suppressed_by_recent_reduce(self):
+        snap = VaultSnapshot(inbox_count=5, has_recent_reduce=True)
+        tips = detect_session_tips(snap)
+        assert not any(t.tip_id == "reduce_inbox" for t in tips)
+
+    def test_unblock_queue_fires(self):
+        snap = VaultSnapshot(queue_pending=3)
+        tips = detect_session_tips(snap)
+        assert any(t.tip_id == "unblock_queue" for t in tips)
+
+    def test_generate_hypotheses_fires(self):
+        snap = VaultSnapshot(claim_count=25, hypothesis_count=0)
+        tips = detect_session_tips(snap)
+        assert any(t.tip_id == "generate_hypotheses" for t in tips)
+
+    def test_generate_hypotheses_not_when_hypotheses_exist(self):
+        snap = VaultSnapshot(claim_count=25, hypothesis_count=3)
+        tips = detect_session_tips(snap)
+        assert not any(t.tip_id == "generate_hypotheses" for t in tips)
+
+    def test_rethink_observations_fires(self):
+        snap = VaultSnapshot(observation_count=12)
+        tips = detect_session_tips(snap)
+        assert any(t.tip_id == "rethink_observations" for t in tips)
+
+    def test_rethink_tensions_fires(self):
+        snap = VaultSnapshot(tension_count=6)
+        tips = detect_session_tips(snap)
+        assert any(t.tip_id == "rethink_tensions" for t in tips)
+
+    def test_no_tips_on_healthy_vault(self):
+        snap = VaultSnapshot(
+            claim_count=30, hypothesis_count=5, inbox_count=0,
+            queue_pending=0, observation_count=2, tension_count=1,
+        )
+        tips = detect_session_tips(snap)
+        assert tips == []
+
+    def test_sorted_by_priority(self):
+        snap = VaultSnapshot(
+            inbox_count=5, has_recent_reduce=False,
+            observation_count=15, tension_count=7,
+        )
+        tips = detect_session_tips(snap)
+        priorities = [t.priority for t in tips]
+        assert priorities == sorted(priorities)
+
+
+class TestSessionTipsIntegration:
+    def _make_vault_with_inbox(self, tmp_path: Path) -> Path:
+        """Build a vault with inbox items and goals (for multi-channel test)."""
+        goals_dir = tmp_path / "_research" / "goals"
+        goals_dir.mkdir(parents=True)
+        (goals_dir / "test-goal.md").write_text(_MINIMAL_GOAL)
+
+        ops = tmp_path / "ops"
+        ops.mkdir(exist_ok=True)
+        (ops / "daemon-config.yaml").write_text("goals_priority:\n  - test-goal\n")
+
+        (tmp_path / "inbox").mkdir(exist_ok=True)
+        (tmp_path / "inbox" / "paper.md").write_text("x")
+        (tmp_path / "notes").mkdir(exist_ok=True)
+        (tmp_path / "ops" / "observations").mkdir(exist_ok=True)
+        (tmp_path / "ops" / "tensions").mkdir(exist_ok=True)
+        (tmp_path / "_research" / "hypotheses").mkdir(exist_ok=True)
+        return tmp_path
+
+    def test_session_tips_in_advise(self, tmp_path: Path):
+        vault = self._make_vault_with_inbox(tmp_path)
+        suggestions, _ = advise(
+            vault, context="literature", no_cache=True,
+            include_session_tips=True,
+        )
+        channels = [s.channel for s in suggestions]
+        assert "session_tip" in channels
+
+    def test_no_session_tips_without_flag(self, tmp_path: Path):
+        vault = self._make_vault_with_inbox(tmp_path)
+        suggestions, _ = advise(
+            vault, context="literature", no_cache=True,
+            include_session_tips=False,
+        )
+        channels = [s.channel for s in suggestions]
+        assert "session_tip" not in channels
+
+    def test_cli_include_session_tips(self, tmp_path: Path, capsys):
+        vault = self._make_vault_with_inbox(tmp_path)
+        main([
+            str(vault), "--context", "literature",
+            "--include-session-tips", "--no-cache",
+        ])
+        data = json.loads(capsys.readouterr().out)
+        channels = [s["channel"] for s in data["suggestions"]]
+        assert "session_tip" in channels
+
+    def test_cli_all_tips(self, tmp_path: Path, capsys):
+        vault = self._make_vault_with_inbox(tmp_path)
+        exit_code = main([str(vault), "--all-tips", "--no-cache"])
+        data = json.loads(capsys.readouterr().out)
+        assert "all_session_tips" in data
+        assert len(data["all_session_tips"]) >= 1
+        assert exit_code == 0
+
+    def test_cli_all_tips_empty(self, tmp_path: Path, capsys):
+        """--all-tips on a healthy vault returns exit 2."""
+        # Minimal vault with no inbox, no queue, etc.
+        (tmp_path / "notes").mkdir()
+        (tmp_path / "inbox").mkdir()
+        (tmp_path / "ops" / "observations").mkdir(parents=True)
+        (tmp_path / "ops" / "tensions").mkdir(parents=True)
+        (tmp_path / "ops" / "queue").mkdir(parents=True)
+        (tmp_path / "_research" / "hypotheses").mkdir(parents=True)
+
+        exit_code = main([str(tmp_path), "--all-tips"])
+        data = json.loads(capsys.readouterr().out)
+        assert data["all_session_tips"] == []
+        assert exit_code == 2
