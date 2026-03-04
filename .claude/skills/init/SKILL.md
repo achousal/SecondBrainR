@@ -15,7 +15,7 @@ allowed-tools:
   - Bash
   - Skill
   - Agent
-argument-hint: "[goal-name] | --cycle | --handoff"
+argument-hint: "[goal-name] | --cycle | --handoff | --tutorial"
 ---
 
 ## EXECUTE NOW
@@ -43,6 +43,7 @@ Parse `$ARGUMENTS`:
 | `{goal-name}` | Seed mode -- direct seeding for named goal |
 | `--cycle` | Cycle mode -- read `reference/cycle-mode.md` and follow those instructions |
 | `--handoff` (appended) | Any mode + RALPH HANDOFF at end |
+| `--tutorial` (appended) | Forces tutorial mode (demo claim on goal 1, prompt after goal 2) |
 
 If `--cycle`, read `.claude/skills/init/reference/cycle-mode.md` and follow its instructions directly. The remainder of this file covers seed mode only.
 
@@ -58,6 +59,20 @@ Prompt: "Read and execute .claude/skills/init/sub-skills/init-orient.md. Return 
 ```
 
 Parse the structured output: CLAIM_COUNT, goals list, vault state, VAULT_INFORMED flag, GOAL_SEEDING dict, and UNSEEDED_GOALS count.
+
+### Tutorial mode detection
+
+Set TUTORIAL_MODE:
+- `true` if CLAIM_COUNT == 0 AND all GOAL_SEEDING values are `none` (first-ever run)
+- `true` if `--tutorial` flag is present in $ARGUMENTS
+- `false` otherwise
+
+When TUTORIAL_MODE activates automatically (first-ever, not via explicit flag), print:
+
+```
+Tutorial mode: your first goal will produce a single demo claim to teach the format.
+Full seeding starts with goal 2.
+```
 
 ### Re-init detection
 
@@ -186,6 +201,9 @@ For goal_index, goal in enumerate(SELECTED_GOALS):
 ### Step 1: Banner
 
 ```
+{If TUTORIAL_MODE and goal_index == 0:}
+=== Seeding goal {goal_index + 1} of {len(SELECTED_GOALS)}: {goal title} (tutorial) ===
+{Else:}
 === Seeding goal {goal_index + 1} of {len(SELECTED_GOALS)}: {goal title} ===
 ```
 
@@ -265,6 +283,14 @@ Approve, edit, or skip?
 **If edit:** Apply edits, re-present.
 **If skip:** Proceed without demo claim. No penalty.
 
+**Tutorial shortcut (goal 1 only):** If TUTORIAL_MODE and goal_index == 0, skip Steps 4, 5, and 6. Print:
+
+```
+Tutorial goal "{goal title}": 1 demo claim written. Full seeding begins next.
+```
+
+Mark this goal's seeding status as `partial` (not `complete`). Then fall through directly to Step 7.
+
 ### Step 4: Generate Claims (fork)
 
 Write input data to a temp file:
@@ -341,6 +367,23 @@ Goal "{goal title}": {N} claims written, {N} topic maps updated, {N} project bri
 
 Update aggregate counters.
 
+### Step 6b: Tutorial Checkpoint (goal 2 only)
+
+**Skip this step unless TUTORIAL_MODE and goal_index == 1.**
+
+After completing the full pipeline for goal 2, pause and present:
+
+```
+You've now seen the full seeding pipeline.
+Goal 1 had a single demo claim; goal 2 produced the full set.
+
+Continue seeding remaining goals, or stop here?
+1. Continue with next goal
+2. Stop -- pick up remaining goals next session (/init)
+```
+
+Wait for response. If stop (option 2), break the goal loop and proceed to Phase 6 summary.
+
 ### Step 7: Continue or Stop
 
 If more goals remain in SELECTED_GOALS:
@@ -371,6 +414,9 @@ Present final summary aggregating across all goals seeded, with explicit unseede
 
 Goals seeded this session: {count}
 {for each goal seeded:}
+  {If TUTORIAL_MODE and goal was tutorial-only (goal_index == 0):}
+  - {goal title}: 1 demo claim (tutorial mode -- run /init {goal-slug} for full seeding)
+  {Else:}
   - {goal title}: {N} claims
 
 Claims created: {total across all goals}

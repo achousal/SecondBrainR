@@ -4,7 +4,7 @@ description: Queue processing with fresh context per phase. Processes N tasks fr
 version: "1.0"
 generated_from: "arscontexta-v1.6"
 user-invocable: true
-context: fork
+context: normal
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 argument-hint: "N [--parallel] [--batch id] [--type extract] [--dry-run] — N = number of tasks to process"
 ---
