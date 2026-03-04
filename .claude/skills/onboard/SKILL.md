@@ -262,7 +262,7 @@ After projects and goals are confirmed, detect and activate a domain profile, th
    - Data layers: {len(profile.config_overrides.data_layers)} types
    ```
 
-   If no match or user declines: skip profile activation, proceed with base config.
+   If no match: print "No domain profile matches your scan. Run `/profile` to create one, or continue with base config." If user declines a match: skip profile activation, proceed with base config.
 
 4. On confirmation, apply the profile:
    ```
@@ -375,7 +375,7 @@ your first claims in four layers:
 >> /init                                          [START HERE]
    Seeds all four claim layers for your research goals.
 
-Then: /literature, /reduce, /reflect, /research
+Then: Add foundational papers to inbox/ -> /pipeline -> /literature -> /ralph -> /research
 {if literature setup was skipped during Turn 3}: Note: run /literature --setup to configure missing API keys ({var list}).
 {if literature setup was completed during Turn 3}: (Literature search is ready.)
 === End Summary ===

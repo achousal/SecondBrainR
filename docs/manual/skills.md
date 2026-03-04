@@ -530,6 +530,32 @@ Upgrade vault components to a newer version.
 
 ---
 
+#### /profile
+Create, list, show, and activate domain profiles for any research field.
+
+| Property | Value |
+|----------|-------|
+| Invoked by | User (before /onboard, or standalone) |
+| Context | main (orchestrator) + fork (sub-skills) |
+| Reads | _code/profiles/, ops/config.yaml |
+| Writes | _code/profiles/{name}/, ops/config.yaml, _code/styles/palettes.yaml |
+
+**Modes:**
+- `(empty)` -- 6-turn conversational interview to create a new profile
+- `--list` -- list available profiles via `discover_profiles()`
+- `--show {name}` -- display profile summary via `load_profile()`
+- `--activate {name}` -- apply profile to ops/config.yaml and merge palettes
+
+**Architecture:** Main-context orchestrator with four fork sub-skills:
+- `profile-suggest` -- web search for domain confounders and tools (haiku)
+- `profile-generate` -- write all profile YAML files atomically (sonnet)
+- `profile-validate` -- run `load_profile()` validation (haiku)
+- `profile-query` -- handle --list and --show modes (haiku)
+
+Interview collects: domain identity, data layers, technical/biological confounders, PII patterns, literature backend routing, and color palettes. Generated profiles are compatible with all existing consumers (/onboard, /init, /eda, /plot, /literature, /learn). No new Python code -- uses existing `domain_profile.py` entry points.
+
+---
+
 #### /onboard
 Bootstrap lab integration -- scan filesystem, register projects, build data inventory, create research goals.
 

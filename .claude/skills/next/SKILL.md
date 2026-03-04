@@ -241,6 +241,8 @@ Append to `ops/next-log.md` (create if missing):
 
 If 0 claims and 0 inbox, recommend `/onboard` first -- it creates project notes, data inventory, research goals, and vault wiring that everything else builds on. After onboarding, recommend `/init` to seed orientation claims and methodological foundations. Maintenance is premature with < 5 notes.
 
+After /init, if inbox is empty and no literature notes exist, recommend adding 3-5 foundational papers to inbox/ and running /pipeline before /literature. Known papers (lab publications, grant references) build the graph scaffolding that makes /literature results connectable. Process in small batches -- do not queue more than ~10 unprocessed items. After /literature creates literature notes, recommend /ralph to process them through the queue before /research.
+
 ### Everything Clean
 
 The engine returns priority "clean". Say so explicitly. Recommend exploratory work aligned with goals:

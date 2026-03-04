@@ -92,7 +92,8 @@ For each seeded goal:
 - Dangling links: {count -- should be 0}
 
 ### Suggested Next Actions
+- Add 3-5 foundational papers to inbox/ and run /pipeline (known papers build graph scaffolding)
 - /literature -- search for papers supporting or challenging these claims
-- /generate -- produce hypotheses building on this foundation
-- /reflect -- find connections between new and existing claims
+- /ralph -- process literature notes through the full pipeline (reduce/reflect/reweave/verify)
+- /research -- generate and rank hypotheses building on this foundation
 ```
