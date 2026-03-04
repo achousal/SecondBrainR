@@ -21,13 +21,13 @@ from pathlib import Path
 
 import yaml
 
+from engram_r.frontmatter import FM_RE as _FM_RE
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-
-_FM_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 
 # Matches DOI patterns in URLs or bare DOIs
 _DOI_RE = re.compile(

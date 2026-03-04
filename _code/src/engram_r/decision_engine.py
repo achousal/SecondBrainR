@@ -23,6 +23,7 @@ from engram_r.daemon_scheduler import (
     build_tier3_entries,
     scan_vault,
 )
+from engram_r.frontmatter import default_vault_path as _default_vault_path
 
 # ---------------------------------------------------------------------------
 # Signal and Recommendation dataclasses
@@ -753,20 +754,6 @@ def main(argv: list[str] | None = None) -> int:
 
     print(json.dumps(result, indent=2))
     return 0 if rec.priority != "clean" else 2
-
-
-def _default_vault_path() -> Path:
-    """Resolve default vault path (same logic as daemon_scheduler)."""
-    from engram_r.vault_registry import get_vault_path
-
-    registry_path = get_vault_path()
-    if registry_path is not None:
-        return registry_path
-
-    env_path = os.environ.get("VAULT_PATH")
-    if env_path:
-        return Path(env_path)
-    return Path(__file__).resolve().parents[3]
 
 
 if __name__ == "__main__":

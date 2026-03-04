@@ -23,13 +23,14 @@ from pathlib import Path
 
 import yaml
 
+from engram_r.frontmatter import FM_RE as _FM_RE, read_frontmatter as _read_frontmatter, default_vault_path as _default_vault_path
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Frontmatter parser (same pattern as daemon_scheduler)
 # ---------------------------------------------------------------------------
 
-_FM_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 _SECTION_RE = re.compile(r"^## (.+)$", re.MULTILINE)
 
 VALID_CONTEXTS = frozenset(
@@ -506,24 +507,6 @@ def generate_session_suggestions(
 # ---------------------------------------------------------------------------
 # Goal file parsing
 # ---------------------------------------------------------------------------
-
-
-def _read_frontmatter(path: Path) -> dict:
-    """Read YAML frontmatter from a markdown file. Returns {} on failure."""
-    try:
-        text = path.read_text(errors="replace")
-    except OSError:
-        logger.warning("Cannot read file: %s", path)
-        return {}
-    m = _FM_RE.match(text)
-    if not m:
-        return {}
-    try:
-        fm = yaml.safe_load(m.group(1))
-        return fm if isinstance(fm, dict) else {}
-    except yaml.YAMLError:
-        logger.warning("Malformed YAML frontmatter in %s", path)
-        return {}
 
 
 def _parse_sections(text: str) -> dict[str, str]:
@@ -1303,23 +1286,6 @@ def main(argv: list[str] | None = None) -> int:
 
     print(json.dumps(result, indent=2))
     return 0 if suggestions else 2
-
-
-def _default_vault_path() -> Path:
-    """Resolve default vault path."""
-    try:
-        from engram_r.vault_registry import get_vault_path
-
-        registry_path = get_vault_path()
-        if registry_path is not None:
-            return registry_path
-    except ImportError:
-        pass
-
-    env_path = os.environ.get("VAULT_PATH")
-    if env_path:
-        return Path(env_path)
-    return Path(__file__).resolve().parents[3]
 
 
 if __name__ == "__main__":

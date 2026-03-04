@@ -20,10 +20,10 @@ from typing import Any
 import yaml
 
 from engram_r.daemon_config import ScheduleEntry, load_config
+from engram_r.frontmatter import FM_RE as _FM_RE, read_frontmatter as _read_frontmatter
 
 logger = logging.getLogger(__name__)
 
-_FM_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 _WIKILINK_RE = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+)?\]\]")
 
 _VALID_DAYS = {
@@ -170,27 +170,6 @@ def schedule_marker_key(entry: ScheduleEntry, now: datetime.datetime) -> str:
     if entry.cadence == "monthly":
         return f"sched-{entry.name}-{now.strftime('%Y-%m')}"
     return f"sched-{entry.name}-{now.strftime('%Y-%m-%d')}"
-
-
-# ---------------------------------------------------------------------------
-# Frontmatter reader (local, avoids importing heavy modules)
-# ---------------------------------------------------------------------------
-
-
-def _read_frontmatter(path: Path) -> dict:
-    """Read YAML frontmatter from a markdown file."""
-    try:
-        text = path.read_text(errors="replace")
-    except OSError:
-        return {}
-    m = _FM_RE.match(text)
-    if not m:
-        return {}
-    try:
-        fm = yaml.safe_load(m.group(1))
-        return fm if isinstance(fm, dict) else {}
-    except yaml.YAMLError:
-        return {}
 
 
 def _read_body_first_line(path: Path) -> str:

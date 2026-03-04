@@ -6,12 +6,12 @@ updates that the /experiment skill (or daemon) applies to vault files.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 import yaml
 
 from engram_r.elo import apply_empirical_elo
+from engram_r.frontmatter import FM_RE as _FM_RE
 from engram_r.hypothesis_parser import (
     append_to_section,
     ensure_section,
@@ -36,8 +36,6 @@ OUTCOME_MAP: dict[str, tuple[str, bool | None]] = {
 
 DEFAULT_EMPIRICAL_K = 16.0
 VIRTUAL_OPPONENT_ELO = 1200.0
-
-_FM_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 
 
 # ---------------------------------------------------------------------------

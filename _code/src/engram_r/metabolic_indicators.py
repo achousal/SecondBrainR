@@ -14,16 +14,13 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import yaml
+from engram_r.frontmatter import FM_RE as _FM_RE, read_frontmatter as _read_frontmatter
 
 logger = logging.getLogger(__name__)
-
-_FM_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 
 
 def _normalize_queue_data(raw: dict | list | None) -> dict:
@@ -51,22 +48,6 @@ ALARM_TIERS: dict[str, int] = {
     "gcr_fragmented": 2,
     "ipr_overflow": 2,
 }
-
-
-def _read_frontmatter(path: Path) -> dict:
-    """Read YAML frontmatter from a markdown file. Returns {} on failure."""
-    try:
-        text = path.read_text(errors="replace")
-    except OSError:
-        return {}
-    m = _FM_RE.match(text)
-    if not m:
-        return {}
-    try:
-        fm = yaml.safe_load(m.group(1))
-        return fm if isinstance(fm, dict) else {}
-    except yaml.YAMLError:
-        return {}
 
 
 @dataclass
