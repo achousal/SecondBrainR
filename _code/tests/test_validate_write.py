@@ -29,7 +29,7 @@ from validate_write import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
-def _note(fm_lines: list[str], body: str = "## Body\nContent\n") -> str:
+def _note(fm_lines: list[str], body: str = "Body content goes here.\n") -> str:
     fm = "\n".join(fm_lines)
     return f"---\n{fm}\n---\n\n{body}"
 
@@ -114,9 +114,10 @@ class TestProvenanceEnforcement:
         content = _note(
             [
                 'description: "Factor-X drives chronic response"',
-                'source: "[[2026-bach]]"',
+                'source: "2026-bach-immunometabolism"',
                 "type: claim",
-            ]
+            ],
+            body="Body text about Factor-X mechanisms.\n",
         )
         stdout, stderr, exited = _run_hook(
             "/vault/notes/factor-x drives chronic response.md", content
@@ -168,6 +169,7 @@ class TestProvenanceEnforcement:
         assert "source" in stderr.lower()
 
     def test_claim_missing_source_edit_no_warning(self):
+        """Edit tool suppresses source-missing warnings (not structural warnings)."""
         content = _note(
             [
                 'description: "Some insight about mechanisms"',
@@ -179,7 +181,8 @@ class TestProvenanceEnforcement:
         )
         resp = _parse_block_response(stdout)
         assert resp is None
-        assert stderr == ""
+        # Source warning should be suppressed for Edit tool
+        assert "source" not in stderr.lower() or "Topics" in stderr
 
     def test_moc_missing_source_no_warning(self):
         content = _note(

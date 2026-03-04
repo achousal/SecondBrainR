@@ -30,7 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-VAULT_ROOT = Path(__file__).resolve().parent.parent.parent
+VAULT_ROOT = Path(__file__).resolve().parent.parent.parent.parent  # maintenance/ -> scripts/ -> _code/ -> vault
 QUEUE_PATH = VAULT_ROOT / "ops" / "queue" / "queue.json"
 LITERATURE_DIR = VAULT_ROOT / "_research" / "literature"
 

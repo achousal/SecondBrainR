@@ -8,8 +8,8 @@ CLI flags:
     --dry-run            Show what would change without modifying files
 
 Usage:
-    uv run python scripts/fix_claim_structure.py --dry-run --strip-title-echo
-    uv run python scripts/fix_claim_structure.py --strip-title-echo --fix-links
+    uv run python scripts/maintenance/fix_claim_structure.py --dry-run --strip-title-echo
+    uv run python scripts/maintenance/fix_claim_structure.py --strip-title-echo --fix-links
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from pathlib import Path
 
 # Add src to path
 _SCRIPT_DIR = Path(__file__).resolve().parent
-_CODE_DIR = _SCRIPT_DIR.parent
+_CODE_DIR = _SCRIPT_DIR.parent.parent  # maintenance/ -> scripts/ -> _code/
 sys.path.insert(0, str(_CODE_DIR / "src"))
 
 from engram_r.schema_validator import (  # noqa: E402
@@ -33,7 +33,7 @@ from engram_r.schema_validator import (  # noqa: E402
     normalize_text,
 )
 
-# Default vault root (two levels up from _code/scripts/)
+# Default vault root (up from _code/)
 _DEFAULT_VAULT = _CODE_DIR.parent
 
 

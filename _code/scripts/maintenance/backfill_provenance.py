@@ -125,7 +125,7 @@ def main() -> None:
     parser.add_argument(
         "--notes-dir",
         type=Path,
-        default=Path(__file__).resolve().parents[2] / "notes",
+        default=Path(__file__).resolve().parents[3] / "notes",
         help="Path to notes directory",
     )
     args = parser.parse_args()
