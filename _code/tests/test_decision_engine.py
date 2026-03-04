@@ -42,8 +42,9 @@ def default_config():
 
 @pytest.fixture
 def clean_state():
-    """Vault with nothing to do."""
+    """Vault with nothing to do (mature vault, has claims)."""
     return VaultState(
+        claim_count=50,
         goals=[
             GoalState(
                 goal_id="goal-test-analysis",
@@ -281,6 +282,7 @@ class TestRecommend:
     def test_tier3_generative(self, default_config):
         """Tier 3 when goals are cycle_complete."""
         state = VaultState(
+            claim_count=30,
             goals=[
                 GoalState(
                     goal_id="goal-test-analysis",
@@ -296,6 +298,31 @@ class TestRecommend:
         assert rec.category == "tier3"
         assert "generate" in rec.action.lower() or "evolve" in rec.action.lower()
 
+    def test_empty_vault_recommends_onboard(self, default_config):
+        """Empty vault (0 claims, 0 inbox, 0 queue) recommends /onboard."""
+        state = VaultState()  # all zeros, no goals, no tasks
+        rec = recommend(state, default_config)
+        assert rec.category == "empty_vault"
+        assert rec.priority == "session"
+        assert "/onboard" in rec.action
+        assert "/init" in rec.after_that
+
+    def test_empty_vault_skipped_when_inbox_present(self, default_config):
+        """If inbox has items, skip the empty vault branch."""
+        state = VaultState(inbox_count=3)
+        rec = recommend(state, default_config)
+        assert rec.category != "empty_vault"
+
+    def test_empty_vault_skipped_when_tasks_active(self, default_config):
+        """If task stack has active items, tasks win over empty vault."""
+        state = VaultState(
+            task_stack_active=[
+                TaskStackItem(title="Setup task", section="Active"),
+            ],
+        )
+        rec = recommend(state, default_config)
+        assert rec.category == "task_stack"
+
     def test_clean_state(self, clean_state, default_config):
         rec = recommend(clean_state, default_config)
         assert rec.priority == "clean"
@@ -304,6 +331,7 @@ class TestRecommend:
     def test_highest_impact_session_signal(self, default_config):
         """Engine picks highest-count signal at same priority."""
         state = VaultState(
+            claim_count=20,
             observation_count=12,
             orphan_count=2,
         )
@@ -313,6 +341,7 @@ class TestRecommend:
 
     def test_after_that_from_session_signals(self, default_config):
         state = VaultState(
+            claim_count=20,
             observation_count=12,
             orphan_count=5,
         )
@@ -553,6 +582,11 @@ class TestCLI:
         (health_dir / "2026-02-23-report.md").write_text(
             "Summary: 0 FAIL, 0 WARN, 3 PASS\n"
         )
+        # Need notes to avoid empty_vault, and mutual links to avoid orphan signal
+        notes_dir = tmp_path / "notes"
+        notes_dir.mkdir()
+        (notes_dir / "claim-a.md").write_text("---\ndescription: \"a\"\n---\n[[claim-b]]\n")
+        (notes_dir / "claim-b.md").write_text("---\ndescription: \"b\"\n---\n[[claim-a]]\n")
         exit_code = main([str(tmp_path)])
         assert exit_code == 2
         output = json.loads(capsys.readouterr().out)

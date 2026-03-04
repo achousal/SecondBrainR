@@ -422,6 +422,20 @@ def _daemon_is_running(vault_path: Path) -> tuple[bool, int]:
 
 
 # ---------------------------------------------------------------------------
+# Empty vault detection (single source of truth)
+# ---------------------------------------------------------------------------
+
+
+def is_empty_vault(claim_count: int, inbox_count: int, queue_backlog: int) -> bool:
+    """True when the vault has no content worth routing around.
+
+    Shared by the decision engine and session orient hook so the
+    definition lives in exactly one place.
+    """
+    return claim_count == 0 and inbox_count == 0 and queue_backlog == 0
+
+
+# ---------------------------------------------------------------------------
 # Recommendation engine
 # ---------------------------------------------------------------------------
 
@@ -451,6 +465,24 @@ def recommend(
     Returns:
         Recommendation with action, rationale, priority, and category.
     """
+    # 0. Empty vault -- always recommend /onboard first
+    if (
+        not state.task_stack_active
+        and is_empty_vault(state.claim_count, state.inbox_count, state.queue_backlog)
+    ):
+        return Recommendation(
+            action="/onboard -- wire your first project into the vault",
+            rationale=(
+                "Empty vault detected (0 claims, 0 inbox, 0 queue). "
+                "/onboard creates project notes, data inventory, research "
+                "goals, and vault wiring -- the foundation everything else "
+                "builds on."
+            ),
+            priority="session",
+            category="empty_vault",
+            after_that="/init to seed orientation claims and methodological foundations",
+        )
+
     # 1. Task stack active items always win
     if state.task_stack_active:
         top = state.task_stack_active[0]
@@ -581,6 +613,7 @@ def _next_signal_action(signals: list[Signal], current: Signal) -> str:
 def _build_state_summary(state: VaultState) -> dict:
     """Build a concise state summary dict for JSON output."""
     summary = {
+        "claim_count": state.claim_count,
         "health_fails": state.health_fails,
         "health_stale": state.health_stale,
         "observations": state.observation_count,

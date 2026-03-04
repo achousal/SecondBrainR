@@ -272,6 +272,7 @@ class VaultState:
     federation_peers_count: int = 0
     quarantine_count: int = 0
     queue_blocked: int = 0
+    claim_count: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -785,6 +786,7 @@ def scan_vault(vault_path: Path, config: DaemonConfig) -> VaultState:
     state.task_stack_pending = task_stack["pending"]
 
     # Health counts
+    state.claim_count = _count_files(vault_path / "notes")
     state.observation_count = _count_files(obs_dir)
     state.tension_count = _count_files(tens_dir)
     state.inbox_count = _count_files(inbox_dir)

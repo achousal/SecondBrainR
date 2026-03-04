@@ -239,7 +239,7 @@ Append to `ops/next-log.md` (create if missing):
 
 ### Empty Vault (0-5 notes)
 
-Recommend capturing or reducing content. Maintenance is premature with < 5 notes.
+If 0 claims and 0 inbox, recommend `/onboard` first -- it creates project notes, data inventory, research goals, and vault wiring that everything else builds on. After onboarding, recommend `/init` to seed orientation claims and methodological foundations. Maintenance is premature with < 5 notes.
 
 ### Everything Clean
 

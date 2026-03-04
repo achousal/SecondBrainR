@@ -29,6 +29,7 @@ from engram_r.daemon_scheduler import (  # noqa: E402
     _count_queue_blocked,
     _count_queue_pending,
 )
+from engram_r.decision_engine import is_empty_vault  # noqa: E402
 from engram_r.hook_utils import load_config, resolve_vault  # noqa: E402
 
 
@@ -377,6 +378,13 @@ def main() -> None:
         parts.append("")
         parts.append("### Metabolic")
         parts.append(metabolic_line)
+
+    # Empty vault -- recommend /onboard before anything else
+    if is_empty_vault(counts["claims"], counts["inbox"], counts["queue_pending"]):
+        parts.append(
+            "  -> Empty vault. Run /onboard to wire your first project "
+            "and create the foundation for everything else."
+        )
 
     # Maintenance signals
     if counts["inbox"] > 0:
