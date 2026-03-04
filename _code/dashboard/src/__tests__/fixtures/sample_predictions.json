@@ -1,0 +1,45 @@
+{
+  "modelId": "ad_classifier_v2",
+  "runId": "run_20260215",
+  "patients": [
+    {
+      "patientId": "P001",
+      "probability": 0.87,
+      "classification": "AD Positive",
+      "baseValue": 0.35,
+      "shapValues": [
+        { "feature": "ptau217", "value": 2.34, "shapValue": 0.28 },
+        { "feature": "ab42_ab40", "value": 0.062, "shapValue": 0.15 },
+        { "feature": "gfap", "value": 142, "shapValue": 0.06 },
+        { "feature": "nfl", "value": 8.2, "shapValue": -0.02 },
+        { "feature": "age", "value": 67, "shapValue": 0.05 }
+      ]
+    },
+    {
+      "patientId": "P002",
+      "probability": 0.15,
+      "classification": "AD Negative",
+      "baseValue": 0.35,
+      "shapValues": [
+        { "feature": "ptau217", "value": 0.31, "shapValue": -0.12 },
+        { "feature": "ab42_ab40", "value": 0.081, "shapValue": -0.05 },
+        { "feature": "gfap", "value": 89, "shapValue": -0.02 },
+        { "feature": "nfl", "value": 22.5, "shapValue": 0.03 },
+        { "feature": "age", "value": 72, "shapValue": -0.04 }
+      ]
+    },
+    {
+      "patientId": "P003",
+      "probability": 0.52,
+      "classification": "Indeterminate",
+      "baseValue": 0.35,
+      "shapValues": [
+        { "feature": "ptau217", "value": 0.65, "shapValue": 0.08 },
+        { "feature": "ab42_ab40", "value": 0.070, "shapValue": 0.04 },
+        { "feature": "gfap", "value": 310, "shapValue": 0.10 },
+        { "feature": "nfl", "value": 12.1, "shapValue": -0.03 },
+        { "feature": "age", "value": 58, "shapValue": -0.02 }
+      ]
+    }
+  ]
+}

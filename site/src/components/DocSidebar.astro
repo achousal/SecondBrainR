@@ -1,0 +1,109 @@
+---
+const base = import.meta.env.BASE_URL;
+const currentPath = Astro.url.pathname;
+
+const groups = [
+  {
+    label: "Getting Started",
+    items: [
+      { title: "Getting Started", slug: "getting-started" },
+      { title: "Setup Guide", slug: "setup-guide" },
+    ],
+  },
+  {
+    label: "Reference",
+    items: [
+      { title: "Configuration", slug: "configuration" },
+      { title: "Workflows", slug: "workflows" },
+      { title: "Architecture", slug: "architecture" },
+      { title: "Querying", slug: "querying" },
+    ],
+  },
+  {
+    label: "Guides",
+    items: [
+      { title: "Skills Reference", slug: "skills" },
+      { title: "Meta-Skills", slug: "meta-skills" },
+      { title: "Literature Search", slug: "literature" },
+      { title: "Plotting", slug: "plotting" },
+      { title: "Inter-Lab", slug: "inter-lab" },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { title: "Administration", slug: "administration" },
+      { title: "Integrations", slug: "integrations" },
+      { title: "Security", slug: "security" },
+      { title: "Troubleshooting", slug: "troubleshooting" },
+    ],
+  },
+];
+
+function isActive(slug: string): boolean {
+  return currentPath.includes(`/docs/${slug}`);
+}
+---
+
+<aside class="doc-sidebar">
+  <details class="md:hidden border-b border-border pb-4 mb-4" open>
+    <summary class="cursor-pointer font-display font-semibold text-sm text-text-muted py-2">
+      Navigation
+    </summary>
+    <nav aria-label="Documentation" class="mt-2">
+      {groups.map((group) => (
+        <div class="mb-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
+            {group.label}
+          </h3>
+          <ul class="space-y-1">
+            {group.items.map((item) => (
+              <li>
+                <a
+                  href={`${base}docs/${item.slug}/`}
+                  class:list={[
+                    "block text-sm py-1 pl-3 border-l-2 transition-colors no-underline",
+                    isActive(item.slug)
+                      ? "border-accent text-text font-medium"
+                      : "border-transparent text-text-muted hover:text-text hover:border-border",
+                  ]}
+                  aria-current={isActive(item.slug) ? "page" : undefined}
+                >
+                  {item.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  </details>
+
+  <nav aria-label="Documentation" class="hidden md:block">
+    {groups.map((group) => (
+      <div class="mb-6">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
+          {group.label}
+        </h3>
+        <ul class="space-y-1">
+          {group.items.map((item) => (
+            <li>
+              <a
+                href={`${base}docs/${item.slug}/`}
+                class:list={[
+                  "block text-sm py-1 pl-3 border-l-2 transition-colors no-underline",
+                  isActive(item.slug)
+                    ? "border-accent text-text font-medium"
+                    : "border-transparent text-text-muted hover:text-text hover:border-border",
+                ]}
+                aria-current={isActive(item.slug) ? "page" : undefined}
+              >
+                {item.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </nav>
+</aside>

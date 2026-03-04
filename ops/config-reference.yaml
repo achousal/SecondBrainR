@@ -1,0 +1,521 @@
+# ops/config-reference.yaml -- Complete reference for all configuration values
+#
+# This file documents every valid value for ops/config.yaml and
+# ops/daemon-config.yaml. It is NOT loaded by the system -- it exists
+# purely as documentation for users configuring their vault.
+#
+# Format: each key shows all valid values with descriptions.
+# The [default] tag marks the recommended starting value.
+
+# =========================================================================
+# ops/config.yaml -- Knowledge Architecture
+# =========================================================================
+
+dimensions:
+
+  granularity:
+    # How many claims per note file.
+    atomic:                        # [default] One claim per file. Best for
+                                   # composability, linking, and graph queries.
+                                   # Each node is a single idea that can be
+                                   # independently linked, challenged, or evolved.
+    composite:                     # Multiple claims per file. Fewer files but
+                                   # weaker graph structure. Not recommended --
+                                   # links become ambiguous when a file contains
+                                   # multiple ideas.
+
+  organization:
+    # Directory structure for notes/.
+    flat:                          # [default] All notes in a single flat directory.
+                                   # Relies on wiki-links and topic maps for
+                                   # navigation rather than folder hierarchy.
+                                   # Scales well to 1000+ notes.
+    hierarchical:                  # Notes organized in topic subdirectories
+                                   # (e.g., notes/physics/, notes/methods/).
+                                   # Familiar but creates classification decisions
+                                   # at write time and cross-cutting claims are
+                                   # awkward to place.
+
+  linking:
+    # How connections between notes are discovered.
+    explicit:                      # Wiki links placed manually by you or skills.
+                                   # Full control, no surprises.
+    implicit:                      # Auto-suggested links from content similarity
+                                   # (semantic search). Discovers connections you
+                                   # might miss but can be noisy.
+    explicit+implicit:             # [default] Both. Manual links for known
+                                   # connections; semantic search surfaces
+                                   # candidates during /reflect. Best for heavy
+                                   # processing vaults.
+
+  processing:
+    # Depth of the processing pipeline.
+    heavy:                         # [default] Full pipeline: reduce -> reflect ->
+                                   # reweave -> verify. Every claim gets connected,
+                                   # backward-linked, and quality-checked.
+    light:                         # Reduce only. Minimal connection-finding.
+                                   # Good for simple note-taking without the
+                                   # co-scientist layer.
+
+  navigation:
+    # Topic map hierarchy depth.
+    3-tier:                        # [default] Hub > Domain map > Topic map.
+                                   # Recommended for 100+ claims. Hub is the
+                                   # single entry point; domain maps group
+                                   # related topics; topic maps list claims.
+    2-tier:                        # Hub > Topic map. No domain grouping.
+                                   # Simpler but harder to navigate at scale.
+    flat:                          # No navigation hierarchy. All claims are
+                                   # peers. Only viable for very small vaults.
+
+  maintenance:
+    # When maintenance tasks run.
+    condition-based:               # [default] Triggered by thresholds defined in
+                                   # daemon-config.yaml (e.g., 10+ orphan notes,
+                                   # 5+ pending tensions). Most efficient.
+    scheduled:                     # Run periodically regardless of thresholds.
+                                   # Daemon handles scheduling.
+    manual:                        # Only when you explicitly run maintenance
+                                   # commands. No automation.
+
+  schema:
+    # How strictly frontmatter is validated.
+    moderate:                      # [default] Required fields enforced (description),
+                                   # optional fields suggested but not blocked.
+                                   # Good balance of quality and flexibility.
+    strict:                        # All fields required. Validation blocks writes
+                                   # that lack optional fields. Use for high-rigor
+                                   # domains (clinical, regulatory, legal).
+    minimal:                       # Only description required. No validation of
+                                   # optional fields. Fast but loose.
+
+  automation:
+    # Level of automated processing.
+    full:                          # [default] Daemon + hooks + auto-commit.
+                                   # Background daemon runs synthesis tasks.
+                                   # Hooks validate writes and capture sessions.
+                                   # Git auto-commits note changes.
+    partial:                       # Hooks only, no daemon. You run pipeline
+                                   # commands manually but hooks still validate.
+    manual:                        # No automation. You control everything.
+
+# -------------------------------------------------------------------------
+# Feature Flags
+# -------------------------------------------------------------------------
+
+features:
+
+  semantic-search:
+    true:                          # [default] Enable semantic similarity for
+                                   # /reflect connection discovery.
+    false:                         # Disable. Only explicit wiki-links used.
+
+  processing-pipeline:
+    true:                          # [default] Enable the full reduce -> reflect ->
+                                   # reweave -> verify pipeline.
+    false:                         # Disable pipeline. /reduce still works but
+                                   # does not chain to subsequent phases.
+
+# -------------------------------------------------------------------------
+# Processing Configuration
+# -------------------------------------------------------------------------
+
+processing_tier:
+  auto:                            # [default] Processing depth adapts to source
+                                   # complexity. Short sources get quick treatment;
+                                   # long, dense sources get deep extraction.
+  fixed:                           # Always use the depth set in processing.depth.
+
+processing:
+
+  depth:
+    deep:                          # Exhaustive extraction. Every claim, sub-claim,
+                                   # and methodological detail. Use for key papers.
+    standard:                      # [default] Comprehensive but selective. Major
+                                   # claims and supporting evidence extracted.
+    quick:                         # Key claims only. Fast processing for low-priority
+                                   # sources or quick captures.
+
+  chaining:
+    manual:                        # Each pipeline phase requires an explicit command.
+                                   # Full control.
+    suggested:                     # [default] Agent suggests the next phase after
+                                   # each step. You approve before it runs.
+    automatic:                     # Phases chain without approval. Fast but less
+                                   # control over quality gates.
+
+  extraction:
+
+    selectivity:
+      strict:                      # Only high-confidence, well-sourced claims with
+                                   # clear provenance. Conservative.
+      moderate:                    # [default] Reasonable claims with clear provenance.
+                                   # Good balance of coverage and quality.
+      permissive:                  # Extract broadly, filter later. Higher volume
+                                   # but more noise.
+
+    categories:
+      # YAML list of extraction categories used by /reduce.
+      # Each entry has: name, what_to_find, output_type.
+      # See ops/config.yaml for the active list.
+
+  verification:
+
+    description_test:
+      true:                        # [default] Verify that descriptions add
+                                   # information beyond the title (cold-read test).
+      false:                       # Skip description quality check.
+
+    schema_check:
+      true:                        # [default] Validate frontmatter against
+                                   # templates in _code/templates/.
+      false:                       # Skip schema validation.
+
+    link_check:
+      true:                        # [default] Check for dangling wiki links
+                                   # (links pointing to non-existent files).
+      false:                       # Skip link checking.
+
+  reweave:
+
+    scope:
+      related:                     # [default] Only notes in the same topic map.
+                                   # Fast, focused.
+      broad:                       # Notes within 2 hops in the graph. Wider
+                                   # discovery but slower.
+      full:                        # All notes in the vault. Expensive -- use
+                                   # sparingly for deep restructuring.
+
+    frequency:
+      after_create:                # [default] Reweave after every /reduce session.
+      periodic:                    # Daemon handles on a schedule.
+      manual:                      # Only when you run /reweave explicitly.
+
+# -------------------------------------------------------------------------
+# Provenance
+# -------------------------------------------------------------------------
+
+provenance:
+  full:                            # [default] Record source query, inbox path,
+                                   # processing chain, and session ID.
+  minimal:                         # Record source only.
+  "off":                           # No provenance tracking. Not recommended
+                                   # for research use.
+
+# -------------------------------------------------------------------------
+# Personality (experimental)
+# -------------------------------------------------------------------------
+
+personality:
+
+  enabled:
+    true:                          # Agent uses a distinctive communication style
+                                   # based on personality dimensions in derivation.md.
+    false:                         # [default] Neutral, professional tone.
+
+# -------------------------------------------------------------------------
+# Research Tools
+# -------------------------------------------------------------------------
+
+research:
+
+  primary:
+    web-search:                    # [default] Claude Code built-in web search.
+    exa:                           # Exa deep researcher (requires API key).
+    pubmed:                        # PubMed/NCBI search (requires NCBI_API_KEY).
+    arxiv:                         # arXiv search via Atom API (no key required).
+    semantic_scholar:              # Semantic Scholar Graph API (no key required,
+                                   # optional S2_API_KEY for higher rate limits).
+    openalex:                      # OpenAlex REST API (no key required).
+
+  fallback:
+    web-search:                    # [default] Fallback if primary fails.
+    exa:
+    pubmed:
+    arxiv:
+    semantic_scholar:
+    openalex:
+
+  last_resort:
+    web-search:                    # [default] Final fallback.
+    exa:
+    pubmed:
+    arxiv:
+    semantic_scholar:
+    openalex:
+
+  default_depth:
+    light:                         # 1-2 sources per query.
+    moderate:                      # [default] 3-5 sources per query.
+    deep:                          # 5-10 sources per query. Thorough but slow.
+
+# -------------------------------------------------------------------------
+# Literature Sources
+# Controls which backends /literature uses for structured searches.
+# -------------------------------------------------------------------------
+
+literature:
+
+  sources:
+    # list of strings: Enabled search backends for /literature.
+    # Valid values: pubmed, arxiv, semantic_scholar, openalex.
+    # Default: [pubmed, arxiv, semantic_scholar, openalex]
+
+  default:
+    all:                           # [default] Query every enabled source and
+                                   # deduplicate by DOI.
+    pubmed:                        # Query only PubMed.
+    arxiv:                         # Query only arXiv.
+    semantic_scholar:              # Query only Semantic Scholar.
+    openalex:                      # Query only OpenAlex.
+
+# -------------------------------------------------------------------------
+# Automation Toggles
+# -------------------------------------------------------------------------
+
+vault_root:
+  ".":                             # [default] Vault root relative to repo root.
+                                   # Override with VAULT_PATH env var or vault
+                                   # registry (~/.config/engramr/vaults.yaml).
+
+git_auto_commit:
+  true:                            # [default] Auto-commit vault changes after
+                                   # note writes (via auto_commit.py hook).
+  false:                           # No auto-commit. You manage git manually.
+
+schema_validation:
+  true:                            # [default] Validate note schema on Write/Edit
+                                   # hooks (via validate_write.py hook).
+  false:                           # No hook-time validation.
+
+session_capture:
+  true:                            # [default] Save session metadata to
+                                   # ops/sessions/ after each conversation.
+  false:                           # No session capture.
+
+# -------------------------------------------------------------------------
+# Onboard Scan Configuration
+# -------------------------------------------------------------------------
+
+onboard:
+
+  scan_depth:
+    # integer: Max -maxdepth for find when discovering project docs.
+    # Default: 5. Increase for deeply nested monorepos; decrease to
+    # limit noise in broad directory trees.
+
+  exclude_dirs:
+    # list of strings: Directory names or path fragments excluded from
+    # find traversal via -not -path '*/{pattern}/*'. Merged with any
+    # per-project scan_exclude list from the project note frontmatter.
+    # Default covers R, Python, Node, Snakemake, Nextflow, CI, IDE,
+    # and build artifact directories. Add ecosystem-specific entries
+    # as needed (e.g., .pixi, conda-bld).
+
+  exclude_files:
+    # list of strings: Exact basenames excluded from discovery results.
+    # Matched after find completes (post-filter). Covers boilerplate
+    # package docs that add noise to project onboarding: NEWS.md,
+    # CHANGELOG.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, etc.
+    # Add project-specific exclusions in the project note scan_exclude
+    # field instead of modifying this global list.
+
+# =========================================================================
+# ops/daemon-config.yaml -- Daemon Behavior
+# =========================================================================
+# See ops/daemon-config.yaml itself for inline documentation of each field.
+#
+# Key tuning guidance:
+#
+# goals_priority: Order matters. First goal gets opus-tier tournaments.
+#
+# models: Match cost to task importance. Tournament debates benefit from
+#   opus quality. Validation/formatting tasks are fine with haiku.
+#
+# cooldowns_minutes: Increase if you want more time to review between
+#   daemon actions. Decrease for faster autonomous processing.
+#
+# batching: Larger batches = more work per cycle but longer runs.
+#   tournament_threshold prevents wasting opus tokens on goals with
+#   too few hypotheses to meaningfully compare.
+#
+# thresholds: These are "trigger points." The daemon checks each cycle
+#   and runs the corresponding task when a threshold is exceeded.
+#   Lower thresholds = more responsive but more frequent processing.
+#
+# retry: Exponential backoff for transient failures (API rate limits,
+#   network issues). max_per_task caps total attempts before skipping.
+#
+# timeout.global_hours: Set to 0 for true daemon mode. Non-zero values
+#   useful for CI, testing, or batch runs with a known end time.
+#
+# health: Periodic /health checks catch drift (dangling links, schema
+#   violations, orphans). max_fix_iterations prevents infinite fix loops.
+
+
+# =========================================================================
+# ops/federation.yaml -- Cross-Vault Federation
+# =========================================================================
+# Controls claim and hypothesis exchange with peer vaults.
+# Federation uses shared directories (git repos, shared drives).
+# No server infrastructure required.
+
+federation:
+
+  # -----------------------------------------------------------------------
+  # Vault Identity
+  # -----------------------------------------------------------------------
+
+  identity:
+
+    vault_id:
+      # string (required): Unique identifier for this vault. UUID or slug.
+      # Example: "my-research-2026" or "a1b2c3d4-..."
+
+    display_name:
+      # string: Human-readable vault name shown to peers.
+      # Example: "Research Lab Vault"
+
+    institution:
+      # string: Institution name for provenance tracking.
+      # Example: "University of Example"
+
+  # -----------------------------------------------------------------------
+  # Master Switch
+  # -----------------------------------------------------------------------
+
+  enabled:
+    true:                              # Federation active. Daemon runs sync
+                                       # cycles at the configured frequency.
+    false:                             # [default] Federation disabled. No
+                                       # sync, no import/export.
+
+  # -----------------------------------------------------------------------
+  # Sync Settings
+  # -----------------------------------------------------------------------
+
+  sync:
+
+    frequency_hours:
+      # integer: Hours between daemon federation sync cycles.
+      # Default: 24. Lower values for active collaborations.
+
+    exchange_dir:
+      # string (required when enabled): Shared directory for exchange files.
+      # Must be readable/writable by all participating vaults.
+      # Examples: "~/shared/federation/", "/mnt/lab-share/sbr-exchange/"
+
+  # -----------------------------------------------------------------------
+  # Export Policy
+  # -----------------------------------------------------------------------
+
+  export:
+
+    claims:
+
+      enabled:
+        true:                          # [default] Export claims to peers.
+        false:                         # Do not export claims.
+
+      filter_confidence:
+        # list of confidence levels to export. Only claims at these levels
+        # are shared. Valid values: established, supported, preliminary,
+        # speculative.
+        # Default: [established, supported]
+
+      max_per_sync:
+        # integer: Maximum claims to export per sync cycle.
+        # Default: 50. Increase for large active vaults.
+
+    hypotheses:
+
+      enabled:
+        true:                          # [default] Export hypotheses to peers.
+        false:                         # Do not export hypotheses.
+
+      min_elo:
+        # float: Minimum local Elo score to qualify for export.
+        # Default: 1250. Only well-tested hypotheses are shared.
+
+      max_per_sync:
+        # integer: Maximum hypotheses to export per sync cycle.
+        # Default: 20.
+
+  # -----------------------------------------------------------------------
+  # Import Policy
+  # -----------------------------------------------------------------------
+
+  import:
+
+    default_trust:
+      full:                            # Auto-accept all imports from unknown
+                                       # peers. No quarantine.
+      verified:                        # Accept with quarantine. Imports are
+                                       # marked quarantine: true until reviewed.
+      untrusted:                       # [default] Reject all imports from
+                                       # unknown peers. Peer must be added to
+                                       # the peers list with higher trust.
+
+    quarantine:
+
+      enabled:
+        true:                          # [default] Tag imported notes with
+                                       # quarantine: true in frontmatter.
+        false:                         # No quarantine tagging.
+
+      auto_accept_after_days:
+        # integer: Days before quarantined notes are auto-accepted.
+        # Default: 0 (manual review required).
+        # Set >0 for time-based auto-acceptance.
+
+    hypotheses:
+
+      allow_federated_tournament:
+        true:                          # [default] Imported hypotheses can
+                                       # participate in federated tournaments.
+        false:                         # Imported hypotheses are read-only.
+
+      starting_elo:
+        # float: Initial federated Elo for imported hypotheses.
+        # Default: 1200. Independent of source vault Elo.
+
+  # -----------------------------------------------------------------------
+  # Peers
+  # -----------------------------------------------------------------------
+  # Named peer vaults with trust levels and overrides.
+  #
+  # Structure:
+  #   peers:
+  #     <peer-slug>:
+  #       vault_id: "<unique-id>"       # Required. Must match peer's
+  #                                     # identity.vault_id.
+  #       display_name: "<name>"        # Human-readable name.
+  #       institution: "<institution>"  # Institution for provenance.
+  #       trust: full|verified|untrusted  # Trust level for this peer.
+  #       notes: "<free text>"          # Optional collaboration notes.
+  #
+  # Trust levels:
+  #   full      -- auto-accept, no quarantine
+  #   verified  -- accept with quarantine, eligible for federated tournaments
+  #   untrusted -- reject all imports
+  #
+  # Default: {} (no peers configured)
+
+# =========================================================================
+# Domain Profile
+# =========================================================================
+
+# domain.name:
+#   values: string (profile directory name)
+#   default: "" (no domain profile)
+#   description: >
+#     Name of the active domain profile in _code/profiles/.
+#     Set during /onboard to activate domain-specific configuration,
+#     palettes, confounders, heuristics, and PII patterns.
+#
+# domain.profile:
+#   values: string (path to profile directory)
+#   default: "" (auto-resolved from domain.name)
+#   description: >
+#     Resolved path to the active profile directory.
+#     Auto-populated when domain.name is set.

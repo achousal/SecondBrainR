@@ -1,0 +1,11 @@
+SubjectID,PatientName,Age,Sex,Metric_A,Metric_B,Diagnosis,Email
+S001,John Doe,72,Male,0.45,12.3,Active,john@example.com
+S002,Jane Smith,68,Female,0.32,8.7,Control,jane@example.com
+S003,Bob Wilson,75,Male,0.51,15.1,Active,bob@example.com
+S004,Alice Brown,70,Female,0.28,9.2,Control,alice@example.com
+S005,Charlie Davis,78,Male,0.62,18.4,Active,charlie@example.com
+S006,Diana Evans,65,Female,0.30,7.8,Control,diana@example.com
+S007,Eve Foster,73,Female,0.48,14.0,Active,eve@example.com
+S008,Frank Green,69,Male,0.35,10.5,Control,frank@example.com
+S009,Grace Hill,77,Female,0.55,16.2,Active,grace@example.com
+S010,Henry Irwin,71,Male,0.38,11.1,Control,henry@example.com

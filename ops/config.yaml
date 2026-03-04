@@ -1,0 +1,158 @@
+dimensions:
+  granularity: atomic
+  organization: flat
+  linking: explicit+implicit
+  processing: heavy
+  navigation: 3-tier
+  maintenance: condition-based
+  schema: moderate
+  automation: full
+features:
+  semantic-search: true
+  processing-pipeline: true
+processing_tier: auto
+processing:
+  depth: standard
+  chaining: suggested
+  extraction:
+    selectivity: moderate
+    categories:
+    - name: claims
+      what_to_find: Testable assertions about mechanisms, effects, or relationships
+      output_type: claim
+    - name: evidence
+      what_to_find: Data points, measurements, statistical results
+      output_type: claim
+    - name: methodology-comparisons
+      what_to_find: How different studies approached similar questions
+      output_type: claim
+    - name: contradictions
+      what_to_find: Results or interpretations that conflict with existing claims
+      output_type: claim
+    - name: open-questions
+      what_to_find: Gaps in evidence, unresolved mechanisms, future directions
+      output_type: claim
+    - name: design-patterns
+      what_to_find: Reusable experimental designs, analytical approaches
+      output_type: claim
+  verification:
+    description_test: true
+    schema_check: true
+    link_check: true
+  reweave:
+    scope: related
+    frequency: after_create
+provenance: full
+personality:
+  enabled: false
+research:
+  primary: pubmed
+  fallback: arxiv
+  last_resort: web-search
+  default_depth: moderate
+literature:
+  sources:
+  - pubmed
+  - arxiv
+  - semantic_scholar
+  - openalex
+  default: all
+  enrichment:
+    enabled:
+    - crossref
+    - unpaywall
+    timeout_per_doi: 5
+vault_root: .
+git_auto_commit: true
+schema_validation: true
+pipeline_compliance: true
+enrichment_target_validation: true
+session_capture: true
+health:
+  graph_directories:
+  - notes
+  - _research
+  - self
+  - projects
+  exclude_directories:
+  - ops
+  - .claude
+  - _code/templates
+  - _dev
+  - docs
+  - inbox/archive
+  topics_convention: body
+data_layers:
+- Genomics
+- Transcriptomics
+- Proteomics
+- Metabolomics
+- Epigenomics
+- Metagenomics
+- Clinical/EHR
+- scRNA-seq
+onboard:
+  scan_depth: 5
+  exclude_dirs:
+  - .git
+  - __pycache__
+  - .venv
+  - venv
+  - .tox
+  - renv
+  - packrat
+  - .Rproj.user
+  - node_modules
+  - .snakemake
+  - .nextflow
+  - .github
+  - .gitlab
+  - .circleci
+  - .claude
+  - .serena
+  - .cursor
+  - dist-info
+  - _build
+  - _site
+  - site
+  - docs/_build
+  - build
+  - dist
+  - site-packages
+  - .mypy_cache
+  - .ruff_cache
+  - .pytest_cache
+  - .eggs
+  - rsconnect
+  - work
+  exclude_files:
+  - NEWS.md
+  - CHANGELOG.md
+  - CHANGES.md
+  - CONTRIBUTING.md
+  - CONTRIBUTORS.md
+  - CODE_OF_CONDUCT.md
+  - SECURITY.md
+  - LICENSE.md
+  - SUPPORT.md
+  - PULL_REQUEST_TEMPLATE.md
+  - ISSUE_TEMPLATE.md
+co_scientist:
+  default_generation_count: 3
+  default_match_count: 5
+  elo:
+    starting: 1200
+    k_factor: 32
+  review:
+    aggregate_weights:
+      correctness: 0.3
+      testability: 0.25
+      novelty: 0.25
+      impact: 0.2
+  tournament:
+    top_tier_threshold: 0.25
+  handoff:
+    mode: suggested
+domain:
+  name: bioinformatics
+  profile: /Users/andreschousal/EngramR/_code/profiles/bioinformatics

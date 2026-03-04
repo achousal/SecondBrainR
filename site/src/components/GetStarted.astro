@@ -1,0 +1,203 @@
+---
+const base = import.meta.env.BASE_URL;
+
+const prerequisites = [
+  { name: "Claude Code", url: "https://docs.anthropic.com/en/docs/claude-code", required: true, purpose: "Command host and agent runtime" },
+  { name: "Obsidian", url: "https://obsidian.md/", required: false, purpose: "Vault browser and editor" },
+  { name: "Local REST API plugin", url: "https://github.com/coddingtonbear/obsidian-local-rest-api", required: false, purpose: "Programmatic vault access" },
+  { name: "Python 3.11+", url: "https://www.python.org/", required: true, purpose: "Library runtime" },
+  { name: "uv", url: "https://docs.astral.sh/uv/", required: true, purpose: "Python package management" },
+  { name: "ripgrep (rg)", url: "https://github.com/BurntSushi/ripgrep", required: true, purpose: "YAML queries, graph analysis" },
+  { name: "Slack MCP plugin", url: "https://github.com/slackapi/slack-mcp-plugin", required: false, purpose: "Team interactions via Slack" },
+];
+
+const steps = [
+  {
+    title: "Clone and open as vault",
+    code: "git clone https://github.com/achousal/EngramR.git",
+    note: "Optionally, open the folder as a vault in Obsidian and enable the Local REST API plugin for graph browsing.",
+  },
+  {
+    title: "Install the Python library",
+    code: "cd EngramR/_code\nuv sync --all-extras",
+  },
+  {
+    title: "Configure environment",
+    code: "cp .env.example .env",
+    note: "Fill in OBSIDIAN_API_KEY. Optionally add Slack and literature search keys.",
+  },
+  {
+    title: "Install the knowledge layer",
+    code: "/plugin marketplace add agenticnotetaking/arscontexta\n/plugin install arscontexta@agenticnotetaking",
+  },
+  {
+    title: "Verify and onboard",
+    code: "uv run pytest tests/ -v",
+    note: "Then run /onboard to set up your lab, and /init to seed the knowledge graph.",
+  },
+];
+
+const tabs = [
+  { id: "researcher", label: "Researcher" },
+  { id: "evaluator", label: "PI / Evaluator" },
+  { id: "developer", label: "Developer" },
+];
+---
+
+<section id="get-started" class="py-24 md:py-32 bg-surface">
+  <div class="max-w-4xl mx-auto px-6">
+    <div data-animate="fade-up" class="mb-8">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Get started</h2>
+      <p class="text-text-muted text-lg mb-2">
+        Everything you need to run your lab's reactor.
+      </p>
+      <p class="text-text-muted">
+        No migrations needed. EngramR starts blank and grows with your research.
+      </p>
+    </div>
+
+    <!-- Role tabs -->
+    <div data-animate="fade-up" class="flex gap-1 mb-8 border-b border-border">
+      {tabs.map((tab, i) => (
+        <button
+          type="button"
+          data-role-tab={tab.id}
+          class:list={[
+            "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer",
+            i === 0
+              ? "border-accent text-accent"
+              : "border-transparent text-text-muted hover:text-text",
+          ]}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+
+    <!-- Researcher panel (default) -->
+    <div data-role-panel="researcher">
+      <!-- Prerequisites table -->
+      <div data-animate="fade-up" class="mb-12 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border text-left">
+              <th class="pb-3 pr-4 font-display font-semibold text-text">Dependency</th>
+              <th class="pb-3 pr-4 font-display font-semibold text-text text-center">Required</th>
+              <th class="pb-3 font-display font-semibold text-text">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            {prerequisites.map((dep) => (
+              <tr class="border-b border-border/50">
+                <td class="py-3 pr-4">
+                  <a href={dep.url} class="text-link hover:text-text">{dep.name}</a>
+                </td>
+                <td class="py-3 pr-4 text-center">
+                  <span class={dep.required ? "text-success" : "text-text-muted"}>
+                    {dep.required ? "Yes" : "No"}
+                  </span>
+                </td>
+                <td class="py-3 text-text-muted">{dep.purpose}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Setup steps -->
+      <div class="space-y-6">
+        {steps.map((step, i) => (
+          <div data-animate="fade-up" class="flex gap-4">
+            <div class="shrink-0 w-8 h-8 rounded-full bg-surface-bright border border-border flex items-center justify-center">
+              <span class="font-mono text-sm text-accent">{i + 1}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-display font-semibold mb-2">{step.title}</h3>
+              <pre class="bg-base border border-border rounded-lg px-4 py-3 text-sm text-link overflow-x-auto"><code>{step.code}</code></pre>
+              {step.note && (
+                <p class="mt-2 text-sm text-text-muted">{step.note}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- PI / Evaluator panel -->
+    <div data-role-panel="evaluator" class="hidden">
+      <div class="space-y-6">
+        <div data-animate="fade-up" class="p-6 rounded-lg bg-base border border-border card-shadow">
+          <h3 class="font-display font-semibold mb-3">Writing aims from evidence</h3>
+          <p class="text-text-muted leading-relaxed">
+            Define a research goal. The reactor generates hypotheses from your lab's knowledge graph,
+            runs a tournament to rank them, and surfaces the top candidates -- each with mechanism,
+            predictions, and preliminary data already identified from existing datasets.
+          </p>
+        </div>
+        <div data-animate="fade-up" class="p-6 rounded-lg bg-base border border-border card-shadow">
+          <h3 class="font-display font-semibold mb-3">Allocating resources</h3>
+          <p class="text-text-muted leading-relaxed">
+            Filter the leaderboard by hypotheses testable with existing data. Surface candidates
+            with different cost profiles. The evidence trail is there for anyone to review.
+          </p>
+        </div>
+        <div data-animate="fade-up" class="p-6 rounded-lg bg-base border border-border card-shadow">
+          <h3 class="font-display font-semibold mb-3">New direction</h3>
+          <p class="text-text-muted leading-relaxed">
+            Read a paper that opens unexplored territory. Define a new goal. The graph already has
+            relevant claims and transferable data. The new direction starts with context, not from zero.
+          </p>
+        </div>
+        <p class="text-sm text-text-muted mt-6">
+          <a href={`${base}docs/`} class="text-link hover:text-text">Read the full documentation</a> for setup instructions and the complete command reference.
+        </p>
+      </div>
+    </div>
+
+    <!-- Developer panel -->
+    <div data-role-panel="developer" class="hidden">
+      <div class="space-y-6">
+        <div data-animate="fade-up" class="p-6 rounded-lg bg-base border border-border card-shadow">
+          <h3 class="font-display font-semibold mb-3">Test suite</h3>
+          <pre class="bg-surface-bright border border-border rounded-lg px-4 py-3 text-sm text-link overflow-x-auto mb-3"><code>cd _code && uv run pytest tests/ -v --cov=engram_r</code></pre>
+          <p class="text-text-muted text-sm">
+            Core library: note_builder, hypothesis_parser, elo, pii_filter, schema_validator,
+            plot system, literature search backends, and more.
+          </p>
+        </div>
+        <div data-animate="fade-up" class="p-6 rounded-lg bg-base border border-border card-shadow">
+          <h3 class="font-display font-semibold mb-3">Library structure</h3>
+          <p class="text-text-muted leading-relaxed mb-3">
+            Python code in <code class="text-link text-sm">_code/src/engram_r/</code>.
+            R code in <code class="text-link text-sm">_code/R/</code>.
+            Skills (Claude Code slash commands) in <code class="text-link text-sm">.claude/skills/</code>.
+          </p>
+          <p class="text-sm text-text-muted">
+            <a href="https://github.com/achousal/EngramR" class="text-link hover:text-text">View on GitHub</a>
+            <span class="mx-2 text-border">|</span>
+            <a href={`${base}docs/architecture/`} class="text-link hover:text-text">Architecture docs</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Doc links -->
+    <div data-animate="fade-up" class="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a
+        href={`${base}docs/getting-started/`}
+        class="btn-primary inline-flex items-center gap-2"
+      >
+        Quick Start
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+        </svg>
+      </a>
+      <a
+        href={`${base}docs/skills/`}
+        class="btn-secondary inline-flex items-center gap-2"
+      >
+        Skills Reference
+      </a>
+    </div>
+  </div>
+</section>

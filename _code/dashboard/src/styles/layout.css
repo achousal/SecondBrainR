@@ -1,0 +1,483 @@
+/* -- Top bar -- */
+.dashboard-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.dashboard-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.dashboard-institution {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.panel-select {
+  background: var(--color-surface-bright);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.375rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.btn-action {
+  background: var(--color-surface-bright);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.375rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-action:hover {
+  background: var(--color-accent);
+  color: var(--color-base);
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+/* -- Patient header -- */
+.patient-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.patient-header-item {
+  color: var(--color-text);
+  font-size: 0.9375rem;
+}
+
+.patient-header-item:first-child {
+  font-weight: 600;
+}
+
+.patient-header-sep {
+  color: var(--color-text-muted);
+  margin: 0 0.25rem;
+}
+
+/* -- Patient nav -- */
+.patient-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-btn {
+  background: var(--color-surface-bright);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.nav-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nav-count {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.nav-search {
+  margin-left: auto;
+  background: var(--color-surface-bright);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  width: 140px;
+  font-family: var(--font-sans);
+}
+
+.nav-search:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* -- File upload -- */
+.file-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  margin: 2rem 1.5rem;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.file-upload:hover,
+.file-upload.drag-over {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.file-upload-inner {
+  text-align: center;
+  padding: 2rem;
+}
+
+.file-upload-text {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.file-upload-sub {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.file-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* -- Gauge grid -- */
+.gauge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+/* -- Gauge card -- */
+.gauge-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.gauge-card-header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.gauge-card-name {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.9375rem;
+}
+
+.gauge-card-unit {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.gauge-card-arc {
+  margin: 0.5rem 0;
+}
+
+.gauge-card-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0.5rem 0;
+}
+
+.gauge-card-zone {
+  margin: 0.25rem 0;
+}
+
+.zone-badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.gauge-card-interpretation {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.gauge-card-source {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* -- Column mapper -- */
+.column-mapper {
+  margin: 1.5rem;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.mapper-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.mapper-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.mapper-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  margin-bottom: 1rem;
+}
+
+.mapper-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.mapper-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mapper-biomarker {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.mapper-aliases {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.mapper-select {
+  background: var(--color-surface-bright);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+/* -- Summary strip -- */
+.summary-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.summary-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-left: 3px solid;
+  font-size: 0.8125rem;
+}
+
+.summary-name {
+  color: var(--color-text);
+}
+
+.summary-zone {
+  font-weight: 500;
+}
+
+/* -- Empty state -- */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+/* -- Error message -- */
+.error-message {
+  margin: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-tension);
+  background: rgba(199, 90, 74, 0.1);
+  border: 1px solid var(--color-tension);
+  border-radius: var(--radius-sm);
+  color: var(--color-tension);
+  font-size: 0.875rem;
+}
+
+/* -- Disclaimer -- */
+.dashboard-disclaimer {
+  margin: 0.75rem 1.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+/* -- Footer -- */
+.dashboard-footer {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  border-top: 1px solid var(--color-border);
+  margin-top: 1rem;
+}
+
+/* -- Print styles -- */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .dashboard-topbar {
+    background: white;
+    border-color: #ddd;
+    color: black;
+  }
+
+  .dashboard-title {
+    color: black;
+  }
+
+  .patient-header {
+    background: white;
+    border-color: #ddd;
+  }
+
+  .patient-header-item {
+    color: black;
+  }
+
+  .patient-nav,
+  .file-upload,
+  .column-mapper,
+  .btn-action,
+  #btn-print,
+  .nav-search {
+    display: none !important;
+  }
+
+  .gauge-card {
+    background: white;
+    border-color: #ddd;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .gauge-card-name {
+    color: black;
+  }
+
+  .gauge-card-value {
+    color: black;
+  }
+
+  .gauge-card-interpretation {
+    color: #555;
+  }
+
+  .gauge-card-source {
+    color: #888;
+  }
+
+  .summary-strip {
+    background: white;
+    border-color: #ddd;
+  }
+
+  .summary-name {
+    color: black;
+  }
+
+  .gauge-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .dashboard-disclaimer {
+    border-color: #ddd;
+    color: #555;
+    background: #f9f9f9;
+  }
+
+  .dashboard-footer {
+    border-color: #ddd;
+    color: #888;
+  }
+}

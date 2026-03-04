@@ -1,0 +1,250 @@
+# ops/daemon-config.yaml -- Research Loop Daemon Configuration
+#
+# Controls behavior of the autonomous background daemon (ops/scripts/daemon.sh).
+# The daemon runs a priority cascade of synthesis and maintenance tasks,
+# queuing generative work for human review.
+#
+# For system architecture config, see: ops/config.yaml
+# For all valid values, see: ops/config-reference.yaml
+# For derivation rationale, see: ops/derivation.md
+
+# ---------------------------------------------------------------------------
+# Goal Priority
+# Order determines which research goals get tournament/generation resources
+# first. Goals not listed here still get processed, but at lower priority.
+# Slugs must match filenames in _research/goals/ (without .md extension).
+# ---------------------------------------------------------------------------
+goals_priority: []  # e.g. ["primary-hypothesis", "secondary-thread"]
+
+# ---------------------------------------------------------------------------
+# Model Selection
+# Which Claude model to use for each daemon task type.
+# Valid values: opus, sonnet, haiku
+#
+# Cost/quality tradeoff:
+#   opus   -- highest quality, slowest, most expensive (use sparingly)
+#   sonnet -- good balance for most analytical tasks
+#   haiku  -- fast and cheap, good for validation/formatting tasks
+# ---------------------------------------------------------------------------
+models:
+  tournament_primary: opus     # Pairwise debate for first-priority goal
+  tournament_other: sonnet     # Pairwise debate for non-priority goals
+  meta_review: sonnet          # Pattern synthesis across tournament results
+  landscape: sonnet            # Hypothesis proximity clustering
+  reflect: sonnet              # Connection-finding between notes
+  reweave: sonnet              # Backward-pass connection updates
+  reduce: sonnet               # Claim extraction from inbox sources
+  verify: haiku                # Description quality + schema checks
+  validate: haiku              # Frontmatter schema validation
+  remember: haiku              # Friction signal capture from sessions
+  rethink: sonnet              # Observation/tension triage and proposals
+  create: sonnet               # Claim note creation from task file
+  enrich: sonnet               # Content augmentation for existing claims
+  cross_connect: sonnet        # Post-batch sibling link validation
+
+# ---------------------------------------------------------------------------
+# Max Turns (Circuit Breakers)
+# Phase-specific turn budgets for ralph subagents. These are safety ceilings,
+# not performance targets. A phase hitting its limit is probably lost or stuck.
+#
+# Bounded phases (single read-write cycle) get tight caps.
+# Semi-bounded phases (search + link) get generous caps.
+# Unbounded phases (source-size-dependent) get the most headroom.
+# ---------------------------------------------------------------------------
+max_turns:
+  create: 12                   # Read task file, write note (raised from 8 for YAML retry headroom)
+  verify: 8                    # Recite + validate + review
+  enrich: 8                    # Read note, augment content
+  reflect: 15                  # Dual discovery + MOC update
+  reweave: 15                  # Find + update older notes
+  extract: 25                  # Large sources need many passes
+  cross_connect: 15            # Validate sibling links post-batch
+  parallel_worker: 30          # Full claim pipeline (create+reflect+reweave+verify)
+
+# ---------------------------------------------------------------------------
+# Cooldowns
+# Pause between daemon tasks to avoid rate limits and allow human review.
+# Higher values = slower but more review-friendly.
+# ---------------------------------------------------------------------------
+cooldowns_minutes:
+  after_haiku: 2               # Pause after haiku-tier tasks
+  after_sonnet: 5              # Pause after sonnet-tier tasks
+  after_opus: 10               # Pause after opus-tier tasks
+  idle: 30                     # Pause when no work remains (poll interval)
+
+# ---------------------------------------------------------------------------
+# Batching
+# How many items to process per daemon cycle for each task type.
+# Larger batches = more work per cycle but longer individual runs.
+# ---------------------------------------------------------------------------
+batching:
+  tournament_threshold: 8      # Goals with >= N hypotheses get batched tournaments
+  matches_per_session: 8       # Max pairwise matches per tournament session
+  verify_batch: 10             # Notes to verify per cycle
+  validate_batch: 20           # Notes to schema-validate per cycle
+  mine_sessions_batch: 30      # Session transcripts to mine for friction signals
+
+# ---------------------------------------------------------------------------
+# Thresholds
+# Condition triggers for daemon tasks. The daemon checks these each cycle
+# and runs the corresponding task when a threshold is met.
+# ---------------------------------------------------------------------------
+thresholds:
+  undermatched_matches: 3      # Hypotheses with < N matches need more tournament
+  observations_rethink: 10     # Pending observations that trigger /rethink
+  tensions_rethink: 5          # Pending tensions that trigger /rethink
+  queue_backlog: 10            # Queued tasks before daemon prioritizes clearing
+  orphan_notes: 10             # Notes with zero incoming links trigger /reflect
+  stale_notes_days: 30         # Days without update before a note is flagged stale
+  unmined_sessions: 2          # Unprocessed session transcripts trigger /remember
+
+# ---------------------------------------------------------------------------
+# Retry
+# Exponential backoff for failed daemon tasks.
+# ---------------------------------------------------------------------------
+retry:
+  max_per_task: 8              # Max retry attempts before skipping a task
+  initial_backoff_seconds: 60  # First retry delay
+  max_backoff_seconds: 900     # Cap on backoff (15 minutes)
+
+# ---------------------------------------------------------------------------
+# Timeout
+# Global daemon runtime limit. Set to 0 for true daemon mode (runs forever).
+# Non-zero values useful for CI or one-shot batch runs.
+# ---------------------------------------------------------------------------
+timeout:
+  global_hours: 0              # 0 = no timeout (run until killed)
+
+# ---------------------------------------------------------------------------
+# Metabolic Feedback
+# 7 indicators in 3 tiers regulate daemon behavior. When indicators enter
+# alarm state, the daemon suppresses creation and prioritizes maintenance.
+#
+# Tier 1 (Governance -- auto-suppress generative tasks):
+#   QPR  -- Queue Pressure Ratio (days of backlog at current processing rate)
+#   CMR  -- Creation:Maintenance Ratio (new vs maintained artifacts per week)
+#   TPV  -- Throughput Velocity (claims processed per day)
+#
+# Tier 2 (Awareness -- user-facing signals via /next):
+#   HCR  -- Hypothesis Conversion Rate (% with empirical engagement)
+#   GCR  -- Graph Connectivity Ratio (1 - orphans/total)
+#   IPR  -- Inbox Pressure Ratio (inbox growth / processing rate)
+#
+# Tier 3 (Observational -- logged, no automated action):
+#   VDR  -- Verification Debt Ratio (% claims not human-verified)
+# ---------------------------------------------------------------------------
+metabolic:
+  enabled: true
+  # Tier 1: Governance
+  qpr_critical: 3.0               # QPR > 3.0 triggers generation halt
+  cmr_hot: 10.0                    # CMR > 10:1 = running hot
+  tpv_stalled: 0.1                # TPV < 0.1/day = stalled throughput
+  # Tier 2: Awareness
+  hcr_redirect: 15.0              # HCR < 15% redirects to SAP support
+  gcr_fragmented: 0.3             # GCR < 0.3 = fragmented graph
+  ipr_overflow: 3.0               # IPR > 3.0 = inbox overflowing
+  # Tier 3: Observational (VDR informational only)
+  vdr_warn: 80.0                  # VDR > 80% = informational warning
+  lookback_days: 7                # Window for rate computations
+  history_max_snapshots: 90       # Max historical snapshots to retain
+
+# ---------------------------------------------------------------------------
+# Health Checks
+# The daemon periodically runs /health to detect vault issues (dangling
+# links, schema violations, orphan notes, etc.) and attempts auto-fixes.
+# ---------------------------------------------------------------------------
+health:
+  check_frequency_hours: 2     # Re-run /health if last report older than this
+  max_fix_iterations: 3        # Max health -> fix -> recheck cycles per loop
+  model: sonnet                # Model for /health quick checks
+
+# ---------------------------------------------------------------------------
+# Notifications
+# Send Slack notifications for vault events. Requires SLACK_BOT_TOKEN env var.
+# Set enabled: false or level: off to disable all notifications.
+#
+# Levels:
+#   all          -- notify on all enabled event types
+#   alerts-only  -- only daemon_alert events
+#   off          -- no notifications
+# ---------------------------------------------------------------------------
+notifications:
+  enabled: true
+  level: all
+  channels:
+    default: ""    # #all-engramr channel ID
+    alerts: ""                 # Separate channel for alerts (empty = use default)
+    daemon: ""                 # Separate channel for daemon events (empty = use default)
+  events:
+    session_start: true
+    session_end: true
+    daemon_task_complete: true
+    daemon_alert: true
+    daemon_for_you: true
+    tournament_result: true
+    new_hypothesis: false       # High volume -- disabled by default
+    meta_review: true
+  inbound:
+    enabled: true
+    lookback_hours: 24
+    channel: ""                # Channel to poll for inbound messages (empty = use default)
+
+# ---------------------------------------------------------------------------
+# Scheduled Tasks
+# Recurring time-triggered tasks (notifications, alerts, digests).
+# Each entry defines a schedule with cadence (weekly/daily/monthly),
+# target day/hour, and delivery method (dm/channel).
+#
+# The daemon checks schedules after P3 background tasks. Marker files
+# in ops/daemon/markers/ prevent re-firing within the same period.
+# Scheduled notifications run as direct Python (no LLM invocation).
+# ---------------------------------------------------------------------------
+schedules:
+  - name: weekly-project-update
+    type: project_update
+    cadence: weekly
+    day: monday
+    hour: 9
+    scope: active
+    delivery: dm
+    enabled: true
+
+  - name: stale-project-alert
+    type: stale_project
+    cadence: weekly
+    day: friday
+    hour: 16
+    scope: active
+    delivery: dm
+    enabled: false
+
+  - name: experiment-deadline
+    type: experiment_reminder
+    cadence: daily
+    hour: 8
+    lookahead_days: 3
+    delivery: dm
+    enabled: false
+
+# ---------------------------------------------------------------------------
+# Slack Bot
+# Two-way vault-aware Claude assistant via Socket Mode. Independent of
+# the notification system above. Requires SLACK_APP_TOKEN and
+# ANTHROPIC_API_KEY environment variables.
+# ---------------------------------------------------------------------------
+bot:
+  channel: ""                  # Channel where ALL messages trigger the bot (empty = DMs and @mentions only)
+  model: "claude-sonnet-4-20250514"  # Anthropic model ID for responses
+  max_context_messages: 20     # Max thread messages to include as conversation context
+  max_response_tokens: 4096    # Max tokens in Claude response
+  vault_refresh_interval_s: 300  # Re-read vault context files every N seconds
+  authority:
+    owner_ids: []                   # Slack user IDs with full access
+    allowed_ids: []                 # Additional authorized user IDs
+    public_access: true             # When true, anyone can query (open-access default)
+    max_per_user_per_minute: 5      # Rate limit per user
+    cooldown_after_deny_s: 30       # Cooldown period after rate-limit denial
+  skills:
+    enabled: true                   # Allow skill routing via Slack
+    confirm_mutative: true          # Require "yes" confirmation for mutative skills
+    confirmation_timeout_s: 300     # Seconds before a pending confirmation expires

@@ -1,0 +1,101 @@
+---
+import CycleDiagram from "./CycleDiagram.astro";
+const base = import.meta.env.BASE_URL;
+---
+
+<section id="how-it-works" class="py-24 md:py-32 bg-surface">
+  <div class="max-w-4xl mx-auto px-6">
+    <div data-animate="fade-up" class="mb-12">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">How it works</h2>
+      <p class="text-text-muted text-lg">
+        Two layers, one graph. Knowledge feeds hypotheses. Results feed knowledge.
+      </p>
+    </div>
+
+    <div data-animate="fade-up" class="mb-12">
+      <CycleDiagram />
+    </div>
+
+    <div class="space-y-4" data-animate="fade-up">
+      <details id="knowledge-layer" class="group border border-border rounded-lg overflow-hidden card-shadow">
+        <summary class="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-surface-bright transition-colors">
+          <span class="font-display font-semibold text-link">Knowledge Layer</span>
+          <svg class="w-5 h-5 text-text-muted transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </summary>
+        <div class="px-6 pb-6 text-text-muted leading-relaxed space-y-3">
+          <p>
+            Raw material enters <code class="text-link">inbox/</code>. The
+            <code class="text-link">/reduce</code> skill extracts atomic claims -- single-insight
+            notes titled as prose propositions with structured metadata.
+            <code class="text-link">/reflect</code> links them to existing claims in the graph.
+          </p>
+          <p>
+            Each claim is a node. Wiki links are edges. Topic maps organize claim
+            clusters into navigable neighborhoods. The pipeline enforces structure
+            before anything reaches the graph:
+          </p>
+          <code class="block text-sm bg-base px-4 py-2 rounded text-link">
+            inbox/ --> /reduce --> /reflect --> /reweave --> /verify --> notes/
+          </code>
+          <p class="mt-3 text-sm">
+            This is what happened at <a href="#morning" class="text-link hover:text-text">9:03am</a> -- the reactor extracted a claim and linked it to three existing nodes.
+            <a href={`${base}docs/workflows/`} class="text-link hover:text-text ml-1">Read the full workflow guide</a>.
+          </p>
+        </div>
+      </details>
+
+      <details id="hypothesis-layer" class="group border border-border rounded-lg overflow-hidden card-shadow">
+        <summary class="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-surface-bright transition-colors">
+          <span class="font-display font-semibold text-accent">Hypothesis Layer</span>
+          <svg class="w-5 h-5 text-text-muted transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </summary>
+        <div class="px-6 pb-6 text-text-muted leading-relaxed space-y-3">
+          <p>
+            When evidence density crosses a threshold,
+            <code class="text-accent">/generate</code> proposes testable hypotheses --
+            each with mechanism, predictions, and falsification criteria.
+            <code class="text-accent">/tournament</code> debates them pairwise. Elo
+            ratings rank the leaderboard. Debate transcripts are stored.
+          </p>
+          <p>
+            Goals spawn hypotheses. Hypotheses spawn projects. Project results feed
+            back into the hypothesis pool, reshaping the leaderboard. Because
+            hypotheses are notes in the graph, experimental results become new claims
+            that feed future cycles.
+          </p>
+          <p class="mt-3 text-sm">
+            This is what happened at <a href="#morning" class="text-accent hover:text-text">10:00am</a> -- the evolved hypothesis debated the original and won on evidence density.
+            <a href={`${base}docs/skills/`} class="text-accent hover:text-text ml-1">Read the skills reference</a>.
+          </p>
+        </div>
+      </details>
+
+      <details class="group border border-border rounded-lg overflow-hidden card-shadow">
+        <summary class="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-surface-bright transition-colors">
+          <span class="font-display font-semibold text-accent">Feedback Loop</span>
+          <svg class="w-5 h-5 text-text-muted transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </summary>
+        <div class="px-6 pb-6 text-text-muted leading-relaxed space-y-3">
+          <p>
+            <code class="text-accent">/meta-review</code> synthesizes what made
+            winners win. That feedback injects into the next
+            <code class="text-accent">/generate</code> and
+            <code class="text-accent">/evolve</code> cycle. Quality improves through
+            better prompts, not parameter updates.
+          </p>
+          <p>
+            No fine-tuning needed. Every decision, score, and recommendation is
+            recorded in the vault. The full chain of reasoning is traceable through
+            vault links. The human researcher drives each step.
+          </p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>

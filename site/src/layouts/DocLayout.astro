@@ -1,0 +1,33 @@
+---
+import Base from "./Base.astro";
+import Nav from "@components/Nav.astro";
+import DocSidebar from "@components/DocSidebar.astro";
+import DocToc from "@components/DocToc.astro";
+import Breadcrumb from "@components/Breadcrumb.astro";
+import "@styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { title, description, headings } = Astro.props;
+---
+
+<Base title={`${title} -- EngramR Docs`} description={description}>
+  <Nav />
+  <div class="doc-layout max-w-7xl mx-auto px-6 pt-20 pb-16">
+    <DocSidebar />
+    <article class="doc-content min-w-0">
+      <Breadcrumb title={title} />
+      <div class="doc-prose">
+        <slot />
+      </div>
+    </article>
+    <DocToc headings={headings} />
+  </div>
+  <script>
+    import "@scripts/toc.ts";
+  </script>
+</Base>

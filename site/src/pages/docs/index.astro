@@ -1,0 +1,80 @@
+---
+import { getCollection } from "astro:content";
+import Base from "@layouts/Base.astro";
+import Nav from "@components/Nav.astro";
+import "@styles/global.css";
+
+const docs = await getCollection("docs");
+const base = import.meta.env.BASE_URL;
+
+const groups = [
+  {
+    label: "Getting Started",
+    slugs: ["getting-started", "setup-guide"],
+  },
+  {
+    label: "Reference",
+    slugs: ["configuration", "workflows", "architecture", "querying"],
+  },
+  {
+    label: "Guides",
+    slugs: ["skills", "meta-skills", "literature", "plotting", "inter-lab"],
+  },
+  {
+    label: "Operations",
+    slugs: ["administration", "integrations", "security", "troubleshooting"],
+  },
+];
+
+function findDoc(slug: string) {
+  return docs.find((d) => d.id === slug);
+}
+
+function titleFromSlug(slug: string): string {
+  const doc = findDoc(slug);
+  if (doc?.data.title) return doc.data.title;
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function descFromSlug(slug: string): string {
+  const doc = findDoc(slug);
+  return doc?.data.description || "";
+}
+---
+
+<Base title="Documentation -- EngramR">
+  <Nav />
+  <div class="max-w-5xl mx-auto px-6 pt-20 pb-16">
+    <div class="mb-12">
+      <h1 class="text-3xl md:text-4xl font-bold font-display mb-4">Documentation</h1>
+      <p class="text-text-muted text-lg">
+        Everything you need to run your research reactor.
+      </p>
+    </div>
+
+    {groups.map((group) => (
+      <div class="mb-10">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4">
+          {group.label}
+        </h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {group.slugs.map((slug) => (
+            <a
+              href={`${base}docs/${slug}/`}
+              class="block p-5 rounded-lg border border-border bg-surface hover:border-accent-dim transition-colors no-underline group card-shadow card-shadow-hover"
+            >
+              <h3 class="font-display font-semibold text-text group-hover:text-accent transition-colors mb-2">
+                {titleFromSlug(slug)}
+              </h3>
+              {descFromSlug(slug) && (
+                <p class="text-sm text-text-muted leading-relaxed line-clamp-2">
+                  {descFromSlug(slug)}
+                </p>
+              )}
+            </a>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+</Base>

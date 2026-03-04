@@ -1,0 +1,148 @@
+# ops/sections.yaml -- Code section definitions for /dev
+#
+# Each section defines a logical boundary of the codebase with:
+#   paths: directories that belong to this section
+#   checks: commands that verify section health
+#   depends_on: sections whose changes can break this one
+#
+# Used by: ops/scripts/section-check.sh, /dev
+
+sections:
+
+  core-lib:
+    label: "Core Library"
+    paths:
+      - _code/src/engram_r
+      - _code/tests
+    checks:
+      - name: tests
+        cmd: "cd _code && uv run pytest tests/ -v --tb=short 2>&1"
+        pass_pattern: "passed"
+        fail_pattern: "FAILED|ERROR"
+      - name: coverage
+        cmd: "cd _code && uv run pytest tests/ --cov=engram_r --cov-report=term-missing -q 2>&1 | tail -5"
+        pass_pattern: "\\d+%"
+      - name: lint
+        cmd: "cd _code && uv run ruff check src/ 2>&1"
+        pass_pattern: "All checks passed|no issues"
+        fail_pattern: "Found \\d+ error"
+      - name: format
+        cmd: "cd _code && uv run black --check src/ 2>&1"
+        pass_pattern: "would be reformatted|All done"
+        fail_pattern: "would reformat"
+    depends_on: []
+    subsections:
+      vault-io:
+        modules: [note_builder, schema_validator, integrity, hook_utils, audit]
+      search-apis:
+        modules: [pubmed, arxiv, semantic_scholar, openalex, crossref, unpaywall, search_interface]
+      research-engine:
+        modules: [hypothesis_parser, hypothesis_exchange, claim_exchange, elo, decision_engine]
+      daemon:
+        modules: [daemon_config, daemon_scheduler, schedule_runner, _daemon_backoff, metabolic_indicators]
+      viz:
+        modules: [plot_builders, plot_stats, plot_theme, eda, pii_filter]
+      integrations:
+        modules: [slack_client, slack_bot, slack_formatter, slack_notify, federation_config, vault_registry, domain_profile]
+
+  r-lib:
+    label: "R Library"
+    paths:
+      - _code/R
+    checks:
+      - name: tests
+        cmd: "cd _code && Rscript -e \"testthat::test_dir('R/tests')\" 2>&1"
+        pass_pattern: "OK|Pass"
+        fail_pattern: "FAIL|Error"
+      - name: lint
+        cmd: "cd _code && Rscript -e \"lintr::lint_dir('R')\" 2>&1"
+        pass_pattern: "^$"
+        fail_pattern: "style:|warning:|error:"
+    depends_on: []
+
+  skills:
+    label: "Skills"
+    paths:
+      - .claude/skills
+    checks:
+      - name: structure
+        cmd: "ops/scripts/section-check.sh --validate-skills 2>&1"
+        pass_pattern: "PASS"
+        fail_pattern: "FAIL"
+      - name: module-refs
+        cmd: "ops/scripts/section-check.sh --check-skill-refs 2>&1"
+        pass_pattern: "PASS"
+        fail_pattern: "FAIL"
+      - name: tool-refs
+        cmd: "ops/scripts/section-check.sh --check-skill-tools 2>&1"
+        pass_pattern: "PASS"
+        fail_pattern: "FAIL"
+    depends_on:
+      - core-lib
+
+  ops-infra:
+    label: "Operations"
+    paths:
+      - ops/scripts
+      - ops/config.yaml
+      - ops/daemon-config.yaml
+    checks:
+      - name: shellcheck
+        cmd: "command -v shellcheck >/dev/null && shellcheck ops/scripts/*.sh 2>&1 || echo 'shellcheck not installed (skipped)'"
+        pass_pattern: "skipped|^$"
+        fail_pattern: "SC\\d+"
+      - name: config-valid
+        cmd: "cd _code && uv run python -c 'import yaml; yaml.safe_load(open(\"../ops/config.yaml\"))' 2>&1"
+        pass_pattern: "^$"
+        fail_pattern: "Error|error"
+    depends_on:
+      - core-lib
+
+  site:
+    label: "Site"
+    paths:
+      - site
+    checks:
+      - name: build
+        cmd: "cd site && npm run build 2>&1"
+        pass_pattern: "done|complete"
+        fail_pattern: "error|ERR!"
+    depends_on:
+      - docs-templates
+
+  dashboard:
+    label: "Dashboard"
+    paths:
+      - _code/dashboard
+    checks:
+      - name: tests
+        cmd: "cd _code/dashboard && npx vitest run 2>&1"
+        pass_pattern: "passed"
+        fail_pattern: "FAILED|FAIL"
+      - name: build
+        cmd: "cd _code/dashboard && npm run build 2>&1"
+        pass_pattern: "built in"
+        fail_pattern: "error"
+      - name: typecheck
+        cmd: "cd _code/dashboard && npx tsc --noEmit 2>&1"
+        pass_pattern: "^$"
+        fail_pattern: "error TS"
+    depends_on:
+      - core-lib
+
+  docs-templates:
+    label: "Docs & Templates"
+    paths:
+      - docs
+      - _code/templates
+      - _code/styles
+    checks:
+      - name: internal-links
+        cmd: "ops/scripts/section-check.sh --check-doc-links 2>&1"
+        pass_pattern: "PASS"
+        fail_pattern: "FAIL"
+      - name: template-schema
+        cmd: "ops/scripts/section-check.sh --check-templates 2>&1"
+        pass_pattern: "PASS"
+        fail_pattern: "FAIL"
+    depends_on: []

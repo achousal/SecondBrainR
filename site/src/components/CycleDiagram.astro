@@ -1,0 +1,267 @@
+---
+---
+
+<div class="cycle-wrap">
+  <svg
+    viewBox="0 0 840 480"
+    class="w-full h-auto"
+    style="overflow: visible;"
+    role="img"
+    aria-label="Research cycle: knowledge processing flows into hypothesis generation in a continuous feedback loop"
+  >
+    <defs>
+      <filter id="glow-b" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="5" result="blur" />
+        <feFlood flood-color="#5ba3c9" flood-opacity="0.3" />
+        <feComposite in2="blur" operator="in" result="glow" />
+        <feMerge>
+          <feMergeNode in="glow" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+      <filter id="glow-g" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="5" result="blur" />
+        <feFlood flood-color="#d4a24e" flood-opacity="0.3" />
+        <feComposite in2="blur" operator="in" result="glow" />
+        <feMerge>
+          <feMergeNode in="glow" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+      <filter id="glow-p" x="-200%" y="-200%" width="500%" height="500%">
+        <feGaussianBlur stdDeviation="4" />
+      </filter>
+
+      <linearGradient id="grad-bridge" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3d7a9e" />
+        <stop offset="100%" stop-color="#92702e" />
+      </linearGradient>
+      <linearGradient id="grad-feedback" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="#92702e" />
+        <stop offset="100%" stop-color="#3d7a9e" />
+      </linearGradient>
+
+      <marker id="a-b" viewBox="0 0 10 7" refX="10" refY="3.5"
+        markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#3d7a9e" />
+      </marker>
+      <marker id="a-g" viewBox="0 0 10 7" refX="10" refY="3.5"
+        markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#92702e" />
+      </marker>
+    </defs>
+
+    <!-- Racetrack outline -->
+    <path
+      d="M 165 135 L 590 135 C 720 135, 720 345, 590 345 L 158 345 C 30 345, 30 135, 165 135 Z"
+      fill="none" stroke="#71717a" stroke-width="0.75"
+      stroke-dasharray="2 8" opacity="0.08"
+    />
+
+    <!-- Lane backgrounds -->
+    <rect x="70" y="100" width="700" height="70" rx="12"
+      fill="#5ba3c9" opacity="0.03" />
+    <rect x="70" y="310" width="700" height="70" rx="12"
+      fill="#d4a24e" opacity="0.03" />
+
+    <!-- Lane labels -->
+    <text x="760" y="108" fill="#5ba3c9" font-size="13"
+      font-family="var(--font-display)" font-weight="600"
+      text-anchor="end" opacity="0.7"
+      letter-spacing="0.06em">Knowledge</text>
+    <text x="760" y="318" fill="#d4a24e" font-size="13"
+      font-family="var(--font-display)" font-weight="600"
+      text-anchor="end" opacity="0.7"
+      letter-spacing="0.06em">Hypothesis</text>
+
+    <!-- Connection paths -->
+
+    <!-- inbox -> /reduce -->
+    <path id="p1" d="M 221 135 L 319 135"
+      stroke="#3d7a9e" stroke-width="1.2" fill="none"
+      marker-end="url(#a-b)" opacity="0.4" />
+
+    <!-- /reduce -> /reflect -->
+    <path id="p2" d="M 431 135 L 534 135"
+      stroke="#3d7a9e" stroke-width="1.2" fill="none"
+      marker-end="url(#a-b)" opacity="0.4" />
+
+    <!-- /reflect -> /generate (right turn, bridge) -->
+    <path id="p3"
+      d="M 590 157 C 680 190, 680 290, 590 323"
+      stroke="url(#grad-bridge)" stroke-width="1.2" fill="none"
+      stroke-dasharray="5 4" opacity="0.45" />
+
+    <!-- /generate -> /tournament -->
+    <path id="p4" d="M 520 345 L 445 345"
+      stroke="#92702e" stroke-width="1.2" fill="none"
+      marker-end="url(#a-g)" opacity="0.4" />
+
+    <!-- /tournament -> /meta-review -->
+    <path id="p5" d="M 305 345 L 228 345"
+      stroke="#92702e" stroke-width="1.2" fill="none"
+      marker-end="url(#a-g)" opacity="0.4" />
+
+    <!-- Feedback arc glow track -->
+    <path
+      d="M 158 323 C 50 290, 50 190, 165 157"
+      stroke="url(#grad-feedback)" stroke-width="4" fill="none"
+      opacity="0.06" />
+    <!-- Feedback arc -->
+    <path id="p6"
+      d="M 158 323 C 50 290, 50 190, 165 157"
+      stroke="url(#grad-feedback)" stroke-width="1.5" fill="none"
+      stroke-dasharray="6 5" opacity="0.4" />
+
+    <!-- Feedback label -->
+    <text x="38" y="245" fill="#d4a24e" font-size="11"
+      font-family="var(--font-display)" font-weight="600"
+      opacity="0.6" transform="rotate(-90 38 245)" text-anchor="middle"
+      letter-spacing="0.06em">Feedback</text>
+
+    <!-- Animated particles -->
+    <g class="particles">
+      <circle r="2.5" fill="#5ba3c9" filter="url(#glow-p)">
+        <animateMotion dur="1.8s" repeatCount="indefinite" begin="0s">
+          <mpath href="#p1" />
+        </animateMotion>
+      </circle>
+      <circle r="2.5" fill="#5ba3c9" filter="url(#glow-p)">
+        <animateMotion dur="1.8s" repeatCount="indefinite" begin="0.7s">
+          <mpath href="#p2" />
+        </animateMotion>
+      </circle>
+      <circle r="2.5" fill="#7a9fb5" filter="url(#glow-p)">
+        <animateMotion dur="2.5s" repeatCount="indefinite" begin="1.5s">
+          <mpath href="#p3" />
+        </animateMotion>
+      </circle>
+      <circle r="2.5" fill="#d4a24e" filter="url(#glow-p)">
+        <animateMotion dur="1.8s" repeatCount="indefinite" begin="2.2s">
+          <mpath href="#p4" />
+        </animateMotion>
+      </circle>
+      <circle r="2.5" fill="#d4a24e" filter="url(#glow-p)">
+        <animateMotion dur="1.8s" repeatCount="indefinite" begin="3s">
+          <mpath href="#p5" />
+        </animateMotion>
+      </circle>
+      <circle r="3" fill="#b8863c" filter="url(#glow-p)">
+        <animateMotion dur="3s" repeatCount="indefinite" begin="3.8s">
+          <mpath href="#p6" />
+        </animateMotion>
+      </circle>
+    </g>
+
+    <!-- Knowledge nodes -->
+
+    <g class="cycle-node" tabindex="0" role="button"
+      aria-label="Inbox: Raw material enters the system -- papers, observations, data.">
+      <rect x="109" y="113" width="112" height="44" rx="22"
+        fill="#131316" stroke="#3d7a9e" stroke-width="1.5"
+        filter="url(#glow-b)" />
+      <text x="165" y="140" text-anchor="middle" fill="#5ba3c9"
+        font-size="13" font-family="var(--font-mono)">inbox/</text>
+    </g>
+
+    <g class="cycle-node" tabindex="0" role="button"
+      aria-label="/reduce: Extracts atomic claims with structured metadata from source material.">
+      <rect x="319" y="113" width="112" height="44" rx="22"
+        fill="#131316" stroke="#3d7a9e" stroke-width="1.5"
+        filter="url(#glow-b)" />
+      <text x="375" y="140" text-anchor="middle" fill="#5ba3c9"
+        font-size="13" font-family="var(--font-mono)">/reduce</text>
+    </g>
+
+    <g class="cycle-node" tabindex="0" role="button"
+      aria-label="/reflect: Links new claims to existing ones, updates topic maps, finds connections.">
+      <rect x="534" y="113" width="112" height="44" rx="22"
+        fill="#131316" stroke="#3d7a9e" stroke-width="1.5"
+        filter="url(#glow-b)" />
+      <text x="590" y="140" text-anchor="middle" fill="#5ba3c9"
+        font-size="13" font-family="var(--font-mono)">/reflect</text>
+    </g>
+
+    <!-- Hypothesis nodes -->
+
+    <g class="cycle-node" tabindex="0" role="button"
+      aria-label="/generate: Proposes testable hypotheses grounded in accumulated claims.">
+      <rect x="520" y="323" width="140" height="44" rx="22"
+        fill="#131316" stroke="#92702e" stroke-width="1.5"
+        filter="url(#glow-g)" />
+      <text x="590" y="350" text-anchor="middle" fill="#d4a24e"
+        font-size="13" font-family="var(--font-mono)">/generate</text>
+    </g>
+
+    <g class="cycle-node" tabindex="0" role="button"
+      aria-label="/tournament: Debates hypotheses pairwise on specificity, evidence, and testability. Elo ratings rank the leaderboard.">
+      <rect x="305" y="323" width="140" height="44" rx="22"
+        fill="#131316" stroke="#92702e" stroke-width="1.5"
+        filter="url(#glow-g)" />
+      <text x="375" y="350" text-anchor="middle" fill="#d4a24e"
+        font-size="13" font-family="var(--font-mono)">/tournament</text>
+    </g>
+
+    <g class="cycle-node" tabindex="0" role="button"
+      aria-label="/meta-review: Extracts what made winners win and injects feedback into the next generation cycle.">
+      <rect x="88" y="323" width="140" height="44" rx="22"
+        fill="#131316" stroke="#92702e" stroke-width="1.5"
+        filter="url(#glow-g)" />
+      <text x="158" y="350" text-anchor="middle" fill="#d4a24e"
+        font-size="13" font-family="var(--font-mono)">/meta-review</text>
+    </g>
+
+    <!-- Center text -->
+    <text x="420" y="234" text-anchor="middle" fill="#e4e2dd"
+      font-size="13" font-family="var(--font-display)" font-weight="600"
+      opacity="0.45">
+      claims feed hypotheses
+    </text>
+    <text x="420" y="256" text-anchor="middle" fill="#e4e2dd"
+      font-size="13" font-family="var(--font-display)" font-weight="600"
+      opacity="0.45">
+      results feed claims
+    </text>
+
+  </svg>
+
+  <div
+    id="cycle-desc"
+    class="mt-4 min-h-[3rem] text-sm text-text-muted text-center transition-opacity duration-200"
+    aria-live="polite"
+  >
+    Hover or focus a node to see its role in the cycle.
+  </div>
+</div>
+
+<style>
+  .cycle-node {
+    cursor: pointer;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 0.2s ease;
+  }
+  .cycle-node rect {
+    transition: stroke-width 0.2s ease;
+  }
+  .cycle-node:hover,
+  .cycle-node:focus {
+    transform: scale(1.06);
+  }
+  .cycle-node:hover rect,
+  .cycle-node:focus rect {
+    stroke-width: 2.5;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .particles {
+      display: none;
+    }
+    .cycle-node {
+      transition: none;
+    }
+    .cycle-node rect {
+      transition: none;
+    }
+  }
+</style>

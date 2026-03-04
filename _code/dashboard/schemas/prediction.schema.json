@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://engram-r.dev/schemas/prediction.schema.json",
+  "title": "Prediction Payload",
+  "description": "ML prediction output with risk scores and SHAP values per patient",
+  "type": "object",
+  "required": ["modelId", "runId", "patients"],
+  "properties": {
+    "modelId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Model identifier"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Run/batch identifier"
+    },
+    "patients": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/PredictionResult" }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "PredictionResult": {
+      "type": "object",
+      "required": ["patientId", "probability", "classification", "shapValues", "baseValue"],
+      "properties": {
+        "patientId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "classification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "shapValues": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ShapEntry" }
+        },
+        "baseValue": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ShapEntry": {
+      "type": "object",
+      "required": ["feature", "value", "shapValue"],
+      "properties": {
+        "feature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "shapValue": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

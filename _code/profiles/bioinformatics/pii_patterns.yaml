@@ -1,0 +1,7 @@
+# PII column patterns for biomedical / clinical research datasets.
+# Loaded by domain_profile and injected via pii_filter.register_domain_patterns().
+column_patterns:
+  - "\\b(subject|patient|participant|person|individual)[\\s_]?id\\b"
+  - "\\b(patient|subject|participant)[\\s_]?name\\b"
+  - "\\bMRN\\b"
+  - "\\bsample[\\s_]?id\\b"
