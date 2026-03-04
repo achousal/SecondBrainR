@@ -148,6 +148,14 @@ Sections: Statement, Mechanism, Literature Grounding, Testable Predictions, Prop
 | `SLACK_TEAM_ID` | Slack | Workspace team ID |
 | `ANTHROPIC_API_KEY` | Slack | Claude API key for Slack bot responses |
 
+## Optional extras
+
+| Extra | Install | Provides |
+|-------|---------|----------|
+| `[ml]` | `uv sync --extra ml` | scikit-learn -- enables `build_roc()` with raw arrays |
+| `[dev]` | `uv sync --extra dev` | pytest, pytest-cov, ruff, black |
+| `[bot]` | `uv sync --extra bot` | slack-bolt, anthropic -- Slack integration |
+
 ## Domain profiles
 
 Domain-specific configuration (search backends, vocabulary, plausibility criteria) lives in `profiles/`. The default bioinformatics profile enables PubMed, arXiv, Semantic Scholar, and OpenAlex; other domains can define their own search backends and terminology.

@@ -94,10 +94,10 @@ done
 echo "Coverage: $COVERED / $NOTE_COUNT"
 ```
 
-If graph helper scripts exist in `ops/scripts/graph/`, use them instead of inline analysis:
-- `ops/scripts/graph/link-density.sh` for density metrics
-- `ops/scripts/graph/orphan-notes.sh` for orphan detection
-- `ops/scripts/graph/dangling-links.sh` for dangling link detection
+If graph helper scripts exist in `ops/scripts/`, use them instead of inline analysis:
+- `ops/scripts/link-density.sh` for density metrics
+- `ops/scripts/orphan-notes.sh` for orphan detection
+- `ops/scripts/dangling-links.sh` for dangling link detection
 
 **Step 2: Interpret and present**
 
@@ -543,7 +543,7 @@ All operations still run — they just produce less data.
 
 ### No Graph Scripts Available
 
-If `ops/scripts/graph/` does not exist or individual scripts are missing, implement the analysis inline using grep, file reads, and bash loops as shown in each operation's steps. The inline implementations are complete — scripts are optimization, not requirements.
+If `ops/scripts/` does not exist or individual scripts are missing, implement the analysis inline using grep, file reads, and bash loops as shown in each operation's steps. The inline implementations are complete — scripts are optimization, not requirements.
 
 
 

@@ -6,7 +6,7 @@ for papers without DOI), updates the literature note files, fixes queue
 source paths, and flips queue status from blocked -> pending.
 
 Usage:
-    uv run --directory _code python scripts/populate_stubs.py [--dry-run]
+    uv run --directory _code python scripts/maintenance/populate_stubs.py [--dry-run]
 """
 
 from __future__ import annotations

@@ -1,7 +1,7 @@
 ---
 name: enrich
-description: Integrate new evidence into existing claims. Adds source material to target notes with proper citation, upgrades YAML provenance fields, and signals downstream actions (title-sharpen, split, merge). Always dispatched by ralph pipeline, never called interactively.
-user-invocable: false
+description: Integrate new evidence into existing claims. Adds source material to target notes with proper citation, upgrades YAML provenance fields, and signals downstream actions (title-sharpen, split, merge). Dispatched by ralph pipeline or called interactively. Triggers on "/enrich", "/enrich [task file]", "enrich claim", "add evidence to note".
+user-invocable: true
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 context: fork
 ---
@@ -33,18 +33,26 @@ Before processing the target note, check its frontmatter for `quarantine: true`.
 **Target: $ARGUMENTS**
 
 Parse immediately:
-- The task file path is provided by ralph in the prompt
-- If arguments contain `--handoff`: output RALPH HANDOFF block at end
+- If arguments contain `--handoff`: pipeline mode (ralph dispatch). Task file path is in the prompt. Apply changes directly without proposal.
+- If arguments contain a task file path (e.g., `ops/queue/...`): interactive mode on a specific task. Present proposal before applying.
+- If arguments contain `[[note name]]`: interactive freeform mode. User specifies what to add conversationally.
+- If arguments are empty: list pending enrichment tasks and let user pick.
 
 **Execute these steps:**
 
-### Step 1: Read Task File
+### Step 1: Read Task File (pipeline/task mode) or Gather Input (freeform mode)
 
-Read the task file at the path provided. Parse frontmatter fields:
+**Pipeline/task mode:** Read the task file at the path provided. Parse frontmatter fields:
 - `target_note`: wiki-link to the claim to enrich
 - `addition`: summary of what to add
 - `source_task`: literature archive filename (without extension)
 - `source_lines`: line numbers to read from the literature archive
+
+**Freeform mode** (`/enrich [[note name]]`): No task file exists. Ask the user:
+1. What evidence to add (or which literature source to draw from)
+2. If a literature archive is specified, which lines contain the evidence
+
+**Empty arguments** (`/enrich`): List pending enrichment tasks from `ops/queue/queue.json` (filter for `current_phase: "enrich"` and `status: "pending"`). Present a numbered list and let the user pick. Then proceed as task mode.
 
 ### Step 2: Locate Target Note
 
@@ -71,7 +79,37 @@ Read the target note fully. Understand:
 - Current YAML frontmatter (confidence, source_class, source, verified_by)
 - Current wiki links and connections
 
-### Step 5: Integrate Addition into Target Note
+### Step 5: Present Proposal (interactive mode only)
+
+**For pipeline execution (--handoff):** Skip this step. Apply changes directly.
+
+**For interactive execution (no --handoff):** Present the enrichment proposal before applying:
+
+```markdown
+## Enrichment Proposal: [[target note]]
+
+### Source
+[[source literature note]] (lines N-M)
+
+### Evidence to Integrate
+> [quoted source lines that will be used]
+
+### Proposed Changes
+
+**Body:** [description of what will be added and where]
+
+**YAML upgrades:** [fields to change] | NONE
+
+### Not Changing
+- [what was considered but rejected]
+
+---
+Apply these changes? (yes/no/modify)
+```
+
+Wait for user approval before proceeding. If the user modifies the proposal, adjust accordingly.
+
+### Step 6: Integrate Addition into Target Note
 
 Add the new evidence as **prose** integrated into the body text. Rules:
 - Write as a new paragraph or extend an existing paragraph where the evidence fits naturally
@@ -81,7 +119,7 @@ Add the new evidence as **prose** integrated into the body text. Rules:
 - The integrated text must use ONLY content from the source_lines read in Step 3. NEVER fabricate evidence from training knowledge
 - The addition must read as coherent prose continuous with the existing body, not as a list append or footnote
 
-### Step 6: Evaluate YAML Upgrades
+### Step 7: Evaluate YAML Upgrades
 
 Check whether the new evidence warrants YAML field changes:
 
@@ -95,7 +133,7 @@ Check whether the new evidence warrants YAML field changes:
 
 **YAML safety:** Always double-quote all string values in YAML frontmatter.
 
-### Step 7: Assess post_enrich_action
+### Step 8: Assess post_enrich_action
 
 Evaluate the target note AFTER integration. Signal one of:
 
@@ -108,7 +146,7 @@ Evaluate the target note AFTER integration. Signal one of:
 
 Record the assessment and detail in the task file.
 
-### Step 8: Update Task File
+### Step 9: Update Task File
 
 Write the `## Enrich` section of the task file with:
 - Date completed
@@ -119,7 +157,7 @@ Write the `## Enrich` section of the task file with:
 - post_enrich_action assessment
 - Confirmation: "No new files created; edit confined to target claim only."
 
-### Step 9: Handoff (if --handoff flag)
+### Step 10: Handoff (if --handoff flag)
 
 If `--handoff` is in arguments, output the RALPH HANDOFF block.
 
@@ -216,6 +254,24 @@ Queue Updates:
 After completing the workflow, update the `## Enrich` section of the task file with the changes-made summary. The downstream phases (reflect, reweave, verify) each have their own sections to fill.
 
 **Critical:** The handoff block is OUTPUT, not a replacement for the workflow. Do the full enrich workflow first, update task file, then format results as handoff.
+
+### Queue Update (interactive execution)
+
+When running interactively (NOT via /ralph), YOU must advance the phase in the queue. /ralph handles this automatically, but interactive sessions do not.
+
+**After completing the workflow, advance the phase:**
+
+```bash
+# get timestamp
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# advance phase (current_phase -> next, append to completed_phases)
+jq '(.tasks[] | select(.id=="TASK_ID")).current_phase = "reflect" |
+    (.tasks[] | select(.id=="TASK_ID")).completed_phases += ["enrich"]' \
+    ops/queue/queue.json > tmp.json && mv tmp.json ops/queue/queue.json
+```
+
+The handoff block's "Queue Updates" section is not just output -- it is your own todo list when running interactively.
 
 ## Pipeline Chaining
 

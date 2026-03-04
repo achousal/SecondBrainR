@@ -408,6 +408,10 @@ Split bundled claims, merge near-duplicates, reorganize topic map sections, rena
 
 ### Meta-Commands
 
+### Plugin Skills (arscontexta)
+
+The following skills require the arscontexta plugin. They provide research-backed methodology guidance, system scaffolding, and vault health diagnostics.
+
 #### /health
 Run a comprehensive vault health check.
 

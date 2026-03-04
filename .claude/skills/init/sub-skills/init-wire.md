@@ -53,9 +53,10 @@ For each topic map referenced in the claims:
 ### Step 5: Project-to-Claim Bridges (5c)
 
 For each goal:
-1. Find matching projects via lab index files
-2. Check idempotency (existing linked_goals)
-3. Update project frontmatter with goal links
+1. Read `linked_labs` from the goal object in SELECTED_GOALS, then list projects under `projects/{lab-slug}/`
+2. Match projects by domain overlap with the goal scope
+3. Check idempotency (existing linked_goals)
+4. Update project frontmatter with goal links
 
 ### Step 6: Goal File Updates (5d)
 

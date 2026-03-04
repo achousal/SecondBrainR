@@ -189,7 +189,7 @@ Check: goal slug must not collide with any existing file in notes/.
 
 **If user edits a goal:** Apply changes to the goal file in `_research/goals/` and update `self/goals.md` before proceeding. Re-present the edited goal for confirmation.
 
-**If user adds a new goal:** Create a new goal file following `_code/templates/research-goal.md`, update `self/goals.md`, then add it to SELECTED_GOALS.
+**If user adds a new goal:** Scan `projects/*/` for onboarded labs. If exactly one lab exists, auto-assign it to `linked_labs` and inform the user (e.g., "Linked to your lab."). If multiple labs exist, ask which lab(s) this goal belongs to. If no labs exist, warn that `/onboard` should run first, or set `linked_labs: []` and note that project bridges will need manual wiring later. Create the goal file following `_code/templates/research-goal.md` with `linked_labs` populated, update `self/goals.md`, then add it to SELECTED_GOALS.
 
 **If user removes a goal:** Confirm removal. Delete the goal file and remove its entry from `self/goals.md`.
 

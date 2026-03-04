@@ -104,12 +104,7 @@ For each topic map referenced in the created claims:
 
 For each goal in SELECTED_GOALS:
 
-1. **Identify candidate projects.** Read lab-level index files to determine which lab owns the goal:
-   ```bash
-   grep -rl "{goal-slug}" projects/*/_index.md 2>/dev/null
-   ```
-
-   Then list all project files under matching lab directories:
+1. **Identify candidate projects.** Read `linked_labs` from the goal object in SELECTED_GOALS (already available in the temp file -- do NOT grep for the goal slug). For each lab slug in `linked_labs`, list all project files under that lab directory:
    ```bash
    ls projects/{lab-slug}/*.md 2>/dev/null
    ```
