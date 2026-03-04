@@ -1111,6 +1111,43 @@ class TestDetectSessionTips:
         priorities = [t.priority for t in tips]
         assert priorities == sorted(priorities)
 
+    def test_queue_blocked_count_in_snapshot(self):
+        snap = VaultSnapshot()
+        assert snap.queue_blocked_count == 0
+
+    def test_queue_blocked_fires(self):
+        snap = VaultSnapshot(queue_blocked_count=3)
+        tips = detect_session_tips(snap)
+        assert any(t.tip_id == "queue_blocked" for t in tips)
+
+    def test_queue_blocked_zero_does_not_fire(self):
+        snap = VaultSnapshot(queue_blocked_count=0)
+        tips = detect_session_tips(snap)
+        assert not any(t.tip_id == "queue_blocked" for t in tips)
+
+    def test_queue_blocked_message_format(self):
+        snap = VaultSnapshot(queue_blocked_count=5)
+        tips = detect_session_tips(snap)
+        blocked_tips = [t for t in tips if t.tip_id == "queue_blocked"]
+        assert len(blocked_tips) == 1
+        assert blocked_tips[0].message.startswith("/literature")
+        assert "5" in blocked_tips[0].message
+
+    def test_all_tip_messages_are_command_leading(self):
+        snap = VaultSnapshot(
+            inbox_count=3, has_recent_reduce=False,
+            queue_pending=5, queue_blocked_count=2,
+            claim_count=25, hypothesis_count=0,
+            observation_count=15, tension_count=7,
+        )
+        tips = detect_session_tips(snap)
+        assert len(tips) > 0
+        for tip in tips:
+            assert tip.message.startswith("/"), (
+                f"Tip '{tip.tip_id}' message does not start with '/': "
+                f"{tip.message}"
+            )
+
 
 class TestSessionTipsIntegration:
     def _make_vault_with_inbox(self, tmp_path: Path) -> Path:

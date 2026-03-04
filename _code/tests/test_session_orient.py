@@ -213,9 +213,11 @@ def test_overdue_reminders_missing(vault: Path) -> None:
 def test_main_includes_vault_state(
     vault: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Main output includes vault state counts and maintenance signals."""
+    """Main output includes vault state counts and Next Action section."""
     (vault / "notes" / "a.md").write_text("x", encoding="utf-8")
     (vault / "inbox" / "b.md").write_text("x", encoding="utf-8")
+    (vault / "ops" / "queue").mkdir(exist_ok=True)
+    (vault / "_research" / "hypotheses").mkdir(exist_ok=True)
 
     with (
         patch("session_orient.resolve_vault", return_value=vault),
@@ -227,7 +229,11 @@ def test_main_includes_vault_state(
     output = capsys.readouterr().out
     assert "Claims: 1" in output
     assert "Inbox: 1" in output
-    assert "Inbox has unprocessed items" in output
+    # Old maintenance signals must be gone
+    assert "Inbox has unprocessed items" not in output
+    # New Next Action section must be present (inbox triggers reduce_inbox tip)
+    assert "### Next Action" in output
+    assert "/reduce" in output
 
 
 # --- Integrity check tests ---
@@ -330,7 +336,7 @@ def test_integrity_check_does_not_crash_on_error(
 def test_session_tip_appears_when_triggered(
     vault: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """When inbox has items and no recent reduce, tip appears in output."""
+    """When inbox has items and no recent reduce, Next Action appears."""
     (vault / "inbox" / "paper.md").write_text("x", encoding="utf-8")
     (vault / "ops" / "queue").mkdir(exist_ok=True)
     (vault / "_research" / "hypotheses").mkdir(exist_ok=True)
@@ -343,14 +349,16 @@ def test_session_tip_appears_when_triggered(
         session_orient.main()
 
     output = capsys.readouterr().out
-    assert "Tip:" in output
-    assert "/reduce" in output or "/pipeline" in output
+    assert "### Next Action" in output
+    assert "/reduce" in output
+    # Rationale is shown in parentheses
+    assert "Inbox items lose context" in output
 
 
 def test_no_tip_when_nothing_triggers(
     vault: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Healthy vault produces no tip line."""
+    """Healthy vault produces no Next Action section."""
     (vault / "ops" / "queue").mkdir(exist_ok=True)
     (vault / "_research" / "hypotheses").mkdir(exist_ok=True)
 
@@ -362,36 +370,20 @@ def test_no_tip_when_nothing_triggers(
         session_orient.main()
 
     output = capsys.readouterr().out
-    assert "Tip:" not in output
+    assert "### Next Action" not in output
 
 
 def test_session_tip_import_failure_does_not_crash(
     vault: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """If vault_advisor import fails, orient still works."""
-    with (
-        patch("session_orient.resolve_vault", return_value=vault),
-        patch.object(session_orient, "_slack_inbound", return_value=""),
-        patch.object(session_orient, "_slack_session_start"),
-        patch(
-            "session_orient._session_tip",
-            side_effect=Exception("import failed"),
-        ),
-    ):
-        # _session_tip is wrapped in try/except internally, but even if
-        # the mock raises, orient must not crash. Since we're patching
-        # the function itself to raise, we need to handle this differently.
-        # Let's instead verify the internal try/except works by testing
-        # _session_tip directly with a broken import.
-        pass
-
     # Test the function directly with a broken vault_advisor
     with patch(
         "engram_r.vault_advisor.build_vault_snapshot",
         side_effect=ImportError("no module"),
     ):
-        result = session_orient._session_tip(vault)
-        assert result == ""
+        result = session_orient._build_next_action_section(vault)
+        assert result == []
 
     # Verify orient still produces output
     with (
@@ -403,3 +395,30 @@ def test_session_tip_import_failure_does_not_crash(
 
     output = capsys.readouterr().out
     assert "[Session Orient]" in output
+
+
+def test_no_maintenance_signal_strings(
+    vault: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Old maintenance signal strings must never appear in output."""
+    (vault / "inbox" / "paper.md").write_text("x", encoding="utf-8")
+    obs_dir = vault / "ops" / "observations"
+    for i in range(12):
+        (obs_dir / f"obs-{i}.md").write_text("x", encoding="utf-8")
+    tens_dir = vault / "ops" / "tensions"
+    for i in range(6):
+        (tens_dir / f"ten-{i}.md").write_text("x", encoding="utf-8")
+    (vault / "ops" / "queue").mkdir(exist_ok=True)
+    (vault / "_research" / "hypotheses").mkdir(exist_ok=True)
+
+    with (
+        patch("session_orient.resolve_vault", return_value=vault),
+        patch.object(session_orient, "_slack_inbound", return_value=""),
+        patch.object(session_orient, "_slack_session_start"),
+    ):
+        session_orient.main()
+
+    output = capsys.readouterr().out
+    assert "-> Inbox has unprocessed items" not in output
+    assert "-> 10+ observations pending" not in output
+    assert "-> 5+ tensions pending" not in output

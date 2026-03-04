@@ -120,6 +120,7 @@ class VaultSnapshot:
     queue_pending: int = 0
     hypothesis_count: int = 0
     has_recent_reduce: bool = False
+    queue_blocked_count: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +159,14 @@ def _has_recent_reduce(vault_path: Path, window_hours: int = 24) -> bool:
 
 def build_vault_snapshot(vault_path: Path) -> VaultSnapshot:
     """Build a lightweight vault state snapshot for session tip detection."""
+    queue_file = vault_path / "ops" / "queue" / "queue.json"
+    blocked = 0
+    try:
+        from engram_r.daemon_scheduler import _count_queue_blocked
+
+        blocked = _count_queue_blocked(queue_file)
+    except Exception:
+        pass
     return VaultSnapshot(
         claim_count=_count_md_files(vault_path / "notes"),
         inbox_count=_count_md_files(vault_path / "inbox"),
@@ -168,6 +177,7 @@ def build_vault_snapshot(vault_path: Path) -> VaultSnapshot:
             vault_path / "_research" / "hypotheses"
         ),
         has_recent_reduce=_has_recent_reduce(vault_path),
+        queue_blocked_count=blocked,
     )
 
 
@@ -186,8 +196,7 @@ def detect_session_tips(snapshot: VaultSnapshot) -> list[SessionTip]:
             SessionTip(
                 tip_id="reduce_inbox",
                 message=(
-                    f"{snapshot.inbox_count} inbox items waiting "
-                    "-- run /reduce or /pipeline to process them"
+                    f"/reduce -- {snapshot.inbox_count} inbox items waiting"
                 ),
                 rationale=(
                     "Inbox items lose context over time. Processing them "
@@ -204,8 +213,7 @@ def detect_session_tips(snapshot: VaultSnapshot) -> list[SessionTip]:
             SessionTip(
                 tip_id="unblock_queue",
                 message=(
-                    f"{snapshot.queue_pending} queue tasks pending "
-                    "-- run /ralph to process them"
+                    f"/ralph -- {snapshot.queue_pending} queue tasks pending"
                 ),
                 rationale=(
                     "Pending queue tasks block downstream phases. "
@@ -215,14 +223,32 @@ def detect_session_tips(snapshot: VaultSnapshot) -> list[SessionTip]:
             )
         )
 
-    # Tip 3: generate_hypotheses -- enough claims but no hypotheses
+    # Tip 3: queue_blocked -- tasks blocked on unpopulated stubs
+    if snapshot.queue_blocked_count > 0:
+        tips.append(
+            SessionTip(
+                tip_id="queue_blocked",
+                message=(
+                    f"/literature -- {snapshot.queue_blocked_count} "
+                    "blocked queue task(s) need stub content before /ralph"
+                ),
+                rationale=(
+                    "Blocked tasks cannot proceed through the pipeline "
+                    "until their literature stubs are populated. Running "
+                    "/literature unblocks them for /ralph processing."
+                ),
+                priority=1,
+            )
+        )
+
+    # Tip 4: generate_hypotheses -- enough claims but no hypotheses
     if snapshot.claim_count >= 20 and snapshot.hypothesis_count == 0:
         tips.append(
             SessionTip(
                 tip_id="generate_hypotheses",
                 message=(
-                    f"{snapshot.claim_count} claims accumulated with no "
-                    "hypotheses -- run /generate to synthesize them"
+                    f"/generate -- {snapshot.claim_count} claims "
+                    "accumulated, no hypotheses yet"
                 ),
                 rationale=(
                     "A critical mass of claims enables hypothesis "
@@ -233,14 +259,14 @@ def detect_session_tips(snapshot: VaultSnapshot) -> list[SessionTip]:
             )
         )
 
-    # Tip 4: rethink_observations -- observation backlog
+    # Tip 5: rethink_observations -- observation backlog
     if snapshot.observation_count >= 10:
         tips.append(
             SessionTip(
                 tip_id="rethink_observations",
                 message=(
-                    f"{snapshot.observation_count} observations accumulated "
-                    "-- run /rethink to triage them"
+                    f"/rethink -- {snapshot.observation_count} "
+                    "observations pending"
                 ),
                 rationale=(
                     "Observations capture friction signals. Triaging them "
@@ -251,14 +277,13 @@ def detect_session_tips(snapshot: VaultSnapshot) -> list[SessionTip]:
             )
         )
 
-    # Tip 5: rethink_tensions -- tension backlog
+    # Tip 6: rethink_tensions -- tension backlog
     if snapshot.tension_count >= 5:
         tips.append(
             SessionTip(
                 tip_id="rethink_tensions",
                 message=(
-                    f"{snapshot.tension_count} tensions accumulated "
-                    "-- run /rethink to resolve them"
+                    f"/rethink -- {snapshot.tension_count} tensions pending"
                 ),
                 rationale=(
                     "Tensions represent contradictions in the knowledge "
@@ -957,6 +982,7 @@ def main(argv: list[str] | None = None) -> int:
     include_pipeline_tips = False
     include_session_tips = False
     all_tips = False
+    format_human = False
 
     i = 0
     while i < len(args):
@@ -981,6 +1007,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args[i] == "--all-tips":
             all_tips = True
             i += 1
+        elif args[i] == "--format" and i + 1 < len(args):
+            if args[i + 1] == "human":
+                format_human = True
+            i += 2
         elif not args[i].startswith("--"):
             vault_path_str = args[i]
             i += 1
@@ -1006,6 +1036,15 @@ def main(argv: list[str] | None = None) -> int:
         try:
             snapshot = build_vault_snapshot(vault_path)
             tips = detect_session_tips(snapshot)
+            if format_human:
+                for t in tips:
+                    print(t.message)
+                    # First sentence of rationale
+                    first_sentence = t.rationale.split(". ")[0]
+                    if not first_sentence.endswith("."):
+                        first_sentence += "."
+                    print(f"  Why: {first_sentence}")
+                return 0 if tips else 2
             result = {
                 "all_session_tips": [
                     {

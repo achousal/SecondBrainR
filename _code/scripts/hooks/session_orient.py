@@ -211,18 +211,24 @@ def _overdue_reminders(vault: Path, max_lines: int = 5) -> list[str]:
         return []
 
 
-def _session_tip(vault: Path) -> str:
-    """Get the highest-priority session tip from vault advisor. Never crashes."""
+def _build_next_action_section(vault: Path) -> list[str]:
+    """Build the Next Action section from session tips. Never crashes."""
     try:
         from engram_r.vault_advisor import build_vault_snapshot, detect_session_tips
 
         snapshot = build_vault_snapshot(vault)
         tips = detect_session_tips(snapshot)
-        if tips:
-            return f"  Tip: {tips[0].message}"
-        return ""
+        if not tips:
+            return []
+        top = tips[0]
+        return [
+            "",
+            "### Next Action",
+            f"  {top.message}",
+            f"  ({top.rationale})",
+        ]
     except Exception:
-        return ""
+        return []
 
 
 def _metabolic_dashboard(vault: Path, claim_count: int) -> str:
@@ -400,23 +406,8 @@ def main() -> None:
             "and create the foundation for everything else."
         )
 
-    # Maintenance signals
-    if counts["inbox"] > 0:
-        parts.append("  -> Inbox has unprocessed items")
-    if counts["observations"] >= 10:
-        parts.append("  -> 10+ observations pending -- consider running /rethink")
-    if counts["tensions"] >= 5:
-        parts.append("  -> 5+ tensions pending -- consider running /rethink")
-    if counts["queue_blocked"] > 0:
-        parts.append(
-            f"  -> {counts['queue_blocked']} queue tasks blocked on "
-            f"unpopulated stubs -- populate via /literature before /ralph"
-        )
-
-    # Session tip (highest-priority actionable suggestion)
-    tip = _session_tip(vault)
-    if tip:
-        parts.append(tip)
+    # Next Action section (replaces maintenance signals + session tip)
+    parts.extend(_build_next_action_section(vault))
 
     # Methodology directives
     methodology = _load_methodology(vault)
