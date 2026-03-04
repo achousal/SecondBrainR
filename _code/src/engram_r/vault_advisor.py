@@ -85,6 +85,7 @@ class QueuePhaseState:
     sources: set[str] = field(default_factory=set)
     phase_counts: dict[str, int] = field(default_factory=dict)
     sources_with_pending_create: set[str] = field(default_factory=set)
+    sources_with_pending_enrich: set[str] = field(default_factory=set)
     sources_with_pending_reflect: set[str] = field(default_factory=set)
     sources_with_pending_reweave: set[str] = field(default_factory=set)
 
@@ -121,7 +122,7 @@ class VaultSnapshot:
     hypothesis_count: int = 0
     has_recent_reduce: bool = False
     queue_blocked_count: int = 0
-    doi_stub_count: int = 0
+    abstract_only_source_count: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -158,11 +159,13 @@ def _has_recent_reduce(vault_path: Path, window_hours: int = 24) -> bool:
     return False
 
 
-def _count_doi_stubs(inbox_dir: Path) -> int:
-    """Count inbox files that are DOI stubs needing enrichment.
+def _count_abstract_only_sources(inbox_dir: Path) -> int:
+    """Count inbox files with content_depth: abstract.
 
     Lightweight scan: reads first 500 chars per file, checks for
-    source_type: import + DOI URL + no content_depth field.
+    content_depth == "abstract" in frontmatter.  Files without a
+    content_depth field (raw stubs) are NOT counted -- they are
+    auto-enriched by /seed and only become abstract-only after that.
     """
     if not inbox_dir.is_dir():
         return 0
@@ -183,16 +186,8 @@ def _count_doi_stubs(inbox_dir: Path) -> int:
                 continue
         except yaml.YAMLError:
             continue
-        if fm.get("source_type") != "import":
-            continue
-        # Has a DOI URL?
-        source_url = fm.get("source_url", "")
-        if "10." not in source_url:
-            continue
-        # Already enriched?
-        if fm.get("content_depth"):
-            continue
-        count += 1
+        if fm.get("content_depth") == "abstract":
+            count += 1
     return count
 
 
@@ -217,7 +212,9 @@ def build_vault_snapshot(vault_path: Path) -> VaultSnapshot:
         ),
         has_recent_reduce=_has_recent_reduce(vault_path),
         queue_blocked_count=blocked,
-        doi_stub_count=_count_doi_stubs(vault_path / "inbox"),
+        abstract_only_source_count=_count_abstract_only_sources(
+            vault_path / "inbox"
+        ),
     )
 
 
@@ -230,21 +227,23 @@ def detect_session_tips(snapshot: VaultSnapshot) -> list[SessionTip]:
     """Detect session tips from vault state. Returns sorted by priority."""
     tips: list[SessionTip] = []
 
-    # Tip 0: enrich_stubs -- DOI stubs need abstract enrichment
-    if snapshot.doi_stub_count > 0:
+    # Tip: full_text_upgrade -- abstract-only sources could benefit from full text
+    if snapshot.abstract_only_source_count > 0:
+        n = snapshot.abstract_only_source_count
         tips.append(
             SessionTip(
-                tip_id="enrich_stubs",
+                tip_id="full_text_upgrade",
                 message=(
-                    f"/enrich-stubs -- {snapshot.doi_stub_count} inbox DOI "
-                    "stub(s) need abstract enrichment before /reduce"
+                    f"{n} abstract-only source(s) in inbox. "
+                    "Full text import would unlock: methods, "
+                    "contradictions, design patterns."
                 ),
                 rationale=(
-                    "DOI stubs from lab imports have no abstracts. "
-                    "Enriching fetches abstracts from S2/PubMed for "
-                    "meaningful extraction by /reduce."
+                    "Abstract-only sources yield claims and evidence "
+                    "but miss methods, contradictions, and design "
+                    "patterns that require full text."
                 ),
-                priority=0,
+                priority=2,
             )
         )
 
@@ -717,8 +716,10 @@ def scan_queue_phases(vault_path: Path) -> QueuePhaseState:
         if phase:
             state.phase_counts[phase] = state.phase_counts.get(phase, 0) + 1
 
-            if phase in ("create", "enrich"):
+            if phase == "create":
                 state.sources_with_pending_create.add(source)
+            elif phase == "enrich":
+                state.sources_with_pending_enrich.add(source)
             elif phase == "reflect":
                 state.sources_with_pending_reflect.add(source)
             elif phase == "reweave":
@@ -779,25 +780,43 @@ def detect_pipeline_tips(phase_state: QueuePhaseState) -> list[PipelineTip]:
     """
     tips: list[PipelineTip] = []
 
-    # Tip 1: reduce_before_reflect -- multi-source with mixed create/reflect
+    # Combine create + enrich as pre-reflect phases
+    pre_reflect_sources = (
+        phase_state.sources_with_pending_create
+        | phase_state.sources_with_pending_enrich
+    )
+
+    # Tip 1: reduce_before_reflect -- pre-reflect phases pending alongside reflect
     if (
         len(phase_state.sources_with_pending_reflect) >= 2
-        and len(phase_state.sources_with_pending_create) > 0
+        and len(pre_reflect_sources) > 0
     ):
-        n_create = len(phase_state.sources_with_pending_create)
+        # Build accurate phase label
+        has_create = len(phase_state.sources_with_pending_create) > 0
+        has_enrich = len(phase_state.sources_with_pending_enrich) > 0
+        if has_create and has_enrich:
+            phase_label = "reduce/create/enrich"
+        elif has_create:
+            phase_label = "reduce/create"
+        else:
+            phase_label = "enrich"
+
+        n_pre = len(pre_reflect_sources)
         n_reflect = len(phase_state.sources_with_pending_reflect)
         tips.append(
             PipelineTip(
                 tip_id="reduce_before_reflect",
                 message=(
-                    f"Complete all reduce/create phases ({n_create} sources pending) "
+                    f"Complete all {phase_label} phases "
+                    f"({n_pre} source{'s' if n_pre != 1 else ''} pending) "
                     f"before starting reflect ({n_reflect} sources ready) "
                     "-- cross-source connections need the full claim surface"
                 ),
                 rationale=(
                     "Reflect finds connections between claims. Running reflect "
-                    "before all reductions complete misses cross-source connections "
-                    "that only exist after the full claim surface is available."
+                    "before all pre-reflect phases complete misses cross-source "
+                    "connections that only exist after the full claim surface "
+                    "is available."
                 ),
                 priority=0,
             )
@@ -806,7 +825,7 @@ def detect_pipeline_tips(phase_state: QueuePhaseState) -> list[PipelineTip]:
     # Tip 2: batch_reflect_ready -- all sources done reducing, ready for reflect
     if (
         len(phase_state.sources_with_pending_reflect) >= 2
-        and len(phase_state.sources_with_pending_create) == 0
+        and len(pre_reflect_sources) == 0
     ):
         n_sources = len(phase_state.sources_with_pending_reflect)
         tips.append(

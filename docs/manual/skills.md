@@ -211,7 +211,7 @@ Extract claims from source material in inbox/.
 | Output | One or more claim notes in notes/ |
 | Queue | Creates reflect tasks for each extracted claim |
 
-Reads source material through the domain lens. Extracts claims across 6 categories: claims (testable assertions), evidence (data points), methodology comparisons, contradictions, open questions, design patterns. Each extracted claim must pass the quality bar: title works as prose, description adds beyond title, specific enough to disagree with.
+Reads source material through the domain lens. Extracts claims across 6 categories: claims (testable assertions), evidence (data points), methodology comparisons, contradictions, open questions, design patterns. Each extracted claim must pass the quality bar: title works as prose, description adds beyond title, specific enough to disagree with. After extraction, abstract-only sources display a post-extraction advisory with the upgrade path to full-text processing.
 
 ---
 
@@ -272,14 +272,14 @@ Checks every claim in notes/ against the _templates/claim-note.md schema. Report
 ---
 
 #### /seed
-Queue a source file for processing with duplicate detection.
+Queue a source file for processing with duplicate detection and silent auto-enrichment.
 
 | Property | Value |
 |----------|-------|
 | Input | Path to source file |
 | Output | Extract task in ops/queue/, source archived |
 
-Checks for duplicates, creates an archive folder, moves the source from inbox/ to its permanent archive location, creates an extract task file, and updates the queue. The next step is /ralph to batch-process queued tasks (with fresh context per phase), or /reduce on the specific task file for single-item processing. Does not create claims directly -- all claim creation goes through /reduce.
+Checks for duplicates, creates an archive folder, moves the source from inbox/ to its permanent archive location, creates an extract task file, and updates the queue. DOI stubs are silently enriched via `enrich_single_doi()` during Step 5b -- no manual enrichment step needed. The next step is /ralph to batch-process queued tasks (with fresh context per phase), or /reduce on the specific task file for single-item processing. Does not create claims directly -- all claim creation goes through /reduce.
 
 ---
 
@@ -291,7 +291,7 @@ Process inbox items through the full pipeline (reduce-reflect-reweave-verify).
 | Input | Path to inbox/ file or "all" |
 | Output | Processed claims in notes/, updated topic maps |
 
-Chains the full pipeline: reduce (extract) then reflect (connect) then reweave (revisit related) then verify (quality-check). Chaining mode follows ops/config.yaml setting (manual, suggested, or automatic).
+Chains the full pipeline: seed (queue with auto-enrichment) then reduce (extract) then reflect (connect) then reweave (revisit related) then verify (quality-check). Chaining mode follows ops/config.yaml setting (manual, suggested, or automatic).
 
 ---
 

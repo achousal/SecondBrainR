@@ -282,10 +282,16 @@ print(json.dumps({'notes': created, 'queue_entries': entries}, indent=2))
 ```
 
 **Output after all notes saved (manual/suggested modes):**
+
+Count how many queued notes are at abstract scope (have `content_depth: abstract` in frontmatter). Include scope framing:
+
 ```
 Pipeline chaining:
 - Queued: _research/literature/{note1}.md (reduce)
 - Queued: _research/literature/{note2}.md (reduce)
+{If abstract_count > 0:}
+  {abstract_count} note(s) queued at abstract scope.
+  /reduce will show upgrade path after processing.
 
 Next: /ralph {N}  -- process all queued literature notes (reduce -> reflect -> reweave -> verify, fresh context per phase)
   Or: /reduce _research/literature/{note}.md  -- process a single note manually

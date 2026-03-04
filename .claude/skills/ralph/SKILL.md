@@ -47,39 +47,16 @@ If `$ADVISOR_EXIT` is 0 and `$ADVISOR` contains suggestions with `channel: "pipe
 
 If the advisor fails or returns no pipeline tips, proceed silently. This enrichment is advisory only -- never block processing.
 
-**0b. Blocked Stub Check**
-
-Before processing, check for blocked stubs among reduce-phase tasks.
-
-**0c. Abstract-Only Source Advisory**
+**0b. Abstract-Only Source Advisory**
 
 Count reduce-phase tasks whose extract task file has `content_depth: abstract` or `scope: abstract_only`. If any exist, display:
 
 ```
-[Content Depth Advisory] {N} reduce-phase task(s) are from abstract-only sources.
+[Content Depth Advisory] {N} source(s) at abstract scope.
 Extraction will be limited to claims/evidence/questions (no methods or design patterns).
 ```
 
 This is informational only -- never block processing. Continue to Step 1.
-
-**0b detail:**
-
-1. Read the queue file and count tasks where `status == "pending"` AND `current_phase == "reduce"` AND the source file is missing or is a stub (both `## Key Points` and `## Relevance` sections are empty).
-2. If blocked stubs are found, print an advisory (never block):
-
-```
-[Advisory] N reduce-phase tasks are blocked on unpopulated literature stubs.
-Recommended: run /literature to populate stubs before processing.
-```
-
-3. If reweave-phase tasks coexist with blocked reduce stubs, add ordering guidance:
-
-```
-[Advisory] Reweave tasks will produce better connections after stub population.
-Recommended order: /literature (populate stubs) -> /ralph (reduce) -> /ralph (reweave)
-```
-
-4. **Always continue to Step 1.** This step is advisory only -- never abort processing.
 
 ---
 

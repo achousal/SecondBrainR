@@ -58,24 +58,7 @@ The pipeline is the convenience wrapper. /ralph is the engine. /seed is the entr
 
 ### 0a. Content Depth Check
 
-Before seeding, read the source file's frontmatter for `content_depth`:
-
-- **`stub`** (or import-type with DOI URL and no abstract): The source has metadata only. Offer three options:
-  ```
-  [Content Depth] Source is a DOI stub (no abstract).
-  Options:
-    (1) /enrich-stubs {file} then continue pipeline
-    (2) Continue anyway (title-level extraction only)
-    (3) Skip this file
-  ```
-
-- **`abstract`**: Source has abstract but no full text. Inform and continue:
-  ```
-  [Content Depth] Source is abstract-only. Extraction will be limited to
-  claims, evidence, and open-questions.
-  ```
-
-- **`full_text`** or absent: No advisory needed, proceed normally.
+Content depth handling is delegated to /seed Step 5b, which silently auto-enriches DOI stubs. No interactive gate here -- proceed directly to baseline metrics.
 
 ### 0b. Capture Baseline Metrics
 

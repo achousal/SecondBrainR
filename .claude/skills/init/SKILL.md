@@ -467,11 +467,16 @@ print(json.dumps(check_literature_readiness('../ops/config.yaml')))
 "
 ```
 
-Then present the appropriate next steps:
+Then present the appropriate next steps with concrete examples:
 
 ```
 If result.ready:
-  /literature -- search for papers supporting or challenging these claims
+  /literature --goal {first-seeded-goal-slug}
+    Example queries from your seeded goals:
+    {for each seeded goal, derive 1-2 example queries from its core questions, e.g.:}
+    - "{goal-slug}": "p-tau217 plasma biomarker cutpoint validation"
+    - "{goal-slug}": "CADASIL plasma proteomics NOTCH3"
+
 If not result.ready:
   /literature --setup -- configure API keys before searching (missing: {comma-separated var list})
   /literature         -- or search now with available sources only

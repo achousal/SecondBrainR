@@ -687,7 +687,7 @@ class TestScanQueuePhases:
         state = scan_queue_phases(tmp_path)
         assert state.total_tasks == 1
         assert state.phase_counts.get("enrich", 0) == 1
-        assert "source-c" in state.sources_with_pending_create
+        assert "source-c" in state.sources_with_pending_enrich
 
 
 # ---------------------------------------------------------------------------
@@ -709,19 +709,53 @@ class TestDetectPipelineTips:
         tip_ids = [t.tip_id for t in tips]
         assert "reduce_before_reflect" in tip_ids
 
+    def test_enrich_only_triggers_reduce_before_reflect(self):
+        """Enrich pending (no create) + reflect ready -> tip with 'enrich' label."""
+        state = QueuePhaseState(
+            total_tasks=6,
+            sources={"source-a", "source-b", "source-c"},
+            phase_counts={"enrich": 2, "reflect": 4},
+            sources_with_pending_create=set(),
+            sources_with_pending_enrich={"source-c"},
+            sources_with_pending_reflect={"source-a", "source-b"},
+        )
+        tips = detect_pipeline_tips(state)
+        tip_ids = [t.tip_id for t in tips]
+        assert "reduce_before_reflect" in tip_ids
+        # Message should say "enrich" not "reduce/create"
+        tip = next(t for t in tips if t.tip_id == "reduce_before_reflect")
+        assert "enrich" in tip.message
+        assert "reduce/create" not in tip.message
+
     def test_batch_reflect_ready(self):
-        """2 sources, all reflect-pending, none create-pending."""
+        """2 sources, all reflect-pending, none create/enrich-pending."""
         state = QueuePhaseState(
             total_tasks=4,
             sources={"source-a", "source-b"},
             phase_counts={"reflect": 4},
             sources_with_pending_create=set(),
+            sources_with_pending_enrich=set(),
             sources_with_pending_reflect={"source-a", "source-b"},
         )
         tips = detect_pipeline_tips(state)
         tip_ids = [t.tip_id for t in tips]
         assert "batch_reflect_ready" in tip_ids
         assert "reduce_before_reflect" not in tip_ids
+
+    def test_batch_reflect_blocked_by_enrich(self):
+        """Enrich pending blocks batch_reflect_ready."""
+        state = QueuePhaseState(
+            total_tasks=4,
+            sources={"source-a", "source-b"},
+            phase_counts={"enrich": 1, "reflect": 3},
+            sources_with_pending_create=set(),
+            sources_with_pending_enrich={"source-b"},
+            sources_with_pending_reflect={"source-a", "source-b"},
+        )
+        tips = detect_pipeline_tips(state)
+        tip_ids = [t.tip_id for t in tips]
+        assert "batch_reflect_ready" not in tip_ids
+        assert "reduce_before_reflect" in tip_ids
 
     def test_reweave_after_reflect(self):
         """Coexisting reflect and reweave pending -> tip."""
@@ -1057,34 +1091,45 @@ class TestBuildVaultSnapshot:
         snap = build_vault_snapshot(tmp_path)
         assert snap.has_recent_reduce is True
 
-    def test_doi_stub_count(self, tmp_path: Path):
-        """Counts DOI stubs in inbox/."""
+    def test_abstract_only_source_count(self, tmp_path: Path):
+        """Counts abstract-only sources in inbox/."""
         inbox = tmp_path / "inbox"
         inbox.mkdir()
-        # Valid stub
-        (inbox / "stub.md").write_text(
-            '---\nsource_type: "import"\n'
-            'source_url: "https://doi.org/10.1234/test"\n---\n\n# Title\n'
-        )
-        # Non-import (should not count)
-        (inbox / "other.md").write_text(
-            '---\nsource_type: "research"\n'
-            'source_url: "https://doi.org/10.1234/test"\n---\n\n# Title\n'
-        )
-        # Already enriched (should not count)
-        (inbox / "enriched.md").write_text(
+        # Abstract-only (should count)
+        (inbox / "abstract.md").write_text(
             '---\nsource_type: "import"\n'
             'source_url: "https://doi.org/10.1234/test"\n'
             'content_depth: "abstract"\n---\n\n# Title\n'
         )
+        # Raw stub without content_depth (should NOT count)
+        (inbox / "stub.md").write_text(
+            '---\nsource_type: "import"\n'
+            'source_url: "https://doi.org/10.1234/test"\n---\n\n# Title\n'
+        )
+        # Full text (should NOT count)
+        (inbox / "full.md").write_text(
+            '---\nsource_type: "import"\n'
+            'content_depth: "full_text"\n---\n\n# Title\n'
+        )
         snap = build_vault_snapshot(tmp_path)
-        assert snap.doi_stub_count == 1
+        assert snap.abstract_only_source_count == 1
 
-    def test_doi_stub_count_empty_inbox(self, tmp_path: Path):
-        """Empty inbox gives zero doi_stub_count."""
+    def test_abstract_only_source_count_empty_inbox(self, tmp_path: Path):
+        """Empty inbox gives zero abstract_only_source_count."""
         (tmp_path / "inbox").mkdir()
         snap = build_vault_snapshot(tmp_path)
-        assert snap.doi_stub_count == 0
+        assert snap.abstract_only_source_count == 0
+
+    def test_raw_stubs_not_counted_as_abstract_only(self, tmp_path: Path):
+        """Stubs with no content_depth field do not count as abstract_only."""
+        inbox = tmp_path / "inbox"
+        inbox.mkdir()
+        (inbox / "stub.md").write_text(
+            '---\nsource_type: "import"\n'
+            'source_url: "https://doi.org/10.1234/test"\n---\n\n# Title\n'
+        )
+        snap = build_vault_snapshot(tmp_path)
+        assert snap.abstract_only_source_count == 0
 
 
 class TestDetectSessionTips:
@@ -1123,38 +1168,44 @@ class TestDetectSessionTips:
         tips = detect_session_tips(snap)
         assert any(t.tip_id == "rethink_tensions" for t in tips)
 
-    def test_enrich_stubs_fires(self):
-        snap = VaultSnapshot(doi_stub_count=3)
+    def test_full_text_upgrade_fires(self):
+        snap = VaultSnapshot(abstract_only_source_count=3)
         tips = detect_session_tips(snap)
-        assert any(t.tip_id == "enrich_stubs" for t in tips)
+        assert any(t.tip_id == "full_text_upgrade" for t in tips)
 
-    def test_enrich_stubs_zero_does_not_fire(self):
-        snap = VaultSnapshot(doi_stub_count=0)
+    def test_full_text_upgrade_zero_does_not_fire(self):
+        snap = VaultSnapshot(abstract_only_source_count=0)
+        tips = detect_session_tips(snap)
+        assert not any(t.tip_id == "full_text_upgrade" for t in tips)
+
+    def test_full_text_upgrade_message_format(self):
+        snap = VaultSnapshot(abstract_only_source_count=5)
+        tips = detect_session_tips(snap)
+        upgrade_tips = [t for t in tips if t.tip_id == "full_text_upgrade"]
+        assert len(upgrade_tips) == 1
+        assert "5" in upgrade_tips[0].message
+        assert "abstract-only" in upgrade_tips[0].message
+        assert upgrade_tips[0].priority == 2
+
+    def test_full_text_upgrade_priority_lower_than_reduce(self):
+        snap = VaultSnapshot(
+            abstract_only_source_count=3, inbox_count=5,
+            has_recent_reduce=False,
+        )
+        tips = detect_session_tips(snap)
+        upgrade = [t for t in tips if t.tip_id == "full_text_upgrade"]
+        reduce = [t for t in tips if t.tip_id == "reduce_inbox"]
+        assert upgrade and reduce
+        assert upgrade[0].priority > reduce[0].priority
+
+    def test_enrich_stubs_tip_no_longer_exists(self):
+        snap = VaultSnapshot(abstract_only_source_count=3)
         tips = detect_session_tips(snap)
         assert not any(t.tip_id == "enrich_stubs" for t in tips)
 
-    def test_enrich_stubs_message_format(self):
-        snap = VaultSnapshot(doi_stub_count=5)
-        tips = detect_session_tips(snap)
-        enrich_tips = [t for t in tips if t.tip_id == "enrich_stubs"]
-        assert len(enrich_tips) == 1
-        assert enrich_tips[0].message.startswith("/enrich-stubs")
-        assert "5" in enrich_tips[0].message
-        assert enrich_tips[0].priority == 0
-
-    def test_enrich_stubs_priority_before_reduce(self):
-        snap = VaultSnapshot(
-            doi_stub_count=3, inbox_count=5, has_recent_reduce=False,
-        )
-        tips = detect_session_tips(snap)
-        enrich = [t for t in tips if t.tip_id == "enrich_stubs"]
-        reduce = [t for t in tips if t.tip_id == "reduce_inbox"]
-        assert enrich and reduce
-        assert enrich[0].priority <= reduce[0].priority
-
-    def test_doi_stub_count_in_snapshot(self):
+    def test_abstract_only_source_count_in_snapshot(self):
         snap = VaultSnapshot()
-        assert snap.doi_stub_count == 0
+        assert snap.abstract_only_source_count == 0
 
     def test_no_tips_on_healthy_vault(self):
         snap = VaultSnapshot(
@@ -1195,19 +1246,21 @@ class TestDetectSessionTips:
         assert blocked_tips[0].message.startswith("/literature")
         assert "5" in blocked_tips[0].message
 
-    def test_all_tip_messages_are_command_leading(self):
+    def test_all_tip_messages_are_well_formed(self):
         snap = VaultSnapshot(
             inbox_count=3, has_recent_reduce=False,
             queue_pending=5, queue_blocked_count=2,
             claim_count=25, hypothesis_count=0,
             observation_count=15, tension_count=7,
-            doi_stub_count=2,
+            abstract_only_source_count=2,
         )
         tips = detect_session_tips(snap)
         assert len(tips) > 0
         for tip in tips:
-            assert tip.message.startswith("/"), (
-                f"Tip '{tip.tip_id}' message does not start with '/': "
+            # Command-leading tips start with '/'
+            # Awareness tips (like full_text_upgrade) start with a count
+            assert tip.message[0] in "/0123456789", (
+                f"Tip '{tip.tip_id}' message has unexpected start: "
                 f"{tip.message}"
             )
 

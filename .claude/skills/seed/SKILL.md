@@ -142,25 +142,39 @@ NEXT_CLAIM_START=$((QUEUE_MAX > ARCHIVE_MAX ? QUEUE_MAX + 1 : ARCHIVE_MAX + 1))
 
 Claim numbers are globally unique and never reused across batches. This ensures every claim file name (`{source}-{NNN}.md`) is unique vault-wide.
 
-## Step 5b: Content Depth Detection
+## Step 5b: Content Depth Detection and Silent Auto-Enrichment
 
-Read the source file's frontmatter for `content_depth`:
+Read the source file's frontmatter for `content_depth`.
 
-- **`content_depth: stub`** -- metadata only, no abstract. Warn the user:
-  ```
-  [Content Depth] Source is a DOI stub (metadata only, no abstract).
-  Recommended: run /enrich-stubs first to fetch the abstract.
-  Proceed anyway? (y/n)
-  ```
-  If user declines, stop. If user confirms, continue with `scope: stub` (extraction limited to title-level claim only).
+**Auto-enrichment (silent):** If the source has a DOI (`source_url` contains `10.`) AND no `content_depth` field AND no `## Abstract` section with content, attempt silent enrichment:
 
-- **`content_depth: abstract`** -- abstract present, no full text. Auto-set `scope: abstract_only` and inform:
+```bash
+set -a && source _code/.env 2>/dev/null && set +a && uv run --directory _code python -c "
+import json, sys; sys.path.insert(0, 'src')
+from engram_r.stub_enricher import enrich_single_doi
+result = enrich_single_doi('{DOI}')
+print(json.dumps(result))
+"
+```
+
+- **Success** (abstract found): Apply enrichment to the source file, set `content_depth: abstract`, continue with `scope: abstract_only`.
+- **Failure** (no abstract): Log one line: `"Abstract fetch failed for {DOI}. Extracting from available metadata only."` Set `content_depth: stub`, continue with `scope: stub`.
+- **No interactive prompt.** Auto-enrichment is always silent.
+
+**After auto-enrichment (or if content_depth already set):**
+
+- **`content_depth: abstract`** -- auto-set `scope: abstract_only` and inform:
   ```
   [Content Depth] Source is abstract-only. Extraction scope set to abstract_only
   (claims, evidence, open-questions only -- no methods or design patterns).
   ```
 
-- **`content_depth: full_text`** or absent -- normal processing, `scope: full` (unless overridden by `--methods-only`).
+- **`content_depth: stub`** -- inform and continue:
+  ```
+  [Content Depth] Source is stub (no abstract). Extraction limited to title-level claim only.
+  ```
+
+- **`content_depth: full_text`** or absent with no DOI -- normal processing, `scope: full` (unless overridden by `--methods-only`).
 
 Write the detected `content_depth` into the extract task file frontmatter.
 

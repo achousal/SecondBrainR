@@ -36,28 +36,20 @@ If these files don't exist (pre-init invocation or standalone use), use universa
 - selectivity: moderate
 - scope: full
 
-### Content Depth Advisory
+### Content Depth Post-Extraction Advisory
 
-Before extraction, check `content_depth` on the source file or extract task:
+No pre-extraction advisory is shown -- value before noise. After extraction completes, if the source has `content_depth: abstract` or `scope: abstract_only`, display this mandatory block:
 
-- **`abstract`**: Display advisory before extraction:
-  ```
-  [Content Depth Advisory] Source is abstract-only. Extraction limited to:
-  claims, evidence, open-questions. Methods and design patterns require full text.
-  ```
-  After extraction: if the source yields 3+ claims OR has high citation count (>50), recommend:
-  ```
-  [Recommendation] High-value abstract-only source. Consider obtaining full text
-  for deeper extraction (methods, contradictions, design patterns).
-  ```
+```
+[Abstract scope] Full text would additionally yield:
+  - Methods and experimental protocols
+  - Design patterns and methodology comparisons
+  - Contradictions and tensions with other sources
+Import full text to inbox/ and re-run /pipeline to upgrade.
+```
 
-- **`stub`**: Display warning:
-  ```
-  [Content Depth Warning] Source is a stub (no abstract). Only title-level
-  extraction possible. Run /enrich-stubs first for meaningful extraction.
-  ```
-
-- **`full_text`** or absent: no advisory needed.
+For `content_depth: stub`: no special advisory (stubs are auto-enriched by /seed now).
+For `content_depth: full_text` or absent: no advisory needed.
 
 ---
 
