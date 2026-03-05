@@ -14,16 +14,16 @@ Prioritized feature opportunities grounded in Ars Contexta research claims and o
 ## Dependency Graph
 
 ```
-Semantic Search (1.1)
-  |-> Contradiction Detection (2.2)
-  |-> Cross-Goal Synthesis (3.1)
-  |-> Slack Bot Tool Calling (1.4) [search_notes tool]
+Vault Query Infrastructure (1.1)
+  Phase A: Slack bot tool calling (keyword search)
+  Phase B: Semantic search (embeddings)
+  Phase C: Upgrade tool calling search backend to embeddings
+  |-> Contradiction Detection (2.2) [requires Phase B]
+  |-> Cross-Goal Synthesis (3.1) [requires Phase B]
 
 Resurfacing + Spaced Maintenance (1.2) -- independent
 
-Community Detection (1.3) -- independent, benefits from 1.1
-
-Slack Bot Tool Calling (1.4) -- independent core, enhanced by 1.1
+Community Detection (1.3) -- independent, benefits from 1.1 Phase B
 
 Evidence Graph (2.1) -- independent, enables 3.3
 
@@ -38,14 +38,56 @@ Start with Tier 1 items in parallel. Tier 2 builds on Tier 1 foundations. Tier 3
 
 ## Tier 1 -- Foundational (high impact, unblocks downstream features)
 
-### 1.1 Semantic Search (Embeddings)
+### 1.1 Vault Query Infrastructure
 
-**Problem:** Keyword search over 200+ notes creates blind spots. Semantic neighbors without shared vocabulary are invisible. `/reflect` misses non-obvious connections. Slack bot cannot search vault meaningfully.
+**Problem:** The Slack bot relies on static cached context refreshed every 5 min -- it cannot search notes, check live queue state, or look up specific claims. Skill routing uses fragile regex intent extraction. Beyond the bot, keyword search over 200+ notes creates blind spots: semantic neighbors without shared vocabulary are invisible, and `/reflect` misses non-obvious connections.
 
 **Research grounding:**
 - [[spreading activation models how agents should traverse]] -- vault traversal is spreading activation; keyword search only traverses explicit lexical matches, missing semantic neighbors that lack shared terms
 - [[navigational vertigo emerges in pure association systems without local hierarchy]] -- without semantic search, notes connected by meaning but not by explicit links are unreachable
 - [[metadata reduces entropy enabling precision over recall]] -- embeddings add a semantic filtering axis alongside the existing YAML metadata axis
+- [[descriptions are retrieval filters not summaries]] -- structured tool results return description-level information that enables progressive disclosure via API
+- [[retrieval utility should drive design over capture completeness]] -- tool calling lets the bot answer "how do I find this?" dynamically instead of hoping the cached context contains the answer
+
+#### Phase A -- Slack Bot Tool Calling (keyword search)
+
+Ship immediately. No dependencies. Gives the bot live vault access via Anthropic `tool_use` with keyword-based search as the initial backend.
+
+**What it does:**
+- Add tool use loop to `_call_claude()` with 5-iteration cap
+- 8 read-only tools (no confirmation needed):
+
+| Tool | Description | Parameters | Returns |
+|------|-------------|------------|---------|
+| `search_notes` | Keyword search across notes/ titles + descriptions | `query: str`, `limit: int = 10` | `[{title, description, path}]` |
+| `search_literature` | Keyword search across _research/literature/ | `query: str`, `limit: int = 10` | `[{title, description, path}]` |
+| `get_note` | Read a specific note by title or path | `title: str` | `{frontmatter, body}` |
+| `vault_stats` | Current vault metrics | (none) | `{note_count, hypothesis_count, inbox_count, queue_depth}` |
+| `queue_status` | Processing queue state | (none) | `{pending, in_progress, completed_today}` |
+| `list_goals` | Active research goals | (none) | `[{name, scope, status}]` |
+| `search_hypotheses` | Search hypotheses by keyword | `query: str` | `[{title, elo, status}]` |
+| `get_reminders` | Active reminders | (none) | `[{text, due}]` |
+
+- Mutative tools (Phase 2, gated behind confirmation flow): `create_reminder`, `queue_skill`
+- Deprecate `extract_skill_intent()` regex for reads; keep `detect_explicit_command()` for `/command` syntax
+- 30s TTL cache on `vault_stats` and `queue_status` to reduce redundant filesystem reads
+- System prompt guidance: "If a tool returns an error, tell the user what went wrong"
+
+**Design:** `_search_notes` accepts a `search_backend` parameter (`keyword` | `semantic`) so Phase C is a config toggle, not a code rewrite. Default: `keyword`.
+
+**Acceptance criteria:**
+- Bot answers "how many notes do I have?" with live stats, not stale cache
+- Bot answers "what claims about p-tau217?" with actual search results
+- Bot answers "what's in my queue?" with live queue state
+- Bot answers "what literature do I have on microglia?" via `search_literature`
+- No regression in existing skill routing for mutative commands
+- Tool use adds < 3s average latency to responses
+
+**Detailed design:** `docs/dev/slack-bot-tool-calling.md`
+
+#### Phase B -- Semantic Search (embeddings)
+
+Requires Phase A infrastructure (tool schemas, executor pattern). Adds embedding-based search as a backend.
 
 **What it does:**
 - Embed notes on write (post-reduce hook or daemon pass)
@@ -56,16 +98,24 @@ Start with Tier 1 items in parallel. Tier 2 builds on Tier 1 foundations. Tier 3
 **Key decisions:**
 - Embedding model: local (e.g. sentence-transformers) vs API (Anthropic/OpenAI embeddings)
 - Storage: sqlite-vss (zero-dependency) vs lancedb (richer API) vs chromadb
-- Index scope: notes/ only, or notes/ + _research/hypotheses/ + _research/literature/
+- Index scope: notes/ + _research/hypotheses/ + _research/literature/ (unified)
 - Rebuild strategy: full reindex on demand, incremental on note create/update
 
 **Acceptance criteria:**
 - `semantic_search("vascular inflammation microglia")` returns relevant claims even if none contain all three words
 - Reindex of 200 notes completes in < 30s locally
-- Integration point for Slack bot `search_notes` tool (see 1.4)
 - No external service dependency (works offline, on HPC)
 
-**Detailed design:** To be written in `docs/development/semantic-search.md`.
+**Detailed design:** To be written in `docs/dev/semantic-search.md`
+
+#### Phase C -- Search Backend Upgrade
+
+Flip `search_backend` config from `keyword` to `semantic` in the Slack bot tool calling layer. One-line config change plus integration test.
+
+**Acceptance criteria:**
+- `search_notes` and `search_literature` tools return semantically relevant results
+- Cross-vocabulary queries work ("vascular inflammation" finds "neuroinflammatory priming" notes)
+- Tool result truncation handles richer semantic results (titles + scores only; use `get_note` for detail)
 
 ---
 
@@ -138,22 +188,6 @@ Start with Tier 1 items in parallel. Tier 2 builds on Tier 1 foundations. Tier 3
 
 ---
 
-### 1.4 Slack Bot Tool Calling
-
-**Problem:** Bot relies on static cached context. Cannot search notes, check queue state, or look up specific claims. Skill routing uses fragile regex intent extraction.
-
-**Research grounding:**
-- [[descriptions are retrieval filters not summaries]] -- structured tool results return description-level information that enables the bot to decide whether to load full content, implementing progressive disclosure via API
-- [[retrieval utility should drive design over capture completeness]] -- tool calling lets the bot answer "how do I find this?" dynamically instead of hoping the cached context contains the answer
-
-**What it does:** See `docs/development/slack-bot-tool-calling.md` for full design.
-
-**Summary:** Add Anthropic `tool_use` to `_call_claude()` with 7 read-only vault tools (search_notes, get_note, vault_stats, queue_status, list_goals, search_hypotheses, get_reminders). Tool use loop with 5-iteration cap. Mutative tools gated behind existing confirmation flow.
-
-**Dependency on 1.1:** The `search_notes` tool starts with filename + frontmatter keyword search. When semantic search (1.1) is available, upgrade to embedding-based search for dramatically better results.
-
----
-
 ## Tier 2 -- Building on foundations (high value, benefits from Tier 1)
 
 ### 2.1 Evidence Graph (Typed Claim-Hypothesis Edges)
@@ -208,7 +242,7 @@ Start with Tier 1 items in parallel. Tier 2 builds on Tier 1 foundations. Tier 3
 - If contradiction detected: auto-create a tension note in `ops/tensions/` linking the two claims
 - Surface in `/next` and session orient
 
-**Dependency on 1.1:** Semantic search is required to find claims that are topically related but make opposing arguments. Keyword matching alone misses most contradictions.
+**Dependency on 1.1 Phase B:** Semantic search is required to find claims that are topically related but make opposing arguments. Keyword matching alone misses most contradictions.
 
 **Key decisions:**
 - Sensitivity threshold: how similar must claims be before checking for contradiction
@@ -269,7 +303,7 @@ Start with Tier 1 items in parallel. Tier 2 builds on Tier 1 foundations. Tier 3
 - Surface as "bridge claim" candidates with suggested cross-goal connections
 - Feed into `/generate` as cross-goal hypothesis seeds
 
-**Dependency on 1.1:** Requires semantic search to find claims that are mechanistically related across goals but use different vocabulary.
+**Dependency on 1.1 Phase B:** Requires semantic search to find claims that are mechanistically related across goals but use different vocabulary.
 
 ---
 
@@ -308,10 +342,12 @@ Start with Tier 1 items in parallel. Tier 2 builds on Tier 1 foundations. Tier 3
 
 | Phase | Features | Estimated Effort | Prerequisites |
 |-------|----------|-----------------|---------------|
-| Phase 1a | 1.1 Semantic Search | Medium | None |
-| Phase 1b | 1.2 Resurfacing, 1.3 Community Detection, 1.4 Slack Bot Tools | Medium each | Independent of each other |
-| Phase 2 | 2.1 Evidence Graph, 2.2 Contradiction Detection, 2.3 Literature Watch | Medium each | 2.2 requires 1.1; others independent |
-| Phase 3 | 3.1 Cross-Goal Synthesis, 3.2 Hypothesis Changelog, 3.3 Manuscript Scaffolding | Medium each | 3.1 requires 1.1; 3.3 requires 2.1 |
+| Phase 1a | 1.1A Slack Bot Tool Calling (keyword) | Medium | None |
+| Phase 1b | 1.2 Resurfacing, 1.3 Community Detection | Medium each | Independent |
+| Phase 1c | 1.1B Semantic Search | Medium | None (benefits from 1a executor pattern) |
+| Phase 1d | 1.1C Search Backend Upgrade | Small | 1a + 1c |
+| Phase 2 | 2.1 Evidence Graph, 2.2 Contradiction Detection, 2.3 Literature Watch | Medium each | 2.2 requires 1.1B; others independent |
+| Phase 3 | 3.1 Cross-Goal Synthesis, 3.2 Hypothesis Changelog, 3.3 Manuscript Scaffolding | Medium each | 3.1 requires 1.1B; 3.3 requires 2.1 |
 
 ---
 

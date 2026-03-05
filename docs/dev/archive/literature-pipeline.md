@@ -1,8 +1,14 @@
+---
+description: "Literature pipeline data flow -- multi-source search, abstract fallback chains, note creation, and queue entry for /literature skill"
+type: development
+status: complete
+created: 2026-03-03
+updated: 2026-03-05
+---
+
 # Literature Pipeline: Search, Fallbacks, and Note Population
 
 Development tracking document for the `/literature` skill's data flow -- from multi-source search through abstract fallback chains to note creation and queue entry.
-
-Last updated: 2026-03-03
 
 ---
 
