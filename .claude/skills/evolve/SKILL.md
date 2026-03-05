@@ -205,6 +205,10 @@ Verify the generated ID does not collide with any existing hypothesis ID. If col
 - **Always inherit relevant literature** from parents. Do not discard grounding without justification.
 - **Include meta-review feedback** in evolution prompts when available.
 - **Inherit `project_tag`** from parent hypotheses.
+- **Source fidelity for synthesis.** Evolved hypotheses must be grounded in vault-documented evidence. Do not inject facts, effect sizes, or mechanisms from model training knowledge that are not traceable to a vault source. If evidence is insufficient, state that explicitly rather than filling gaps from training data.
+- **YAML safety.** Always double-quote all string values in YAML frontmatter. Unquoted colons, commas, or brackets cause silent misparsing and will be blocked by the validation hook.
+- **Verify wiki-link targets exist** before including them in the evolved hypothesis note. Use Glob to confirm each `[[link]]` resolves to a real file.
+- **Escalation ceiling.** Never write to or modify files in `self/`, `ops/config.yaml`, `ops/daemon-config.yaml`, or `CLAUDE.md`. These are protected paths requiring explicit operator confirmation per invocation.
 
 ## CO-SCIENTIST HANDOFF
 

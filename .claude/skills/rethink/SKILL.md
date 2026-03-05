@@ -228,9 +228,11 @@ After user confirmation, apply all dispositions in order:
 
 **For PROMOTE items:**
 1. Create claim with prose-as-title in notes/
-2. Follow standard note schema: YAML frontmatter (description, type, created), body developing the insight, Topics footer linking to relevant topic maps
+2. Follow standard note schema: YAML frontmatter (description, type, source_class, confidence, verified_by, created), body developing the insight, Topics footer linking to relevant topic maps
 3. The observation content becomes the seed for the note body — but develop it fully, do not just copy the observation
-4. Update the observation: set `status: promoted`, add `promoted_to: [[note title]]`
+4. Add `promoted_from: "[[observation filename]]"` to the claim's YAML frontmatter, linking back to the originating observation for backward traceability
+5. Update the observation: set `status: promoted`, add `promoted_to: [[note title]]`
+6. Verify all wiki-link targets exist before writing. Use Glob to confirm each `[[link]]` resolves to a real file
 
 **For IMPLEMENT items:**
 1. Make the specific change to the identified file/section
@@ -665,6 +667,8 @@ If the evidence pool is very large:
 - Add complexity to handle edge cases when simplification would work better
 - Create notes/ directly from observations without going through standard pipeline (PROMOTE adds to queue)
 - Re-propose rejected changes without new evidence
+- Inject facts, effect sizes, or mechanisms from model training knowledge into promoted claims — synthesis must stay within vault-documented evidence
+- Write to or modify files in `self/`, `ops/config.yaml`, `ops/daemon-config.yaml`, or `CLAUDE.md` — these are protected paths requiring explicit operator confirmation per invocation
 
 **Always:**
 - Trace proposals to specific evidence with file references
@@ -673,6 +677,8 @@ If the evidence pool is very large:
 - Respect that the human makes final decisions on system changes
 - Log changes to ops/changelog.md for evolution tracking
 - Update MOCs after triage changes status of observations/tensions
+- Double-quote all string values in YAML frontmatter — unquoted colons cause silent misparsing
+- Include `promoted_from` field in promoted claims linking back to the originating observation
 
 ## The Meta-Layer
 

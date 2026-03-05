@@ -1030,6 +1030,9 @@ class TestClaimFamilySchemas:
             [
                 "type: claim",
                 'description: "A valid claim"',
+                'verified_by: "agent"',
+                'source_class: "synthesis"',
+                'confidence: "preliminary"',
             ]
         )
         result = validate_note(content)
@@ -1040,24 +1043,50 @@ class TestClaimFamilySchemas:
             [
                 "type: claim",
                 "tags: [test]",
+                'verified_by: "agent"',
+                'source_class: "synthesis"',
+                'confidence: "preliminary"',
             ]
         )
         result = validate_note(content)
         assert not result.valid
         assert any("description" in e for e in result.errors)
 
+    def test_claim_missing_provenance_fields_fails(self):
+        content = _note(
+            [
+                "type: claim",
+                'description: "A valid claim"',
+            ]
+        )
+        result = validate_note(content)
+        assert not result.valid
+        assert any("verified_by" in e for e in result.errors)
+        assert any("source_class" in e for e in result.errors)
+        assert any("confidence" in e for e in result.errors)
+
     def test_evidence_with_description_passes(self):
         content = _note(
             [
                 "type: evidence",
                 'description: "Empirical finding"',
+                'verified_by: "agent"',
+                'source_class: "empirical"',
+                'confidence: "supported"',
             ]
         )
         result = validate_note(content)
         assert result.valid
 
     def test_evidence_missing_description_fails(self):
-        content = _note(["type: evidence"])
+        content = _note(
+            [
+                "type: evidence",
+                'verified_by: "agent"',
+                'source_class: "empirical"',
+                'confidence: "supported"',
+            ]
+        )
         result = validate_note(content)
         assert not result.valid
 

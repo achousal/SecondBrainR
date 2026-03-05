@@ -151,6 +151,7 @@ EngramR/
 | `/reflect`       | Find connections between claims, update topic maps                 |
 | `/reweave`       | Revisit old claims with new context                                |
 | `/verify`        | Quality-check claims (description, schema, links)                  |
+| `/validate`      | Schema validation for individual or all notes                      |
 | `/onboard`       | Bootstrap lab integration -- scan, register, wire                  |
 | `/init`          | Seed foundational knowledge claims                                 |
 | `/next`          | Surface the most valuable next action                              |
@@ -167,6 +168,7 @@ EngramR/
 | `/remember`      | Capture friction as methodology observations                       |
 | `/rethink`       | Challenge system assumptions against accumulated evidence          |
 | `/refactor`      | Plan vault restructuring from config changes                       |
+| `/federation-sync` | Synchronize claims and hypotheses with peer vaults               |
 | `/tasks`         | View and manage the task stack and processing queue                |
 | `/dev`           | Code section health checks (tests, lint, build, coverage)          |
 

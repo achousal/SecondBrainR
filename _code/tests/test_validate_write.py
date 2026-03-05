@@ -116,6 +116,9 @@ class TestProvenanceEnforcement:
                 'description: "Factor-X drives chronic response"',
                 'source: "2026-bach-immunometabolism"',
                 "type: claim",
+                'verified_by: "agent"',
+                'source_class: "published"',
+                'confidence: "supported"',
             ],
             body="Body text about Factor-X mechanisms.\n",
         )
@@ -146,6 +149,9 @@ class TestProvenanceEnforcement:
                 'description: ""',
                 'source: "[[some-source]]"',
                 "type: claim",
+                'verified_by: "agent"',
+                'source_class: "published"',
+                'confidence: "supported"',
             ]
         )
         stdout, stderr, exited = _run_hook("/vault/notes/some claim.md", content)
@@ -159,6 +165,9 @@ class TestProvenanceEnforcement:
             [
                 'description: "Some insight about mechanisms"',
                 "type: claim",
+                'verified_by: "agent"',
+                'source_class: "synthesis"',
+                'confidence: "preliminary"',
             ]
         )
         stdout, stderr, exited = _run_hook(
@@ -174,6 +183,9 @@ class TestProvenanceEnforcement:
             [
                 'description: "Some insight about mechanisms"',
                 "type: claim",
+                'verified_by: "agent"',
+                'source_class: "synthesis"',
+                'confidence: "preliminary"',
             ]
         )
         stdout, stderr, exited = _run_hook(
@@ -225,6 +237,9 @@ class TestProvenanceEnforcement:
             [
                 "type: claim",
                 'description: "Test claim for provenance skip"',
+                'verified_by: "agent"',
+                'source_class: "synthesis"',
+                'confidence: "preliminary"',
             ]
         )
         config = {"schema_validation": True, "pipeline_compliance": False}
@@ -402,6 +417,9 @@ class TestProtectedFileWrites:
                 'description: "A normal claim about mechanisms"',
                 'source: "[[some-source]]"',
                 "type: claim",
+                'verified_by: "agent"',
+                'source_class: "published"',
+                'confidence: "supported"',
             ],
         )
         with patch.dict("os.environ", {}, clear=False):
@@ -474,6 +492,9 @@ class TestTitleEchoIntegration:
                 'description: "Some insight about mechanisms"',
                 'source: "[[2026-study]]"',
                 "type: claim",
+                'verified_by: "agent"',
+                'source_class: "published"',
+                'confidence: "supported"',
             ],
             body="# some insight about mechanisms\n\nBody text.\n",
         )

@@ -63,6 +63,9 @@ def mini_vault(tmp_path: Path) -> Path:
                 'description: "Plasma NfL rises across all dementia subtypes"',
                 "type: claim",
                 'source: "[[2022-paper]]"',
+                'verified_by: "agent"',
+                'source_class: "published"',
+                'confidence: "supported"',
             ],
             body=(
                 "## Body\n"
@@ -82,6 +85,9 @@ def mini_vault(tmp_path: Path) -> Path:
                 'description: "p-tau217 has higher specificity than NfL for AD pathology"',
                 "type: claim",
                 'source: "[[2023-paper]]"',
+                'verified_by: "agent"',
+                'source_class: "published"',
+                'confidence: "supported"',
             ],
             body=(
                 "## Body\n"

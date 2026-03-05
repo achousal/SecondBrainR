@@ -318,8 +318,8 @@ _SCHEMAS: dict[str, list[str]] = {
         "source_vault",
         "imported",
     ],
-    "claim": ["description"],
-    "evidence": ["description"],
+    "claim": ["description", "verified_by", "source_class", "confidence"],
+    "evidence": ["description", "verified_by", "source_class", "confidence"],
     "methodology": ["description"],
     "contradiction": ["description"],
     "pattern": ["description"],
@@ -554,6 +554,9 @@ _WIKI_LINK_SEARCH_DIRS = (
     "_research/literature",
     "_research/hypotheses",
     "_research/experiments",
+    "self",
+    "projects",
+    "ops/methodology",
 )
 
 
@@ -693,9 +696,10 @@ def check_wiki_link_targets(
 ) -> ValidationResult:
     """B3: BLOCK if any ``[[target]]`` in body or source: FM is unresolvable.
 
-    Searches notes/, _research/literature/, _research/hypotheses/, and
-    _research/experiments/ for matching filenames.  Tries NFC, accent-stripped,
-    and space-to-hyphen variants before failing.
+    Searches notes/, _research/literature/, _research/hypotheses/,
+    _research/experiments/, self/, projects/, and ops/methodology/ for matching
+    filenames.  Tries NFC, accent-stripped, and space-to-hyphen variants before
+    failing.
 
     Args:
         content: Full note content (with frontmatter).
@@ -762,7 +766,7 @@ def check_wiki_link_targets(
         errors.append(
             f"Dangling wiki-link: [[{target}]] -- no matching file found in "
             f"notes/, _research/literature/, _research/hypotheses/, "
-            f"or _research/experiments/."
+            f"_research/experiments/, self/, projects/, or ops/methodology/."
         )
 
     if errors:

@@ -283,6 +283,18 @@ Checks for duplicates, creates an archive folder, moves the source from inbox/ t
 
 ---
 
+#### /enrich
+Integrate new evidence into existing claims with proper citation and provenance upgrades.
+
+| Property | Value |
+|----------|-------|
+| Input | Task file path, `[[note name]]`, or empty (lists pending) |
+| Output | Updated target note + task file enrich section |
+
+Adds published findings to claims originally created from a different source. Reads actual source lines from the literature archive and integrates them as prose -- never fabricates from training knowledge. Evaluates YAML provenance upgrades (confidence, source_class, source) and signals post-enrich actions (title-sharpen, split-recommended, merge-candidate). Supports pipeline mode (`--handoff` from /ralph) and interactive mode with proposal approval. Respects quarantine guard on federation imports.
+
+---
+
 #### /ralph
 Orchestrate the full processing chain with fresh context per phase.
 
@@ -292,6 +304,18 @@ Orchestrate the full processing chain with fresh context per phase.
 | Output | Fully processed claims |
 
 Named orchestrator for the complete pipeline. Manages context freshness by invoking each phase in a separate context window. Recommended for deep processing of important sources.
+
+---
+
+#### /archive-batch
+Archive completed processing batches.
+
+| Property | Value |
+|----------|-------|
+| Input | `{batch-id}` or `--all` |
+| Output | Archived batch folder with SUMMARY.md |
+
+Moves task files to `ops/queue/archive/{date}-{batch-id}/`, generates a human-readable SUMMARY.md with claims table and processing timeline, and flags queue entries as `archived` (entries are never deleted, preserving provenance). Single-batch mode requires all entries to be done; `--all` mode archives every fully completed batch.
 
 ---
 
@@ -403,6 +427,18 @@ Restructure claims and topic maps.
 | Output | Restructured content with updated links |
 
 Split bundled claims, merge near-duplicates, reorganize topic map sections, rename claims (with wiki-link propagation). Uses ops/scripts/rename-note.sh for safe renames.
+
+---
+
+#### /dev
+Code section health checks across the codebase.
+
+| Property | Value |
+|----------|-------|
+| Input | `[section]`, `--changed`, `--affected <section>`, or empty (all sections) |
+| Output | Section health report with module metrics |
+
+Runs tests, lint, build, and coverage checks across codebase sections defined in `ops/sections.yaml`. Reports Python/R module counts, test-to-code ratio, skill count, and per-section pass/fail status. Complements /health (vault integrity) with code integrity -- both should be green before releases.
 
 ---
 

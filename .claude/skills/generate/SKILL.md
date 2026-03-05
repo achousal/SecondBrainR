@@ -197,6 +197,10 @@ Verify the generated ID does not collide with any existing hypothesis ID. If col
 - **Always start new hypotheses at Elo=1200.** Evolved hypotheses also reset to 1200.
 - **Always check for duplicate IDs** before saving.
 - **Include meta-review feedback** in the generation prompt when available -- this is the self-improving loop mechanism.
+- **Source fidelity for synthesis.** Hypotheses must be grounded in vault-documented evidence (literature notes, claims, experiment results). Do not inject facts, effect sizes, or mechanisms from model training knowledge that are not traceable to a vault source. If evidence is insufficient, state that explicitly rather than filling gaps from training data.
+- **YAML safety.** Always double-quote all string values in YAML frontmatter. Unquoted colons, commas, or brackets cause silent misparsing and will be blocked by the validation hook.
+- **Verify wiki-link targets exist** before including them in the hypothesis note. Use Glob to confirm each `[[link]]` resolves to a real file.
+- **Escalation ceiling.** Never write to or modify files in `self/`, `ops/config.yaml`, `ops/daemon-config.yaml`, or `CLAUDE.md`. These are protected paths requiring explicit operator confirmation per invocation.
 
 ## CO-SCIENTIST HANDOFF
 

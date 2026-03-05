@@ -33,6 +33,7 @@ sys.path.insert(0, str(_CODE_DIR / "src"))
 
 from engram_r.hook_utils import load_config, resolve_vault  # noqa: E402
 from engram_r.integrity import MONITORED_DIRS, PROTECTED_PATHS  # noqa: E402
+from engram_r.pii_filter import redact_text  # noqa: E402
 from engram_r.schema_validator import (  # noqa: E402
     check_nonstandard_headers,
     check_notes_provenance,
@@ -45,6 +46,22 @@ from engram_r.schema_validator import (  # noqa: E402
     validate_filename,
     validate_note,
 )
+
+def _log_bypass(vault: Path, bypass_type: str, file_path: str) -> None:
+    """Append a timestamped entry to the session audit log when a bypass is used."""
+    from datetime import datetime, timezone
+
+    sessions_dir = vault / "ops" / "sessions"
+    audit_file = sessions_dir / "bypass-audit.log"
+    try:
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        entry = f"{ts} | {bypass_type} | {file_path}\n"
+        with open(audit_file, "a", encoding="utf-8") as f:
+            f.write(entry)
+    except Exception:
+        pass  # audit logging must never block the hook
+
 
 # Directories where notes are flat (no subdirectories allowed).
 _FLAT_DIRS = {"notes", "hypotheses", "literature", "experiments", "landscape"}
@@ -136,22 +153,22 @@ def main() -> None:
         return
 
     # Block writes to protected identity/config files
-    if (
-        config.get("identity_protection", True)
-        and rel_str in PROTECTED_PATHS
-        and not os.environ.get("ENGRAMR_IDENTITY_UNLOCK")
-    ):
-        response = {
-            "decision": "block",
-            "reason": (
-                f"Protected file: {rel_str}. "
-                f"Set ENGRAMR_IDENTITY_UNLOCK=1 to allow edits to "
-                f"identity/config files, then run 'seal' to update "
-                f"the manifest."
-            ),
-        }
-        print(json.dumps(response))
-        sys.exit(0)
+    identity_bypass_active = bool(os.environ.get("ENGRAMR_IDENTITY_UNLOCK"))
+    if config.get("identity_protection", True) and rel_str in PROTECTED_PATHS:
+        if identity_bypass_active:
+            _log_bypass(vault, "IDENTITY_UNLOCK", rel_str)
+        else:
+            response = {
+                "decision": "block",
+                "reason": (
+                    f"Protected file: {rel_str}. "
+                    f"Set ENGRAMR_IDENTITY_UNLOCK=1 to allow edits to "
+                    f"identity/config files, then run 'seal' to update "
+                    f"the manifest."
+                ),
+            }
+            print(json.dumps(response))
+            sys.exit(0)
 
     # Warn on methodology source file writes (monitored, not blocked)
     for monitored_dir in MONITORED_DIRS:
@@ -197,6 +214,19 @@ def main() -> None:
 
     if not content:
         return
+
+    # PII scan: warn if note body contains identifiable patterns
+    pii_scrubbed = redact_text(content)
+    if pii_scrubbed != content:
+        response = {
+            "decision": "block",
+            "reason": (
+                "PII detected in note content (SSN, email, phone, or MRN pattern). "
+                "Remove or redact identifiable information before writing."
+            ),
+        }
+        print(json.dumps(response))
+        sys.exit(0)
 
     # YAML safety: detect unquoted colons/hashes that silently misparse
     yaml_issues = detect_yaml_safety_issues(content)
@@ -289,9 +319,12 @@ def main() -> None:
         # Skipped when ENGRAMR_PIPELINE_BYPASS is set (for /init seeding
         # and other direct-write workflows that predate the queue).
         tool_name = hook_input.get("tool_name", "")
+        pipeline_bypass_active = bool(os.environ.get("ENGRAMR_PIPELINE_BYPASS"))
+        if pipeline_bypass_active and tool_name == "Write" and not file_path.exists():
+            _log_bypass(vault, "PIPELINE_BYPASS", rel_str)
         if (
             tool_name == "Write"
-            and not os.environ.get("ENGRAMR_PIPELINE_BYPASS")
+            and not pipeline_bypass_active
             and not file_path.exists()
         ):
             queue_dir = vault / "ops" / "queue"
