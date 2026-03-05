@@ -157,6 +157,18 @@ EngramR/
 | `/stats` | Vault metrics; `--dev` for code section health |
 | `/health` | Comprehensive vault health check |
 | `/learn` | Research a topic and grow the knowledge graph |
+| `/seed` | Queue a source file for processing (dedup, archive, task creation) |
+| `/enrich` | Integrate new evidence into existing claims with provenance |
+| `/ralph` | Queue processing with fresh context per phase (serial/parallel) |
+| `/archive-batch` | Archive completed processing batches |
+| `/profile` | Create, list, show, and activate domain profiles |
+| `/project` | Register, update, and query research projects |
+| `/graph` | Interactive knowledge graph analysis (health, triangles, bridges) |
+| `/remember` | Capture friction as methodology observations |
+| `/rethink` | Challenge system assumptions against accumulated evidence |
+| `/refactor` | Plan vault restructuring from config changes |
+| `/tasks` | View and manage the task stack and processing queue |
+| `/dev` | Code section health checks (tests, lint, build, coverage) |
 
 See the [Skills Reference](docs/manual/skills.md) for full command
 documentation with arguments and I/O details.
@@ -181,6 +193,7 @@ documentation with arguments and I/O details.
 | [Administration](docs/manual/administration.md) | Daemon, hooks, decision engine, scripts |
 | [Inter-Lab Collaboration](docs/manual/inter-lab.md) | Federation and multi-vault setup |
 | [Querying](docs/manual/querying.md) | YAML frontmatter query patterns |
+| [Meta-Skills](docs/manual/meta-skills.md) | Introspective commands -- ask, architect, rethink, remember |
 | [Troubleshooting](docs/manual/troubleshooting.md) | Common failure modes and fixes |
 | [Vision Document](docs/EngramR.md) | Design philosophy and motivation |
 | [Library Reference](_code/README.md) | Python/R modules, testing, env vars |

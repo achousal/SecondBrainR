@@ -83,7 +83,7 @@ Ship immediately. No dependencies. Gives the bot live vault access via Anthropic
 - No regression in existing skill routing for mutative commands
 - Tool use adds < 3s average latency to responses
 
-**Detailed design:** `docs/dev/slack-bot-tool-calling.md`
+**Detailed design:** Archived to `docs/dev/archive/slack-bot-tool-calling.md` (subsumed by this roadmap)
 
 #### Phase B -- Semantic Search (embeddings)
 

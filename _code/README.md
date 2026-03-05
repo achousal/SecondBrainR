@@ -28,6 +28,12 @@ All code in `src/engram_r/`:
 | `integrity.py` | Integrity manifest for self-modifiable files -- tamper detection and write protection |
 | `domain_profile.py` | Domain profile discovery, loading, and application |
 | `audit.py` | Structured JSONL audit log for daemon scheduler decision cycles |
+| `frontmatter.py` | Shared frontmatter parsing and vault-path resolution utilities |
+| `queue_validator.py` | Validate enrichment entries in the processing queue |
+| `stub_enricher.py` | DOI stub enrichment for inbox files |
+| `skill_permissions.py` | Discover skills on disk and sync Skill() permission entries in settings.json |
+| `verify_health.py` | Deterministic health checks for vault notes |
+| `vault_advisor.py` | Goal-aware content suggestions for skills |
 
 ### Co-Scientist
 
@@ -47,6 +53,7 @@ All code in `src/engram_r/`:
 | `metabolic_indicators.py` | Vault health indicators (QPR, VDR, CMR, HCR, SWR) for daemon self-regulation |
 | `decision_engine.py` | Unified decision engine for /next and daemon -- signal cascade + metabolic dashboard |
 | `_daemon_backoff.py` | Skill-level failure tracking with exponential backoff for the daemon |
+| `metabolic_history.py` | Historical persistence and trend analysis for metabolic indicators |
 
 ### Federation
 
@@ -102,7 +109,7 @@ uv run black --check src/                      # format
 
 ## Automation Hooks
 
-5 hooks in `scripts/hooks/`, configured in `.claude/settings.json`:
+6 hooks in `scripts/hooks/`, configured in `.claude/settings.json`:
 
 | Hook | Event | Mode | Purpose |
 |---|---|---|---|
@@ -110,6 +117,7 @@ uv run black --check src/                      # format
 | `validate_write.py` | PostToolUse (Write/Edit) | sync | Block writes that violate note schemas |
 | `auto_commit.py` | PostToolUse (Write/Edit) | async | Auto-commit vault note changes |
 | `pipeline_bridge.py` | PostToolUse (Write) | async | Suggest /reduce for new literature notes and hypotheses |
+| `validate_queue.py` | PostToolUse (Write) | sync | Block phantom enrichment targets in queue.json |
 | `session_capture.py` | Stop | sync | Record session summary to `ops/sessions/` |
 
 All hooks log errors to stderr (non-blocking). Disable any hook by setting its toggle to `false` in `ops/config.yaml`.
@@ -122,6 +130,13 @@ uv run python scripts/hooks/session_orient.py
 # Validate (expects JSON on stdin)
 echo '{"tool_name":"Write","tool_input":{"file_path":"...","content":"..."}}' | uv run python scripts/hooks/validate_write.py
 ```
+
+## Helper scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/init_vault.py` | Initialize vault directory structure |
+| `scripts/verify_claim.py` | Single or batch human verification of agent-extracted claims |
 
 ## Hypothesis note format
 
