@@ -91,7 +91,7 @@ A new student joins. Instead of three weeks of orientation, they browse the know
 - **Software**: Open-source (MIT license). Zero licensing fees
 
 ### Human Costs
-- **Setup**: 30 minutes for onboarding. No IT department needed
+- **Setup**: 1 day for onboarding. No IT department needed
 - **Daily use**: Zero additional meetings. Team members contribute via Slack or file drops during their normal workflow
 - **Maintenance**: Self-maintaining. Health checks flag issues automatically
 
@@ -99,8 +99,6 @@ A new student joins. Instead of three weeks of orientation, they browse the know
 - **Small lab (3-5 people)**: ~$150/month in API costs
 - **Medium lab (6-15 people)**: ~$300/month in API costs
 - **Large lab or multi-lab**: ~$500/month in API costs
-
-For context: this is less than a single undergraduate RA hour per day.
 
 ---
 
@@ -164,13 +162,13 @@ This inverts the collaboration model: instead of deciding to collaborate and the
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|---|---|
+| Risk                                      | Mitigation                                                                                                            |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | AI hallucination in hypothesis generation | Every claim traces to a source document. Provenance chain is auditable. Fabricated citations are mechanically blocked |
-| Data privacy | Runs locally. No cloud dependency. PII auto-redaction in EDA. Data never leaves lab machines |
-| Vendor lock-in | Open-source (MIT). Plain markdown files. Zero proprietary formats. Switch AI providers anytime |
-| Adoption fatigue | Gradient adoption. Start with one person. No meetings. No training. Value visible within one week |
-| PI time investment | The system does the synthesis. The PI makes decisions. Net time savings from week one |
+| Data privacy                              | Runs locally. No cloud dependency. PII auto-redaction in EDA. Data never leaves lab machines                          |
+| Vendor lock-in                            | Open-source (MIT). Plain markdown files. Zero proprietary formats.                                                    |
+| Adoption fatigue                          | Gradient adoption. Start with one person. No meetings. No training. Value visible within one week                     |
+| PI time investment                        | The system does the synthesis. The PI makes decisions. Net time savings from week one                                 |
 
 ---
 
