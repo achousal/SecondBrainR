@@ -121,6 +121,14 @@ If the note has fields with enumerated values, check them against the template's
 
 If a field has a value not in the enum list, report the invalid value and list the valid options.
 
+### Unresolved Terms (WARN if present)
+
+| Check | Rule | How to Verify |
+|-------|------|---------------|
+| `unresolved_terms` | Should be empty (all acronyms confirmed) | Check YAML for `unresolved_terms:` list. If non-empty, WARN with the specific terms needing human confirmation |
+
+Notes with `unresolved_terms` contain acronyms or abbreviations the agent could not confirm from the source text. The human must review and either confirm the meaning (clear the field) or correct any claims that used the wrong expansion.
+
 ### Link Health (WARN per broken link)
 
 | Check | Rule | How to Verify |

@@ -849,6 +849,26 @@ The claim test: "this claim argues that [title]"
 | small differences compound through selection | yes: "argues that small differences compound through selection" |
 | tools for thought | no: "argues that tools for thought" (incomplete) |
 
+### Acronym and Abbreviation Guardrail
+
+**NEVER silently expand an acronym unless its definition appears explicitly in the source text or is already confirmed in the vault.** Guessing acronym meanings is a hallucination vector -- a single wrong expansion propagates through the knowledge graph via wiki links and claim titles.
+
+**During extraction, for each acronym encountered:**
+
+1. Check if the source text defines it (e.g., "LucentAD Complete (LADC)")
+2. If not defined in source, check if an existing vault note already confirms the expansion
+3. If neither: **write the acronym as-is** (do not expand) and add it to `unresolved_terms` in YAML frontmatter
+
+```yaml
+unresolved_terms: ["LADC", "MCC"]
+```
+
+**In titles:** Use the raw acronym, not a guessed expansion. `LADC reduces intermediate zone reclassification rates` is correct. `Louisiana Alzheimer Disease Center reduces intermediate zone reclassification rates` is a hallucination if the source never defines LADC.
+
+**In body text:** Same rule. Use the acronym as-is. Add a parenthetical only if the source provides the expansion.
+
+This field is surfaced by `/health` for batch human review.
+
 ### Title Safety Rules
 
 Titles become filenames. The validate_write hook blocks unsafe titles with specific error messages.

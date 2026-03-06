@@ -693,6 +693,7 @@ def build_claim_note(
     source_vault: str | None = None,
     imported: str | None = None,
     quarantine: bool = False,
+    unresolved_terms: list[str] | None = None,
 ) -> tuple[str, str]:
     """Build an atomic claim note with full sanitization.
 
@@ -719,6 +720,8 @@ def build_claim_note(
         source_vault: Originating vault name (federation import).
         imported: ISO timestamp of when the claim was exported (federation).
         quarantine: Mark imported claim for manual review (federation).
+        unresolved_terms: Acronyms/abbreviations whose meaning could not be
+            confirmed from the source text. Flagged for human review.
 
     Returns:
         Tuple of (safe_filename_stem, note_content_string).
@@ -751,6 +754,8 @@ def build_claim_note(
         fm["imported"] = imported
     if quarantine:
         fm["quarantine"] = True
+    if unresolved_terms:
+        fm["unresolved_terms"] = unresolved_terms
 
     # Build body with footer
     parts = [body.rstrip() if body else ""]

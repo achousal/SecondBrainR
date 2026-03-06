@@ -405,6 +405,20 @@ def verify_note_health(
         # No frontmatter -- permissive pass
         return HealthReport(note_path=note_path, checks=checks)
 
+    # --- Unresolved terms ---
+    if isinstance(frontmatter, dict):
+        unresolved = frontmatter.get("unresolved_terms")
+        if isinstance(unresolved, list) and unresolved:
+            terms_str = ", ".join(str(t) for t in unresolved)
+            checks.append(
+                CheckItem(
+                    "unresolved_terms",
+                    "WARN",
+                    f"Unresolved acronyms/abbreviations: {terms_str} "
+                    f"-- confirm meaning and clear field",
+                )
+            )
+
     # --- Wiki links ---
     links = extract_wiki_links(content)
     checks.extend(check_link_density(links))
