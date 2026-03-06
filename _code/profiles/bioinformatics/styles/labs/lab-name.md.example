@@ -1,0 +1,37 @@
+# Lab Name Visual Identity
+
+Color palette, branding, and policies for all Lab Name projects. Inherits format conventions from `styles/formats/`. Color values defined in `palettes/{lab-name}.yaml`.
+
+## First-choice accent colors
+
+When a plot needs one, two, or three colors and no semantic mapping applies, reach for these in order:
+
+| Rank | Color | Hex |
+|------|-------|-----|
+| Primary | blue | `#0072B2` |
+| Secondary | orange | `#E69F00` |
+| Tertiary | green | `#009E73` |
+
+## Categorical palette
+
+Describe your palette choice (e.g. "Okabe-Ito, 8 colors, colorblind accessible").
+
+Access: `lab_palette("lab-name")` (R) or `get_lab_palette("lab-name")` (Python).
+
+## Semantic mappings
+
+Inherits universal semantic palettes (see `palettes/_semantic.yaml`). Add lab-specific overrides here if needed.
+
+## Heatmap palettes
+
+- **Diverging** (centered at 0): `RdBu` / `RdBu_r`
+- **Sequential** (density/counts): `Blues`
+
+## Dashboard branding
+
+| Field | Value |
+|-------|-------|
+| Title | Report Title |
+| Institution | Lab Name -- Your Institution |
+| Disclaimer | For research use only. Not for clinical diagnostic purposes. |
+| Footer | Lab Name -- Institution |
