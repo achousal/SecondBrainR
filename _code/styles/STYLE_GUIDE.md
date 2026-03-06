@@ -105,6 +105,54 @@ geom_text(data = n_labels, aes(x = x, y = 0, label = label),
 
 Use lowercase `n=` consistently. Reserve uppercase `N=` only for total sample size in report headers. Always use `n=` (no space) in compact plot annotations; `n = ` (with spaces) is acceptable in longer prose-style stat boxes.
 
+## Correlation annotation escalation
+
+When a scatter/correlation plot stratifies data by a grouping variable (e.g., Sex, Diagnosis, Population), the annotation tier depends on the scientific question being asked.
+
+### Tier 1 -- Exploratory (per-group correlations only)
+
+Use when the question is: "What is the association within each group?"
+
+Show per-group annotations only:
+
+```
+Male: r=0.45, p=0.012, n=38
+Female: r=0.31, p=0.087, n=32
+```
+
+Appropriate for: initial data exploration, composite panels where the grouping variable is secondary context (e.g., NFL vs cognitive measures stratified by sex as a visual aid).
+
+### Tier 2 -- Comparative (per-group + between-group tests)
+
+Use when the question is: "Does the association differ between groups?"
+
+Show per-group annotations plus two between-group tests:
+
+```
+Male: r=0.45, p=0.012, n=38
+Female: r=0.31, p=0.087, n=32
+Fisher Z: z=0.72, p=0.471
+Interaction: p=0.538
+```
+
+- **Fisher Z test**: tests whether two independent Pearson correlations differ significantly (`fisher_z_test()` / `compare_correlations()`).
+- **Interaction test**: from `lm(Y ~ X * Group)` -- tests whether the slope of X on Y differs by group level. Reports the p-value of the `X:Group` interaction term.
+
+Appropriate for: any analysis where group-differential associations are the primary scientific question (e.g., "does the FLT-biomarker relationship differ by sex?").
+
+### Decision rule
+
+If the plot facets or colors by a grouping variable AND the analysis goal involves testing whether that grouping variable modifies the association, use Tier 2. If the grouping is incidental context, use Tier 1. When in doubt, use Tier 2 -- the extra tests cost nothing computationally and prevent the reader from eyeballing slope differences without formal support.
+
+### Implementation
+
+| Language | Tier 1 | Tier 2 |
+|----------|--------|--------|
+| R | `add_cor_annotations()` | `make_combined_labels()` with `compute_fi_from_long()` |
+| Python | `annotate_correlations()` | `annotate_correlations(compare_groups=True)` |
+
+Both tiers write exact values to the `_pvalues.txt` sidecar file.
+
 ## Statistical annotation in figures
 
 Every figure with a statistical comparison must name the test used. The reader should not need to consult a methods section to interpret the annotation.

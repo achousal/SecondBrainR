@@ -54,6 +54,12 @@ Implemented identically in `plot_stats.py` (Python) and `stats_helpers.R`:
 P-value formatting: `p < 0.001` threshold, else 3 decimal places. Stars:
 `***`/`**`/`*`/`ns`. Every figure writes a `_pvalues.txt` sidecar file.
 
+**Correlation annotation escalation**: When scatter plots stratify by a
+grouping variable, use Tier 1 (per-group r/p/n) for exploratory context or
+Tier 2 (per-group + Fisher Z + interaction test) when the question is whether
+the association differs between groups. See `STYLE_GUIDE.md` for the full
+decision rule and implementation references.
+
 ---
 
 ## Plot builders
