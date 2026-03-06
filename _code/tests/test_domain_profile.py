@@ -9,6 +9,7 @@ import yaml
 
 from engram_r.domain_profile import (
     DomainProfile,
+    _load_palettes_from_dir,
     apply_profile_config,
     discover_profiles,
     get_active_profile,
@@ -78,13 +79,20 @@ def profiles_dir(tmp_path: Path) -> Path:
         )
     )
 
-    # palettes.yaml
-    (test_profile / "palettes.yaml").write_text(
+    # palettes/ directory (new structure)
+    palettes = test_profile / "palettes"
+    palettes.mkdir()
+
+    (palettes / "_semantic.yaml").write_text(
         yaml.dump(
-            {
-                "labs": {"example-lab": ["#E41A1C", "#377EB8", "#4DAF4A"]},
-                "semantic": {"category": {"A": "#E41A1C", "B": "#377EB8"}},
-            },
+            {"category": {"A": "#E41A1C", "B": "#377EB8"}},
+            default_flow_style=False,
+        )
+    )
+
+    (palettes / "example-lab.yaml").write_text(
+        yaml.dump(
+            {"categorical": ["#E41A1C", "#377EB8", "#4DAF4A"]},
             default_flow_style=False,
         )
     )
@@ -283,3 +291,94 @@ class TestApplyProfileConfig:
 
         assert result["data_layers"] == ["Layer-A", "Layer-B", "Layer-C"]
         assert result["domain"]["name"] == "test-domain"
+
+
+class TestLoadPalettesFromDir:
+    def test_loads_semantic_and_labs(self, tmp_path: Path) -> None:
+        palettes_dir = tmp_path / "palettes"
+        palettes_dir.mkdir()
+        (palettes_dir / "_semantic.yaml").write_text(
+            yaml.dump({"sex": {"M": "#377EB8", "F": "#E41A1C"}})
+        )
+        (palettes_dir / "lab-a.yaml").write_text(
+            yaml.dump({"categorical": ["#111111", "#222222"]})
+        )
+        (palettes_dir / "lab-b.yaml").write_text(
+            yaml.dump({"categorical": ["#333333", "#444444"]})
+        )
+
+        result = _load_palettes_from_dir(palettes_dir)
+        assert result["semantic"]["sex"]["M"] == "#377EB8"
+        assert result["labs"]["lab-a"] == ["#111111", "#222222"]
+        assert result["labs"]["lab-b"] == ["#333333", "#444444"]
+
+    def test_skips_underscore_files_for_labs(self, tmp_path: Path) -> None:
+        palettes_dir = tmp_path / "palettes"
+        palettes_dir.mkdir()
+        (palettes_dir / "_semantic.yaml").write_text(
+            yaml.dump({"binary": {"A": "#111", "B": "#222"}})
+        )
+        result = _load_palettes_from_dir(palettes_dir)
+        assert "labs" not in result
+        assert "semantic" in result
+
+    def test_empty_dir(self, tmp_path: Path) -> None:
+        palettes_dir = tmp_path / "palettes"
+        palettes_dir.mkdir()
+        result = _load_palettes_from_dir(palettes_dir)
+        assert result == {}
+
+    def test_lab_without_categorical_key_skipped(self, tmp_path: Path) -> None:
+        palettes_dir = tmp_path / "palettes"
+        palettes_dir.mkdir()
+        (palettes_dir / "odd-lab.yaml").write_text(
+            yaml.dump({"accent": {"primary": "#000"}})
+        )
+        result = _load_palettes_from_dir(palettes_dir)
+        assert "labs" not in result
+
+
+class TestFlatFileFallback:
+    def test_falls_back_to_flat_palettes_yaml(self, tmp_path: Path) -> None:
+        code_dir = tmp_path / "_code"
+        profile_dir = code_dir / "profiles" / "flat-test"
+        profile_dir.mkdir(parents=True)
+        (profile_dir / "profile.yaml").write_text(
+            yaml.dump(
+                {"name": "flat-test", "description": "Flat file test", "version": "1.0"}
+            )
+        )
+        (profile_dir / "palettes.yaml").write_text(
+            yaml.dump(
+                {
+                    "labs": {"old-lab": ["#AAAAAA", "#BBBBBB"]},
+                    "semantic": {"dx": {"P+": "#E41A1C"}},
+                }
+            )
+        )
+        profile = load_profile("flat-test", code_dir)
+        assert profile.palettes["labs"]["old-lab"] == ["#AAAAAA", "#BBBBBB"]
+        assert profile.palettes["semantic"]["dx"]["P+"] == "#E41A1C"
+
+    def test_dir_takes_precedence_over_flat_file(self, tmp_path: Path) -> None:
+        code_dir = tmp_path / "_code"
+        profile_dir = code_dir / "profiles" / "both"
+        profile_dir.mkdir(parents=True)
+        (profile_dir / "profile.yaml").write_text(
+            yaml.dump(
+                {"name": "both", "description": "Both sources", "version": "1.0"}
+            )
+        )
+        # Flat file (should be ignored when dir exists)
+        (profile_dir / "palettes.yaml").write_text(
+            yaml.dump({"labs": {"flat-lab": ["#000000"]}})
+        )
+        # Directory (should win)
+        palettes_dir = profile_dir / "palettes"
+        palettes_dir.mkdir()
+        (palettes_dir / "dir-lab.yaml").write_text(
+            yaml.dump({"categorical": ["#FFFFFF"]})
+        )
+        profile = load_profile("both", code_dir)
+        assert "dir-lab" in profile.palettes.get("labs", {})
+        assert "flat-lab" not in profile.palettes.get("labs", {})

@@ -3,6 +3,10 @@
 Profiles provide domain-specific configuration (palettes, confounders,
 heuristics, PII patterns) that customize EngramR for a particular
 research field. Profiles live in _code/profiles/{name}/.
+
+Palettes can be stored as either:
+  - palettes/ directory with per-lab YAML files + _semantic.yaml (preferred)
+  - palettes.yaml flat file (legacy, backward compatible)
 """
 
 from __future__ import annotations
