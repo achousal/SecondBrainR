@@ -11,7 +11,7 @@ Every lab generates more observations, paper reads, and experimental results tha
 ## The Problem (What PIs Actually Deal With)
 
 ### 1. Knowledge walks out the door
-A postdoc reads 200 papers during their tenure. When they leave, that context leaves with them. The next trainee starts from scratch. There is no institutional memory beyond what fits in a shared drive of PDFs nobody opens.
+A postdoc reads 200 papers during their tenure. When they leave, that context leaves with them. The next trainee starts from scratch. There is no institutional memory beyond what fits in a shared drive of PDFs.
 
 ### 2. Observations die in notebooks
 A tech notices something unexpected. A grad student sees a pattern that doesn't match predictions. These are real signals, but without a system to capture and connect them, they fade by Friday. The lab loses information it already paid for.
