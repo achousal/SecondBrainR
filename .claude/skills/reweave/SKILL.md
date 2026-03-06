@@ -454,6 +454,10 @@ The enrich phase determined the claim's title is too vague after content integra
 3. If yes and a rename script exists: use it to rename. Otherwise rename manually and update all wiki links.
 4. Update the claim's description to match the new title
 5. Log the rename in the task file Reweave section
+6. Record the rename in parseable format for downstream queue sync:
+   - In the `## Reweave Complete` heading, use the NEW title: `## Reweave Complete: [[new title]]`
+   - In the Changes Applied table, include: `| rename | [[old title]] -> [[new title]] |`
+   - In the Handoff block's Queue Updates, add: `- Target renamed: old title -> new title`
 
 ### split-recommended
 

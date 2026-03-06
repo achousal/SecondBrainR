@@ -397,6 +397,16 @@ After a **create** phase completes:
 
 This sync ensures reflect, reweave, cross-connect, and verify all reference the real filename.
 
+**Post-reweave target sync (MANDATORY after reweave phase):**
+
+The reweave subagent may execute a title-sharpen rename signaled by enrich. The queue `target` field must match the actual filename on disk, or verify will reference a stale path.
+
+After a **reweave** phase completes:
+1. Read the task file's `## Reweave` section. Look for a `| rename |` row in the Changes Applied table.
+2. If a rename row exists, parse the new title from the `[[old title]] -> [[new title]]` format.
+3. If the new title differs from the queue entry's `target`, update `target` in queue.json to match.
+4. Verify the note exists on disk: `Glob` for `notes/{new title}.md`. If missing, log a warning -- the rename may have failed silently.
+
 **Phase progression logic:**
 
 Look up `phase_order` from the queue header to determine the next phase. Find `current_phase` in the array. If there is a next phase, advance. If it is the last phase, mark done.
