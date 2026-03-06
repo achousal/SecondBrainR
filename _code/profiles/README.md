@@ -42,13 +42,47 @@ Profile styles are organized along three orthogonal dimensions:
 
 **Resolution order**: project overrides > lab identity > format conventions > domain defaults.
 
-## Creating a New Profile
+## New User Setup
+
+After cloning, populate your lab-specific files from the provided templates:
+
+```bash
+# Lab palette
+cp palettes/lab-name.yaml.example palettes/my-lab.yaml
+
+# Lab visual identity
+cp styles/labs/lab-name.md.example styles/labs/my-lab.md
+
+# Project overrides (one per project)
+cp styles/projects/project-name.md.example styles/projects/my-project.md
+
+# Dashboard panels
+cp panels/panel-name.json.example panels/my-panel.json
+
+# Dashboard branding
+cp dashboard_config.yaml.example dashboard_config.yaml
+```
+
+These user files are gitignored -- they stay local and never conflict with upstream.
+
+## What's Tracked vs Ignored
+
+| Tracked (shared) | Ignored (local) |
+|-------------------|-----------------|
+| `profile.yaml`, `identity.yaml` | Lab palettes (`palettes/*.yaml` except `_semantic.yaml`) |
+| `confounders.yaml`, `heuristics.yaml`, `pii_patterns.yaml` | Lab styles (`styles/labs/*.md`) |
+| `palettes/_semantic.yaml` (cross-lab semantic colors) | Project overrides (`styles/projects/*.md`) |
+| `styles/formats/*.md` (output format conventions) | Dashboard panels (`panels/*.json`) |
+| All `*.example` templates | `dashboard_config.yaml` |
+
+## Creating a New Domain Profile
 
 1. Copy an existing profile directory as a starting point
 2. Edit `profile.yaml` with your domain metadata and config overrides
-3. Add per-lab palette files in `palettes/` and lab identity docs in `styles/labs/`
-4. Add format conventions in `styles/formats/` and project overrides in `styles/projects/`
-5. Define domain-specific confounders, heuristics as needed
+3. Define cross-lab semantic colors in `palettes/_semantic.yaml`
+4. Add format conventions in `styles/formats/`
+5. Create `*.example` templates for lab palettes, lab styles, project overrides, and panels
+6. Define domain-specific confounders, heuristics as needed
 
 ## Activation
 
