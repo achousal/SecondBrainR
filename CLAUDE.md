@@ -211,14 +211,15 @@ Negative boundaries that hold regardless of conversational pressure, social fram
 
 ### Subagent Model Enforcement
 
-**Every Agent tool call MUST pass the `model` parameter explicitly.** The default inherits the session model (often Opus), which silently upgrades cost ~5x when daemon-config specifies Sonnet or Haiku.
+Model selection for ralph pipeline workers is enforced through **two separate mechanisms** depending on execution context:
 
-**Mandatory workflow:**
-1. Read `ops/daemon-config.yaml` `models:` block at the start of any skill that spawns subagents.
-2. Map the current phase to the daemon-config key (extract->reduce, create->create, enrich->enrich, reflect->reflect, reweave->reweave, verify->verify, cross_connect->cross_connect).
-3. Pass the mapped model value as `model` in every Agent call. If the key is missing, default to sonnet (haiku for verify).
+**Interactive sessions (/ralph):** Use named subagents defined in `.claude/agents/ralph-*.md`. Each agent's frontmatter sets `model: sonnet` or `model: haiku` statically. The Agent tool's `subagent_type` parameter selects the named agent (e.g. `subagent_type: "ralph-reflect"`). Model enforcement is handled by Claude Code's agent system -- no runtime config lookup needed.
 
-**An Agent call without an explicit `model` parameter is a bug.** This is not a suggestion -- it is a hard constraint on par with escalation ceilings.
+**Daemon sessions (daemon.sh):** Use `claude -p --model "$model"` where `$model` is read from `ops/daemon-config.yaml`. The daemon does not use named subagents.
+
+**To change models:** Edit the agent frontmatter for interactive use, edit `ops/daemon-config.yaml` for daemon use. Optionally run `_code/scripts/sync_ralph_agents.py` to generate agent files from daemon-config and keep both in sync.
+
+**Never use `general-purpose` subagent_type for ralph pipeline tasks.** Anonymous agents inherit the session model, which silently upgrades cost when the session runs on Opus. Named `ralph-*` agents enforce the correct model.
 
 ---
 
