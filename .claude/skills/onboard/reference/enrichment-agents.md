@@ -9,7 +9,7 @@ All agents use WebSearch/WebFetch directly and return structured output. No inbo
 
 ## A1: Lab Profile Enrichment
 
-**Agent config:** subagent_type: "general-purpose", model: "sonnet"
+**Agent config:** subagent_type: "onboard-enrich-lab"
 **Condition:** Always runs. WebFetch step requires a lab website URL; web search runs regardless.
 
 **Prompt template:**
@@ -69,7 +69,7 @@ Merge findings from both parts. Deduplicate. If WebFetch and web search disagree
 
 ## A2: Department and Center Enrichment
 
-**Agent config:** subagent_type: "general-purpose", model: "haiku"
+**Agent config:** subagent_type: "onboard-enrich-quick"
 **Condition:** Departments or Centers show "--" in scan results.
 
 **Prompt template:**
@@ -115,7 +115,7 @@ EXTERNAL_AFFILIATIONS: none found
 
 ## A3: Institutional Resources
 
-**Agent config:** subagent_type: "general-purpose", model: "haiku"
+**Agent config:** subagent_type: "onboard-enrich-quick"
 **Condition:** Scan produced thin infrastructure (few platforms, no core facilities).
 
 **Prompt template:**
@@ -159,7 +159,7 @@ If web search returns no useful results, return the categories with "none found"
 
 ## B1: Department-Specific Resources
 
-**Agent config:** subagent_type: "general-purpose", model: "haiku"
+**Agent config:** subagent_type: "onboard-enrich-quick"
 **Condition:** A2 returned departments. Run AFTER Phase A completes.
 **Limit:** Top 2 departments most relevant to the lab's research domain.
 
@@ -202,7 +202,7 @@ If web search returns no useful results, return the categories with "none found"
 
 ## B2: Compute Resource Reference
 
-**Agent config:** subagent_type: "general-purpose", model: "sonnet"
+**Agent config:** subagent_type: "onboard-enrich-lab"
 **Condition:** A3 returned COMPUTE entries. Runs in Phase B (sequential after Phase A). Cap: 2 resources.
 
 **Prompt template:**
