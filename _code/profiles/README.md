@@ -65,10 +65,6 @@ profiles = discover_profiles()  # list available profile names
 profile = load_profile("bioinformatics")  # load a specific profile
 ```
 
-> **Note**: `palettes.yaml` (flat file) is retained for backward compatibility with
-> `domain_profile.py` and `plot_theme.py`. The canonical palette source is now
-> `palettes/*.yaml`. A future code update will migrate the loaders.
-
 ## Dashboard Integration
 
 Profiles can include biomarker panel configurations and dashboard branding:

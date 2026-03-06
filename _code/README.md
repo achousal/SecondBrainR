@@ -180,10 +180,13 @@ Domain-specific configuration (search backends, vocabulary, plausibility criteri
 Three-tier hierarchy:
 - `_code/styles/STYLE_GUIDE.md`: visual identity (typography, frame, output standards, stats, reporting, colors, builders)
 - `_code/styles/PLOT_DESIGN.md`: plot-type geometry (distribution, scatter, heatmap, annotation, figure sizes)
-- `_code/profiles/{domain}/palettes.yaml`: domain-specific color palettes
+- `_code/profiles/{domain}/palettes/`: per-lab color palettes + cross-lab semantic mappings
+- `_code/profiles/{domain}/styles/formats/`: output format conventions (static plots, interactive HTML)
+- `_code/profiles/{domain}/styles/labs/`: lab visual identity and branding
+- `_code/profiles/{domain}/styles/projects/`: project-specific plot overrides
 - Key theme values: 14pt base, bold titles, grey90 strips, bottom legend, left+bottom spines only
 - Semantic palettes: direction, significance, binary (universal, in `_code/styles/palettes.yaml`)
-- Profile palettes: loaded from domain profile at runtime
+- Profile palettes: loaded from domain profile at runtime (palettes/ directory or legacy palettes.yaml)
 - Output: PDF vector default, 300 DPI raster, sidecar p-values
 - Stats: decision tree via `select_test()`, formatters via `format_pval()`
 - Builders: `build_violin()`, `build_box()`, `build_scatter()`, etc.
