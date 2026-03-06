@@ -72,31 +72,31 @@ The lead session's ONLY job is: read queue, spawn subagent, evaluate return, upd
 
 ## Phase Configuration
 
-Each phase maps to specific Agent tool parameters. Use these EXACTLY when spawning subagents.
+Each phase maps to a **named subagent** in `.claude/agents/`. Model, maxTurns, and tool access are enforced by the agent definition -- NOT by the Agent tool call site.
 
-| Phase | Skill Invoked | Model | max_turns | Rationale |
-|-------|---------------|-------|-----------|-----------|
-| extract | /reduce | sonnet | 25 | Large sources need many passes |
-| create | (inline note creation) | sonnet | 12 | Bounded: read task, write note (extra headroom for YAML retry) |
-| enrich | /enrich | sonnet | 8 | Bounded: read note, augment |
-| reflect | /reflect | sonnet | 15 | Dual discovery + MOC update |
-| reweave | /reweave | sonnet | 15 | Find + update older notes |
-| verify | /verify | haiku | 8 | Schema + recite + review |
-| cross-connect | (inline validation) | sonnet | 15 | Validate sibling links |
+| Phase | Named Agent | Model | maxTurns | Rationale |
+|-------|-------------|-------|----------|-----------|
+| extract | `ralph-extract` | sonnet | 25 | Large sources need many passes |
+| create | `ralph-create` | sonnet | 12 | Bounded: read task, write note (extra headroom for YAML retry) |
+| enrich | `ralph-enrich` | sonnet | 8 | Bounded: read note, augment |
+| reflect | `ralph-reflect` | sonnet | 15 | Dual discovery + MOC update |
+| reweave | `ralph-reweave` | sonnet | 15 | Find + update older notes |
+| verify | `ralph-verify` | haiku | 8 | Schema + recite + review |
+| cross-connect | `ralph-cross-connect` | sonnet | 15 | Validate sibling links |
 
-**Model and turn budgets are read from `ops/daemon-config.yaml`** (sections `models:` and `max_turns:`). Read this file at Step 1 alongside the queue. If daemon-config is missing or unreadable, use the defaults in the table above.
+**Interactive sessions**: model and turn budgets are enforced by the named agent frontmatter in `.claude/agents/ralph-*.md`. No runtime config lookup needed.
 
-Turn budgets are circuit breakers, not throttles. A bounded phase hitting its cap is probably lost; a semi-bounded phase hitting its cap was doing genuine work. Set high enough that normal execution never hits them, low enough that runaway agents get stopped.
+**Daemon sessions**: model is enforced by the `claude -p --model` flag in `daemon.sh`, reading from `ops/daemon-config.yaml`. The daemon does not use named subagents.
+
+To change a model for interactive use, edit the agent's frontmatter. To change for daemon use, edit `ops/daemon-config.yaml`. To keep both in sync, run `_code/scripts/sync_ralph_agents.py` (generates agent files from daemon-config).
+
+Turn budgets are circuit breakers, not throttles. A bounded phase hitting its cap is probably lost; a semi-bounded phase hitting its cap was doing genuine work.
 
 ---
 
-## Step 1: Read Queue State and Phase Config
+## Step 1: Read Queue State
 
-Read **two** files:
-
-**1a. Daemon config** — read `ops/daemon-config.yaml`. Extract the `models:` and `max_turns:` blocks. Store phase-to-model and phase-to-turns mappings for use in Agent calls. If unreadable, use Phase Configuration table defaults.
-
-**1b. Queue file** — check these locations in order:
+**1a. Queue file** — check these locations in order:
 1. `ops/queue.yaml`
 2. `ops/queue/queue.yaml`
 3. `ops/queue/queue.json`
@@ -357,21 +357,30 @@ THEN read full claim.
 Final phase for this claim. ONE PHASE ONLY.
 ```
 
-### 4c. Spawn Subagent (MANDATORY — NEVER SKIP)
+### 4c. Spawn Named Subagent (MANDATORY -- NEVER SKIP)
 
-Call the Agent tool with the constructed prompt. Use the model and max_turns from daemon-config (loaded in Step 1a):
+Call the Agent tool with the **named subagent** for the current phase. Model, maxTurns, and tool access are enforced by the agent definition -- you do NOT pass these at the call site.
 
 ```
 Agent(
-  subagent_type = "general-purpose",
+  subagent_type = "ralph-{current_phase}",
   prompt = {the constructed prompt from 4b},
-  description = "{current_phase}: {short target}" (5 words max),
-  model = {daemon-config models[current_phase] — e.g. "haiku" for verify, "sonnet" for reflect},
-  max_turns = {daemon-config max_turns[current_phase] — e.g. 8 for verify, 15 for reflect}
+  description = "{current_phase}: {short target}" (5 words max)
 )
 ```
 
-**Phase-to-model lookup:** Map `current_phase` to daemon-config `models:` key: extract->reduce, create->create, enrich->enrich, reflect->reflect, reweave->reweave, verify->verify. Use the model value from that key. If key missing, default to sonnet (haiku for verify).
+**Phase-to-agent mapping:**
+
+| current_phase | subagent_type |
+|---------------|---------------|
+| extract (reduce) | `ralph-extract` |
+| create | `ralph-create` |
+| enrich | `ralph-enrich` |
+| reflect | `ralph-reflect` |
+| reweave | `ralph-reweave` |
+| verify | `ralph-verify` |
+
+**NEVER use `general-purpose` for ralph tasks.** Named agents enforce model selection (e.g. haiku for verify, sonnet for reflect). Anonymous agents inherit the session model, which silently upgrades cost when the session runs on Opus.
 
 **REPEAT: You MUST call the Agent tool here.** Do NOT execute the prompt yourself. Do NOT "optimize" by running the task inline. The Agent tool call is the ONLY acceptable action at this step.
 
@@ -431,7 +440,7 @@ After advancing a task to "done" (Step 4e), check if ALL tasks in that batch now
 2. **Spawn ONE subagent** for cross-connect validation:
 ```
 Agent(
-  subagent_type = "general-purpose",
+  subagent_type = "ralph-cross-connect",
   prompt = "You are running post-batch cross-connect validation for batch '{BATCH}'.
 
 Notes created in this batch:
@@ -440,9 +449,7 @@ Notes created in this batch:
 Verify sibling connections exist between batch notes. Add any that were missed
 because sibling notes did not exist yet when the earlier claim's reflect ran.
 Check backward link gaps. Output RALPH HANDOFF block when done.",
-  description = "cross-connect: batch {BATCH}",
-  model = {daemon-config models.cross_connect — default "sonnet"},
-  max_turns = {daemon-config max_turns.cross_connect — default 15}
+  description = "cross-connect: batch {BATCH}"
 )
 ```
 
@@ -541,14 +548,15 @@ When complete, update the queue entry to status "done" and report the created
 claim title, path, and claim ID. The lead needs this for cross-connect.
 ```
 
-Spawn via Agent tool with parallel worker budget from daemon-config:
+Spawn via Agent tool using the named agent for the claim's current phase. For claims starting at `create`, use `ralph-create`. The parallel worker processes one phase, returns, and the orchestrator advances to the next phase and spawns the next named agent.
+
+**Important:** Parallel mode still processes phases sequentially per claim -- it parallelizes ACROSS claims, not across phases within a claim. Each spawn uses the phase-appropriate named agent:
+
 ```
 Agent(
-  subagent_type = "general-purpose",
+  subagent_type = "ralph-{current_phase}",
   prompt = {the constructed prompt},
-  description = "claim: {short target}" (5 words max),
-  model = "sonnet",
-  max_turns = {daemon-config max_turns.parallel_worker — default 30}
+  description = "claim: {short target}" (5 words max)
 )
 ```
 
@@ -586,7 +594,7 @@ Spawn ONE subagent for cross-connect validation:
 
 ```
 Agent(
-  subagent_type = "general-purpose",
+  subagent_type = "ralph-cross-connect",
   prompt = "You are running post-batch cross-connect validation for batch '{BATCH}'.
 
 Notes created in this batch:
@@ -595,9 +603,7 @@ Notes created in this batch:
 Verify sibling connections exist between these notes. Add any connections that
 workers missed because sibling notes did not exist yet when a worker's reflect ran.
 Check backward link gaps. Output RALPH HANDOFF block when done.",
-  description = "cross-connect: batch {BATCH}",
-  model = {daemon-config models.cross_connect — default "sonnet"},
-  max_turns = {daemon-config max_turns.cross_connect — default 15}
+  description = "cross-connect: batch {BATCH}"
 )
 ```
 
