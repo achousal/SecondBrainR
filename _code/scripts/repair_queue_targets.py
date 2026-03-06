@@ -56,11 +56,12 @@ def main() -> None:
     with open(QUEUE_PATH) as f:
         queue = json.load(f)
 
+    # Include both done and failed claims that completed create
     done_claims = [
         (i, t)
         for i, t in enumerate(queue)
         if t.get("type") == "claim"
-        and t.get("status") == "done"
+        and t.get("status") in ("done", "failed")
         and "create" in (t.get("completed_phases") or [])
     ]
 

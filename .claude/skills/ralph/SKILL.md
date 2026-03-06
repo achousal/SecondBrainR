@@ -20,8 +20,36 @@ Parse arguments:
 - --type [type]: process only tasks at a specific `current_phase` (reduce, create, reflect, reweave, verify, enrich). Note: extraction tasks have `type: extract` but `current_phase: reduce` -- use `--type reduce` to select them.
 - --dry-run: show what would execute without running
 - --handoff: output structured RALPH HANDOFF block at end (for phase chaining)
+- --unblock: show failed tasks and offer retry or skip options
+- --retry TASK_ID: reset a specific failed task to pending for re-processing
 
 **START NOW.** Process queue tasks.
+
+---
+
+## Step -1: Unblock / Retry Handling
+
+**If `--unblock` is set:**
+```bash
+VAULT_PATH="$(pwd)"
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" alerts
+```
+Display failed tasks with their reasons and retry counts. For each failed task, offer:
+- Retry: `cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" retry TASK_ID`
+- Skip (leave failed): no action needed, failed tasks do not block the phase gate.
+
+STOP after displaying. Do not process queue tasks.
+
+**If `--retry TASK_ID` is set:**
+```bash
+VAULT_PATH="$(pwd)"
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" retry TASK_ID
+```
+Report result. If retry limit reached, inform user they can use `--force` by manually editing queue.json or running:
+```bash
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" retry TASK_ID --force
+```
+STOP after retrying. Do not process queue tasks.
 
 ---
 
@@ -141,12 +169,13 @@ The `phase_order` defines the phase sequence:
 
 ## Step 3: Queue Overview
 
-Build the overview from CLI output. Run both commands:
+Build the overview from CLI output. Run all three commands:
 ```bash
 VAULT_PATH="$(pwd)"
 cd _code
 STATS=$(uv run python -m engram_r.queue_query "$VAULT_PATH" stats)
 ACTIONABLE=$(uv run python -m engram_r.queue_query "$VAULT_PATH" actionable --limit 8)
+ALERTS=$(uv run python -m engram_r.queue_query "$VAULT_PATH" alerts)
 ```
 
 Parse the JSON to construct the display. **Canonical pipeline order** for display:
@@ -159,9 +188,10 @@ Show the compact queue overview. Merge phase gate results, pipeline advisory tip
 ```
 --=={ ralph }==--
 
-Queue: X pending, Y done
+Queue: X pending, Y done, Z failed
 Actionable: {count} ({N} reduce, {N} create, {N} enrich, ...)
 Blocked: {N} reflect, {N} reweave -- {reason why, e.g. "35 enrich tasks must finish first so reflect sees the full claim surface"}
+Failed: {N} tasks ({N} at retry limit) -- /ralph --unblock to review
 
 Next:
 1. {id} -- {current_phase} -- {target (truncated)}
@@ -172,11 +202,13 @@ Options:
 - /ralph {N} --type reduce -- process extractions first
 - /ralph {N} --type enrich -- clear enrich backlog (unlocks reflect)
 - /ralph {N} -- all eligible tasks
+- /ralph --unblock -- review and retry failed tasks
 ```
 
 **Formatting rules:**
 - `Actionable` line: group and label by `current_phase` (not `type`). List phases in PIPELINE_ORDER (reduce, create, enrich, reflect, reweave, verify). Drop phases with 0 actionable tasks. This is critical because `--type` filters on `current_phase`. Extraction tasks have `type: extract` but `current_phase: reduce` -- label them as `reduce` so the suggested `--type` commands match.
 - `Blocked` line: only show if tasks were blocked by the phase gate. Include a SHORT rationale (one clause, not a paragraph) explaining why the earlier phase must finish first. If nothing is blocked, omit the line entirely.
+- `Failed` line: only show if `failed_count > 0` from the alerts query. Show count and how many are at retry limit. Omit if no failed tasks.
 - `Next` list: show up to 8 tasks. Sort by PIPELINE_ORDER first (reduce tasks before create before enrich, etc.), then by queue position within the same phase. Truncate claim titles to ~60 chars with `...`.
 - `Options`: show 2-4 concrete commands based on the actionable phase distribution. Include a brief label for what each does. **Order by PIPELINE_ORDER** (earliest phase first). Earlier phases unblock downstream work, so pipeline order IS strategic order.
 
@@ -209,6 +241,12 @@ Process up to N tasks (default 1). For each iteration:
 Pick the first pending task from the filtered list. Read its metadata: `id`, `type`, `file`, `target`, `batch`, `current_phase`, `completed_phases`.
 
 The `current_phase` determines which skill to invoke.
+
+**Idempotency guard:** Before dispatching, read the task file and check if the current phase's section (e.g. `## Create`, `## Reflect`) is already filled with content. If it IS already filled (from a previous crashed run), skip the subagent dispatch and advance the phase directly using:
+```bash
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" advance TASK_ID
+```
+Log: `"Skipped {current_phase} for {id} -- section already filled (idempotency guard)"`. Continue to the next task.
 
 Report:
 ```
@@ -379,12 +417,23 @@ When the subagent returns:
 
 1. **Look for RALPH HANDOFF block** — search for `=== RALPH HANDOFF` and `=== END HANDOFF ===` markers
 2. **If handoff found:** Parse the Work Done, Learnings, and Queue Updates sections
-3. **If handoff missing:** Log a warning but continue — the work was still completed
-4. **Capture learnings:** If Learnings section has non-NONE entries, note them for the final report
+3. **If handoff missing AND task file section is empty:** The subagent failed to complete the phase. Mark the task as **failed** using the CLI:
+   ```bash
+   cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" fail TASK_ID --reason "subagent returned without handoff or task file update"
+   ```
+   Report the failure and continue to the next task. Do NOT advance the phase.
+4. **If handoff missing BUT task file section is filled:** Log a warning but continue — the work was completed, just the handoff was missed.
+5. **Capture learnings:** If Learnings section has non-NONE entries, note them for the final report
 
 ### 4e. Update Queue (Phase Progression)
 
-After evaluating the return, advance the task to the next phase.
+After evaluating the return, advance the task to the next phase using the CLI:
+
+```bash
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" advance TASK_ID
+```
+
+The CLI auto-determines the next phase from the task's type and phase order. It handles both advancement and done-marking (including timestamps).
 
 **Post-create target sync (MANDATORY after create phase):**
 
@@ -393,7 +442,10 @@ The create subagent may sharpen or rewrite the proposed title to satisfy prose-a
 After a **create** phase completes:
 1. Read the task file's `## Create` section. Parse the `Created: [[actual title]]` wiki link.
 2. If the actual title differs from the queue entry's `target`, update `target` in queue.json to match.
-3. Also verify the note exists on disk: `Glob` for `notes/{actual title}.md`. If missing, log a warning — the create phase may have failed silently.
+3. Also verify the note exists on disk: `Glob` for `notes/{actual title}.md`. If missing, mark the task as **failed**:
+   ```bash
+   cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" fail TASK_ID --reason "create phase completed but note not found on disk"
+   ```
 
 This sync ensures reflect, reweave, cross-connect, and verify all reference the real filename.
 
@@ -406,20 +458,6 @@ After a **reweave** phase completes:
 2. If a rename row exists, parse the new title from the `[[old title]] -> [[new title]]` format.
 3. If the new title differs from the queue entry's `target`, update `target` in queue.json to match.
 4. Verify the note exists on disk: `Glob` for `notes/{new title}.md`. If missing, log a warning -- the rename may have failed silently.
-
-**Phase progression logic:**
-
-Look up `phase_order` from the queue header to determine the next phase. Find `current_phase` in the array. If there is a next phase, advance. If it is the last phase, mark done.
-
-**If NOT the last phase** — advance to next:
-- Set `current_phase` to the next phase in the sequence
-- Append the completed phase to `completed_phases`
-
-**If the last phase** (verify) — mark task done:
-- Set `status: done`
-- Set `completed` to current UTC timestamp
-- Set `current_phase` to null
-- Append the completed phase to `completed_phases`
 
 **For extract tasks ONLY:** Re-read the queue after marking done. The reduce skill writes new task entries (1 entry per claim/enrichment with `current_phase`/`completed_phases`) to the queue during execution. The lead must pick these up for subsequent iterations.
 
@@ -441,7 +479,11 @@ Before the next iteration, re-read the queue and re-filter tasks. Phase advancem
 
 ## Step 5: Post-Batch Cross-Connect (Serial Mode)
 
-After advancing a task to "done" (Step 4e), check if ALL tasks in that batch now have `status: "done"`. If yes and the batch has 2 or more completed claims:
+After advancing a task to "done" (Step 4e), check for completed batches using the CLI:
+```bash
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" batches --check-complete
+```
+This retroactively checks ALL batches, not just the one whose task was just advanced. It catches batches completed across multiple `/ralph` runs. If `complete_batches` is non-empty and has 2 or more claims:
 
 1. **Collect all note paths** from completed batch tasks. For each claim task with `status: "done"`, read the task file's `## Create` section to find the created note path.
 
@@ -644,8 +686,9 @@ After all iterations (or when no unblocked tasks remain):
 
 Processed: {count} tasks
   {breakdown by phase type}
+  Failed this run: {count} (reasons: ...)
 
-Subagents spawned: {count} (MUST equal tasks processed)
+Subagents spawned: {count} (MUST equal tasks dispatched, excludes idempotency skips)
 
 Learnings captured:
   {list any friction, surprises, methodology insights, or "None"}
@@ -653,11 +696,13 @@ Learnings captured:
 Queue state:
   Pending: {count}
   Done: {count}
+  Failed: {count} ({N} at retry limit)
   Phase distribution: {create: N, reflect: N, reweave: N, verify: N}
 
 Next steps:
   {if more pending tasks}: Run /ralph {remaining} to continue
   {if batch complete}: Run /archive-batch {batch-id}
+  {if failed tasks}: Run /ralph --unblock to review failed tasks
   {if queue empty}: All tasks processed
 ```
 
@@ -688,11 +733,23 @@ Queue Updates:
 
 ## Error Recovery
 
-**Subagent crash mid-phase:** The queue still shows `current_phase` at the failed phase. The task file confirms the corresponding section is empty. Re-running `/ralph` picks it up automatically — the task is still pending at that phase.
+**Subagent crash mid-phase:** The queue still shows `current_phase` at the failed phase. The task file confirms the corresponding section is empty. Re-running `/ralph` picks it up automatically — the task is still pending at that phase. If the subagent crashes repeatedly (handoff missing AND task file section empty), the task is marked `failed` automatically (Gate 2). Use `/ralph --unblock` to review and retry.
+
+**Stuck pipeline (phase gate deadlock):** If all actionable tasks are blocked because of tasks stuck at earlier phases, check for `failed` tasks first:
+```bash
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" alerts
+```
+Failed tasks do NOT block the phase gate. If pending tasks are genuinely stuck (subagent keeps failing), mark them failed manually:
+```bash
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" fail TASK_ID --reason "description"
+```
+This unblocks downstream phases immediately.
+
+**Retry exhaustion:** Tasks that hit the retry limit (8 attempts) remain `failed` and require manual intervention: either fix the underlying issue and force-retry, or accept the loss and archive.
 
 **Queue corruption:** If the queue file is malformed, report the error and stop. Do NOT attempt to fix it automatically.
 
-**All tasks blocked:** Report which tasks are blocked and why. Suggest remediation.
+**All tasks blocked:** Report which tasks are blocked and why. Suggest remediation. Check alerts for failed tasks that may be resolvable.
 
 **Empty queue:** Report "Queue is empty. Use /seed to add sources."
 
@@ -739,13 +796,16 @@ Subagents spawned by ralph also apply this fallback. If a subagent's `/reduce --
 Every task MUST be processed via Agent tool. If the lead detects it executed a task inline, log this as an error and flag it in the final report.
 
 ### Gate 2: Handoff Present
-Every subagent SHOULD return a RALPH HANDOFF block. If missing: log warning, mark task done, continue.
+Every subagent SHOULD return a RALPH HANDOFF block. If missing AND task file section is empty: mark task **failed** via CLI. If missing BUT task file section is filled: log warning, advance phase.
 
 ### Gate 3: Extract Yield
-For extract tasks: if zero claims extracted, log as an observation. Do NOT retry automatically.
+For extract tasks: if zero claims extracted, mark task **failed** via CLI with reason `"zero-claim extraction"`. Do NOT advance to done. Do NOT retry automatically.
 
 ### Gate 4: Task File Updated
-After each phase, the task file's corresponding section (Create, Reflect, Reweave, Verify) should be filled. If empty after subagent completes, log warning.
+After each phase, the task file's corresponding section (Create, Reflect, Reweave, Verify) should be filled. If empty after subagent completes AND no handoff: mark task **failed** (see Gate 2). If empty but handoff present with work done: log warning, advance cautiously.
+
+### Gate 5: Idempotency
+Before dispatching a subagent, check if the task file's current phase section is already filled. If yes: skip dispatch, advance phase directly via CLI. Log as idempotency skip.
 
 ---
 
@@ -756,7 +816,7 @@ After each phase, the task file's corresponding section (Create, Reflect, Reweav
 - Process more than one phase per subagent (context contamination)
 - Retry failed tasks automatically without human input
 - Skip queue phase advancement (breaks pipeline state)
-- Process tasks that are not in pending status
+- Process tasks that are not in pending status (failed tasks require explicit retry first)
 - Run if queue file does not exist or is malformed
 - In parallel mode: combine with --type (incompatible)
 

@@ -3,15 +3,24 @@
 from __future__ import annotations
 
 import json
+import tempfile
+from pathlib import Path
 
 import pytest
 
 from engram_r.queue_query import (
+    DEFAULT_MAX_RETRIES,
     PIPELINE_ORDER,
+    advance_task,
+    fail_task,
     get_actionable,
+    get_alerts,
+    get_batch_status,
     get_siblings,
     get_stats,
     get_tasks_detail,
+    retry_task,
+    write_queue_atomic,
 )
 
 
@@ -92,6 +101,16 @@ class TestGetStats:
         assert stats["pending_by_phase"]["reweave"] == 1
         assert stats["pending_by_phase"]["create"] == 1
         assert stats["pending_by_phase"]["enrich"] == 1
+
+    def test_failed_count(self, sample_queue):
+        sample_queue[1]["status"] = "failed"
+        stats = get_stats(sample_queue)
+        assert stats["failed_count"] == 1
+        assert stats["by_status"]["failed"] == 1
+
+    def test_failed_count_zero_when_none(self, sample_queue):
+        stats = get_stats(sample_queue)
+        assert stats["failed_count"] == 0
 
 
 class TestGetActionable:
@@ -236,3 +255,271 @@ class TestGetTasksDetail:
         )
         task = result["tasks"][0]
         assert "siblings" not in task
+
+
+class TestPhaseGateWithFailed:
+    """Failed tasks must not block the phase gate."""
+
+    def test_failed_create_does_not_block_reflect(self):
+        tasks = [
+            {
+                "id": "c1",
+                "type": "claim",
+                "status": "failed",
+                "target": "t1",
+                "batch": "b",
+                "current_phase": "create",
+                "completed_phases": [],
+            },
+            {
+                "id": "c2",
+                "type": "claim",
+                "status": "pending",
+                "target": "t2",
+                "batch": "b",
+                "current_phase": "reflect",
+                "completed_phases": ["create"],
+            },
+        ]
+        result = get_actionable(tasks)
+        actionable_ids = {t["id"] for t in result["actionable"]}
+        assert "c2" in actionable_ids
+        assert "reflect" not in result["blocked"]
+
+    def test_failed_enrich_does_not_block_reflect(self):
+        tasks = [
+            {
+                "id": "e1",
+                "type": "enrichment",
+                "status": "failed",
+                "target": "t1",
+                "batch": "b",
+                "current_phase": "enrich",
+                "completed_phases": [],
+            },
+            {
+                "id": "c1",
+                "type": "claim",
+                "status": "pending",
+                "target": "t2",
+                "batch": "b",
+                "current_phase": "reflect",
+                "completed_phases": ["create"],
+            },
+        ]
+        result = get_actionable(tasks)
+        actionable_ids = {t["id"] for t in result["actionable"]}
+        assert "c1" in actionable_ids
+
+    def test_failed_tasks_not_in_actionable(self):
+        tasks = [
+            {
+                "id": "c1",
+                "type": "claim",
+                "status": "failed",
+                "target": "t1",
+                "current_phase": "create",
+                "completed_phases": [],
+            },
+        ]
+        result = get_actionable(tasks)
+        assert result["actionable_count"] == 0
+
+
+class TestFailTask:
+    def test_marks_task_failed(self):
+        tasks = [
+            {"id": "c1", "status": "pending", "current_phase": "create"},
+        ]
+        result = fail_task(tasks, "c1", reason="zero-claim extraction")
+        assert result["action"] == "failed"
+        assert tasks[0]["status"] == "failed"
+        assert tasks[0]["fail_reason"] == "zero-claim extraction"
+        assert tasks[0]["retry_count"] == 0
+        assert "failed_at" in tasks[0]
+
+    def test_preserves_existing_retry_count(self):
+        tasks = [
+            {"id": "c1", "status": "pending", "current_phase": "create",
+             "retry_count": 3},
+        ]
+        result = fail_task(tasks, "c1")
+        assert tasks[0]["retry_count"] == 3
+
+    def test_fail_nonexistent_task(self):
+        result = fail_task([], "nope")
+        assert result["action"] == "error"
+
+
+class TestRetryTask:
+    def test_retries_failed_task(self):
+        tasks = [
+            {"id": "c1", "status": "failed", "current_phase": "create",
+             "retry_count": 0, "fail_reason": "oops", "failed_at": "t"},
+        ]
+        result = retry_task(tasks, "c1")
+        assert result["action"] == "retried"
+        assert result["retry_count"] == 1
+        assert tasks[0]["status"] == "pending"
+        assert "fail_reason" not in tasks[0]
+        assert "failed_at" not in tasks[0]
+
+    def test_retry_increments_count(self):
+        tasks = [
+            {"id": "c1", "status": "failed", "current_phase": "create",
+             "retry_count": 4},
+        ]
+        result = retry_task(tasks, "c1")
+        assert tasks[0]["retry_count"] == 5
+
+    def test_retry_refuses_at_limit(self):
+        tasks = [
+            {"id": "c1", "status": "failed", "current_phase": "create",
+             "retry_count": DEFAULT_MAX_RETRIES},
+        ]
+        result = retry_task(tasks, "c1")
+        assert result["action"] == "error"
+        assert "retry limit" in result["message"]
+        assert tasks[0]["status"] == "failed"
+
+    def test_retry_pending_task_errors(self):
+        tasks = [
+            {"id": "c1", "status": "pending", "current_phase": "create"},
+        ]
+        result = retry_task(tasks, "c1")
+        assert result["action"] == "error"
+
+    def test_retry_nonexistent_task(self):
+        result = retry_task([], "nope")
+        assert result["action"] == "error"
+
+
+class TestAdvanceTask:
+    def test_advance_claim_create_to_reflect(self):
+        tasks = [
+            {"id": "c1", "type": "claim", "status": "pending",
+             "current_phase": "create", "completed_phases": []},
+        ]
+        result = advance_task(tasks, "c1")
+        assert result["action"] == "advanced"
+        assert result["from_phase"] == "create"
+        assert result["to_phase"] == "reflect"
+        assert tasks[0]["current_phase"] == "reflect"
+        assert "create" in tasks[0]["completed_phases"]
+
+    def test_advance_claim_verify_marks_done(self):
+        tasks = [
+            {"id": "c1", "type": "claim", "status": "pending",
+             "current_phase": "verify",
+             "completed_phases": ["create", "reflect", "reweave"]},
+        ]
+        result = advance_task(tasks, "c1")
+        assert result["action"] == "done"
+        assert tasks[0]["status"] == "done"
+        assert tasks[0]["current_phase"] is None
+        assert "completed" in tasks[0]
+
+    def test_advance_enrichment_follows_enrichment_order(self):
+        tasks = [
+            {"id": "e1", "type": "enrichment", "status": "pending",
+             "current_phase": "enrich", "completed_phases": []},
+        ]
+        result = advance_task(tasks, "e1")
+        assert result["to_phase"] == "reflect"
+
+    def test_advance_extract_marks_done(self):
+        tasks = [
+            {"id": "x1", "type": "extract", "status": "pending",
+             "current_phase": "reduce", "completed_phases": []},
+        ]
+        result = advance_task(tasks, "x1")
+        assert result["action"] == "done"
+
+    def test_advance_with_explicit_phase(self):
+        tasks = [
+            {"id": "c1", "type": "claim", "status": "pending",
+             "current_phase": "create", "completed_phases": []},
+        ]
+        result = advance_task(tasks, "c1", next_phase="verify")
+        assert result["to_phase"] == "verify"
+        assert tasks[0]["current_phase"] == "verify"
+
+    def test_advance_done_task_errors(self):
+        tasks = [
+            {"id": "c1", "type": "claim", "status": "done",
+             "current_phase": None, "completed_phases": ["create"]},
+        ]
+        result = advance_task(tasks, "c1")
+        assert result["action"] == "error"
+
+
+class TestGetAlerts:
+    def test_surfaces_failed_tasks(self):
+        tasks = [
+            {"id": "c1", "status": "failed", "target": "t1",
+             "current_phase": "create", "fail_reason": "oops",
+             "retry_count": 2, "failed_at": "2026-01-01"},
+            {"id": "c2", "status": "pending", "current_phase": "reflect"},
+        ]
+        alerts = get_alerts(tasks)
+        assert alerts["failed_count"] == 1
+        assert alerts["failed"][0]["id"] == "c1"
+
+    def test_identifies_tasks_at_retry_limit(self):
+        tasks = [
+            {"id": "c1", "status": "failed", "target": "t1",
+             "current_phase": "create", "retry_count": DEFAULT_MAX_RETRIES},
+        ]
+        alerts = get_alerts(tasks)
+        assert alerts["at_retry_limit_count"] == 1
+
+
+class TestGetBatchStatus:
+    def test_counts_by_batch(self, sample_queue):
+        result = get_batch_status(sample_queue)
+        assert "batch-a" in result["batches"]
+        assert result["batches"]["batch-a"]["pending"] == 3
+
+    def test_check_complete_finds_done_batches(self):
+        tasks = [
+            {"id": "c1", "type": "claim", "status": "done",
+             "batch": "b1", "target": "t1"},
+            {"id": "c2", "type": "claim", "status": "done",
+             "batch": "b1", "target": "t2"},
+            {"id": "c3", "type": "claim", "status": "pending",
+             "batch": "b2", "target": "t3"},
+        ]
+        result = get_batch_status(tasks, check_complete=True)
+        assert "b1" in result["complete_batches"]
+        assert "b2" not in result["complete_batches"]
+
+    def test_failed_tasks_prevent_batch_completion(self):
+        tasks = [
+            {"id": "c1", "type": "claim", "status": "done",
+             "batch": "b1", "target": "t1"},
+            {"id": "c2", "type": "claim", "status": "failed",
+             "batch": "b1", "target": "t2"},
+        ]
+        result = get_batch_status(tasks, check_complete=True)
+        assert result["complete_count"] == 0
+
+
+class TestWriteQueueAtomic:
+    def test_writes_and_reads_back(self, tmp_path):
+        queue_file = tmp_path / "queue.json"
+        data = [{"id": "c1", "status": "pending"}]
+        write_queue_atomic(data, queue_file)
+        loaded = json.loads(queue_file.read_text())
+        assert loaded == data
+
+    def test_creates_parent_dirs(self, tmp_path):
+        queue_file = tmp_path / "ops" / "queue" / "queue.json"
+        write_queue_atomic([{"id": "c1"}], queue_file)
+        assert queue_file.exists()
+
+    def test_overwrites_existing(self, tmp_path):
+        queue_file = tmp_path / "queue.json"
+        write_queue_atomic([{"id": "old"}], queue_file)
+        write_queue_atomic([{"id": "new"}], queue_file)
+        loaded = json.loads(queue_file.read_text())
+        assert loaded[0]["id"] == "new"
