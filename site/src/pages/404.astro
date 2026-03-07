@@ -1,0 +1,22 @@
+---
+import Base from "@layouts/Base.astro";
+import Nav from "@components/Nav.astro";
+import "@styles/global.css";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title="404 -- EngramR">
+  <Nav />
+  <main class="flex items-center justify-center min-h-[calc(100dvh-3.5rem)]">
+    <div class="text-center px-6">
+      <p class="font-mono text-6xl font-bold text-accent mb-4">404</p>
+      <h1 class="font-display text-2xl font-semibold mb-2">Lost in the graph</h1>
+      <p class="text-text-muted mb-8">This node does not exist -- yet.</p>
+      <div class="flex items-center justify-center gap-4">
+        <a href={base} class="btn-primary">Home</a>
+        <a href={`${base}docs/`} class="btn-secondary">Docs</a>
+      </div>
+    </div>
+  </main>
+</Base>
