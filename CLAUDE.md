@@ -12,6 +12,8 @@ This vault operates two layers sharing the same three-space architecture (self/,
 
 Every session follows **Orient -> Work -> Persist**. Orient: read `self/identity.md`, `self/methodology.md`, `self/goals.md`; check `ops/reminders.md`. Work: do the task, surface connections, write down discoveries immediately. Persist: write insights as claims, update topic maps, update `self/goals.md`. Session hooks automate orient and capture. See [Workflows](docs/manual/workflows.md) for full details.
 
+**MANDATORY: Echo orient on first reply.** The SessionStart hook injects orient data (vault state, goals, conditions, git status) into the assistant's context but it is invisible to the user in the terminal. On every session's first response, lead with a brief orient summary before addressing the user's message. Include: active goals, vault state counts, any triggered conditions, and git branch status.
+
 ---
 
 ## Where Things Go

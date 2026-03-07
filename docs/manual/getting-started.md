@@ -100,8 +100,6 @@ At session start, the session-orient hook fires automatically and prints:
 3. **Vault state** -- claim count, inbox count, observation count, tension count.
 4. **Maintenance signals** -- condition-based triggers (inbox pressure, pending observations, pending tensions).
 
-Read self/identity.md and self/methodology.md to remember who you are and how you work. This is not optional -- without it, the session starts cold.
-
 ### Phase 2: Work
 
 A few entry points depending on what the session is for:

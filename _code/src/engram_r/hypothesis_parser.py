@@ -5,9 +5,11 @@ Handles the structured hypothesis format used throughout the co-scientist system
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -282,3 +284,212 @@ def filter_tournament_eligible(
         Filtered list of tournament-eligible hypotheses.
     """
     return [h for h in hypotheses if not h.is_empirically_resolved]
+
+
+# ---------------------------------------------------------------------------
+# Convergence detection
+# ---------------------------------------------------------------------------
+
+_SECTION_RE = re.compile(r"^## (.+)$", re.MULTILINE)
+
+
+def _extract_section(body: str, name: str) -> str:
+    """Extract text under a ## heading, up to the next ## or EOF."""
+    pattern = re.compile(
+        rf"^## {re.escape(name)}\s*\n(.*?)(?=^## |\Z)",
+        re.MULTILINE | re.DOTALL,
+    )
+    m = pattern.search(body)
+    return m.group(1).strip() if m else ""
+
+
+def _tokenize(text: str) -> set[str]:
+    """Lowercase word tokens from text."""
+    return set(re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def _jaccard(a: set[str], b: set[str]) -> float:
+    """Jaccard similarity between two sets. Returns 1.0 if both empty."""
+    if not a and not b:
+        return 1.0
+    union = a | b
+    if not union:
+        return 1.0
+    return len(a & b) / len(union)
+
+
+def _extract_list_items(section_text: str) -> set[str]:
+    """Extract normalized list items (- [ ] or - lines) as a set."""
+    items = re.findall(r"^[-*]\s*(?:\[.\]\s*)?(.+)$", section_text, re.MULTILINE)
+    return {item.strip().lower() for item in items}
+
+
+def _extract_wiki_links(text: str) -> set[str]:
+    """Extract wiki-link targets from text."""
+    return set(re.findall(r"\[\[([^\]]+)\]\]", text))
+
+
+def compute_hypothesis_similarity(
+    parent: HypothesisData, child: HypothesisData
+) -> float:
+    """Compute weighted similarity between parent and child hypotheses.
+
+    Weights:
+        Title tokens:          0.15
+        Mechanism section:     0.30
+        Predictions overlap:   0.25
+        Assumptions overlap:   0.15
+        Literature refs:       0.15
+
+    Args:
+        parent: Parsed parent hypothesis.
+        child: Parsed child hypothesis.
+
+    Returns:
+        Similarity score in [0.0, 1.0].
+    """
+    title_sim = _jaccard(_tokenize(parent.title), _tokenize(child.title))
+
+    mech_sim = _jaccard(
+        _tokenize(_extract_section(parent.body, "Mechanism")),
+        _tokenize(_extract_section(child.body, "Mechanism")),
+    )
+
+    pred_parent = _extract_list_items(_extract_section(parent.body, "Testable Predictions"))
+    pred_child = _extract_list_items(_extract_section(child.body, "Testable Predictions"))
+    pred_sim = _jaccard(pred_parent, pred_child)
+
+    assum_parent = _extract_list_items(_extract_section(parent.body, "Assumptions"))
+    assum_child = _extract_list_items(_extract_section(child.body, "Assumptions"))
+    assum_sim = _jaccard(assum_parent, assum_child)
+
+    lit_parent = _extract_wiki_links(_extract_section(parent.body, "Literature Grounding"))
+    lit_child = _extract_wiki_links(_extract_section(child.body, "Literature Grounding"))
+    lit_sim = _jaccard(lit_parent, lit_child)
+
+    return (
+        0.15 * title_sim
+        + 0.30 * mech_sim
+        + 0.25 * pred_sim
+        + 0.15 * assum_sim
+        + 0.15 * lit_sim
+    )
+
+
+@dataclass
+class ConvergenceEntry:
+    """A single entry in the convergence log."""
+
+    date: str
+    parent_id: str
+    child_id: str
+    lineage_root: str
+    similarity: float
+    streak: int
+    evolution_mode: str
+
+
+def _find_lineage_root(hyp: HypothesisData) -> str:
+    """Return the root ancestor ID. If no parents, the hypothesis itself is root."""
+    parents = hyp.frontmatter.get("parents", [])
+    if not parents:
+        return hyp.id
+    return parents[0]
+
+
+def read_convergence_log(log_path: Path) -> list[ConvergenceEntry]:
+    """Read the convergence log file.
+
+    The log stores entries as a JSON array in a fenced code block.
+
+    Args:
+        log_path: Path to the convergence log markdown file.
+
+    Returns:
+        List of convergence entries, ordered chronologically.
+    """
+    if not log_path.exists():
+        return []
+
+    text = log_path.read_text()
+    m = re.search(r"```json\n(.*?)```", text, re.DOTALL)
+    if not m:
+        return []
+
+    try:
+        raw = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        return []
+
+    return [
+        ConvergenceEntry(
+            date=e.get("date", ""),
+            parent_id=e.get("parent_id", ""),
+            child_id=e.get("child_id", ""),
+            lineage_root=e.get("lineage_root", ""),
+            similarity=float(e.get("similarity", 0.0)),
+            streak=int(e.get("streak", 0)),
+            evolution_mode=e.get("evolution_mode", ""),
+        )
+        for e in raw
+    ]
+
+
+def get_lineage_streak(entries: list[ConvergenceEntry], lineage_root: str) -> int:
+    """Get the current convergence streak for a lineage.
+
+    Args:
+        entries: All convergence entries.
+        lineage_root: Root hypothesis ID for the lineage.
+
+    Returns:
+        Current consecutive streak of similarity >= 0.90.
+    """
+    lineage = [e for e in entries if e.lineage_root == lineage_root]
+    if not lineage:
+        return 0
+    streak = 0
+    for entry in reversed(lineage):
+        if entry.similarity >= 0.90:
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def append_convergence_entry(
+    log_path: Path, entry: ConvergenceEntry
+) -> None:
+    """Append a convergence entry to the log file.
+
+    Creates the file if it does not exist.
+
+    Args:
+        log_path: Path to the convergence log markdown file.
+        entry: Entry to append.
+    """
+    entries = read_convergence_log(log_path)
+    entries.append(entry)
+
+    records = [
+        {
+            "date": e.date,
+            "parent_id": e.parent_id,
+            "child_id": e.child_id,
+            "lineage_root": e.lineage_root,
+            "similarity": round(e.similarity, 4),
+            "streak": e.streak,
+            "evolution_mode": e.evolution_mode,
+        }
+        for e in entries
+    ]
+
+    content = (
+        "# Convergence Log\n\n"
+        "Tracks hypothesis evolution convergence across lineages.\n"
+        "Auto-generated by /evolve. Do not edit manually.\n\n"
+        "```json\n"
+        + json.dumps(records, indent=2)
+        + "\n```\n"
+    )
+    log_path.write_text(content)
