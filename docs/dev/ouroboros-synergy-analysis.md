@@ -3,7 +3,7 @@
 **Source:** https://github.com/Q00/ouroboros
 **Date assessed:** 2026-03-07
 
-**Short answer:** There are 2-3 genuine synergy points worth borrowing as *concepts*, but a full integration would create more friction than value. The systems solve adjacent but different problems -- Ouroboros clarifies **what to build**, EngramR clarifies **what to know**. The overlap is in their self-referential improvement loops, but the substrates are architecturally incompatible.
+**Short answer:** There are 2 genuine synergy points worth borrowing as *concepts*, but a full integration would create more friction than value. The systems solve adjacent but different problems -- Ouroboros clarifies **what to build**, EngramR clarifies **what to know**. The overlap is in their self-referential improvement loops, but the substrates are architecturally incompatible.
 
 ---
 
@@ -21,12 +21,18 @@ Ouroboros' interview phase -- Socratic questioning that exposes hidden assumptio
 
 The research claim [[bootstrapping principle enables self-improving systems]] supports this: the quality of the starting point determines how productive early cycles are. A poorly specified research goal generates claims that wander.
 
-**Concrete adaptation:** Add an optional `/init --interview` mode running 5-8 Socratic questions before seeding:
-- "What would falsify this goal?"
-- "What do you already know that you're treating as uncertain?"
-- "What adjacent goals did you exclude, and why?"
+Beyond freeform Socratic prompts, Ouroboros' *scored* ambiguity gate (weighted clarity dimensions) could translate into a lightweight rubric for research goal readiness -- score answers against falsifiability, scope, and constraint clarity before proceeding.
 
-No Ouroboros dependency required -- this is a prompt pattern.
+**Concrete adaptation:** Add an optional `/init --interview` mode running 5-8 scored questions before seeding:
+- "What would falsify this goal?" (falsifiability)
+- "What do you already know that you're treating as uncertain?" (assumption clarity)
+- "What adjacent goals did you exclude, and why?" (scope boundary)
+- "What data do you have vs. need?" (constraint clarity)
+- "What would make this goal irrelevant?" (relevance test)
+
+Each answer scores on a 3-point rubric (clear / partial / vague). Proceed to seeding when >= 4 of 5 dimensions score clear. This is more actionable than unstructured Socratic questioning.
+
+No Ouroboros dependency required -- this is a prompt pattern with a scoring gate.
 
 ### 2. Convergence Detection for /evolve Cycles
 
@@ -36,13 +42,6 @@ This connects to [[the derivation engine improves recursively as deployed system
 
 **Concrete adaptation:** After each `/evolve` cycle, compute similarity between new and previous hypothesis version. If three consecutive cycles achieve >= 0.90 similarity, surface: "Hypothesis has converged. Consider promoting to experiment or identifying what new evidence would shift it."
 
-### 3. Dedicated Contrarian Pass
-
-Ouroboros' Contrarian persona (dedicated assumption challenger) is a more focused version of what EngramR does diffusely across `/reflect`, `/rethink`, and inversions. A dedicated adversarial pass that *only* challenges assumptions -- separate from the synthetic passes that find connections -- could sharpen the pipeline.
-
-This aligns with [[fresh context per task preserves quality better than chaining phases]]: mixing adversarial and synthetic reasoning in the same session degrades both. A dedicated contrarian pass with fresh context stays in the smart zone for challenge-thinking specifically.
-
-**Concrete adaptation:** Add a `ralph-contrarian` named agent that runs as an optional pass after `/reflect`, focused solely on generating the strongest objections to each newly connected claim.
 
 ---
 
@@ -70,10 +69,10 @@ This aligns with [[fresh context per task preserves quality better than chaining
 
 **Borrow the patterns, don't install the plugin.**
 
-| Pattern | Implementation | Effort |
-|---------|---------------|--------|
-| Socratic pre-specification | Prompt template in `/init` | Low -- prompt only |
-| Convergence detection | Similarity metric in `/evolve` | Low -- ~20 lines Python |
-| Dedicated contrarian pass | `ralph-contrarian` agent file | Low -- follows existing patterns |
+| Pattern                    | Implementation                       | Effort                       | Status                                                 |
+| -------------------------- | ------------------------------------ | ---------------------------- | ------------------------------------------------------ |
+| Socratic pre-specification | Scored rubric in `/init --interview` | Low -- prompt + scoring gate | Accepted                                               |
+| Convergence detection      | Similarity metric in `/evolve`       | Low -- ~20 lines Python      | Accepted                                               |
+| Dedicated contrarian pass  | `ralph-contrarian` agent file        | Low                          | Rejected -- `/rethink` + inversions already cover this |
 
-All three synergies can be captured without Ouroboros as a dependency, preserving architectural integrity.
+Both accepted synergies can be captured without Ouroboros as a dependency, preserving architectural integrity.

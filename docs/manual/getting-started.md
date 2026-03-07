@@ -54,15 +54,17 @@ Whatever is most relevant to the project's identity.
 ```
 
 You do not need to fill every section -- even just an Overview paragraph gives the scan enough to populate the project note and research goals correctly.
-### What to bring to `/onboard`
+### What to bring 
+
+#### `/onboard`
 
 - **The path to your lab directory** (e.g., `~/projects/MyLab/`). The scan reads your existing project folders.
 - **Research directions.** Even informal descriptions are fine -- the interview will refine them into structured goals.
-### What to bring to `/init` (after `/onboard`)
+#### `/init`
 
 - **3-5 key papers per research area.** PDFs or markdown preferred. These seed your first knowledge claims. Start with papers that represent your current thinking, not an aspirational reading list.
 
-### What to bring to `/literature` (after `/init`)
+####  `/literature`
 
 - **API keys for literature databases.** `/onboard` walks you through this in Turn 3 -- if you skipped it, run `/literature --setup` before your first search. All sources require free registration only:
   - PubMed/NCBI: register at ncbi.nlm.nih.gov and get an API key from your account settings
@@ -71,54 +73,17 @@ You do not need to fill every section -- even just an Overview paragraph gives t
 
   Keys go in `_code/.env` (gitignored -- never committed). The `/onboard` and `/literature --setup` flows handle this interactively.
 
-### What to bring to `/generate` and `/research` (hypothesis generation)
+####  `/generate` and `/research`
 
 Nothing special. Both skills work from vault state -- your research goals, your claims, and your literature notes. The richer those are, the better the hypotheses. Running `/literature` before `/research` meaningfully improves output quality.
 
-### What not to do
+### Be selective
 
 - **Do not dump your entire reference library into `inbox/`** through it, we processes material thoroughly. To cover ground, process through /literature for abstract centered scans. One well-processed paper is worth ten unprocessed ones. Add more as you work. 
 
 ### The right mental model
 
 EngramR is a processing system. Its value comes from the rate at which raw material becomes connected knowledge (there isn't much benefit to storing 10 papers with overlapping claims). Start with a focused set, process it thoroughly, and expand from there.
-
----
-
-## Your First Session
-
-### Step 1: Onboard your lab
-
-Run `/onboard`. Claude will ask you about your lab, your projects, your data, and your research goals -- a short interview of a few turns. Based on your answers it creates the project structure, data inventory, and research goals that everything else runs on. You review what it generates and correct anything before it is saved.
-
-### Step 2: Seed your knowledge graph
-
-Run `/init`. Claude walks you through creating your first claim together (a short demo), then generates a set of foundational claims for your research area -- orientation, methodology, known confounders, and assumption inversions. You review them in groups before they are added to the graph.
-
-After these two steps you have a working knowledge environment grounded in your actual research context.
-
-### Step 3: Build your literature base
-
-Add your 3-5 foundational papers to `inbox/`, then process them:
-
-```
-/seed --all
-/ralph
-```
-
-Then run `/literature` to automatically search PubMed, Semantic Scholar, and OpenAlex using your research goals as queries. Results are saved as structured literature notes and queued for processing. Run `/ralph` again to extract claims from them.
-
-This step requires API keys -- see "What to bring to `/literature`" above, or follow the prompts if you skipped setup during `/onboard`.
-
-### Step 4: Generate hypotheses
-
-Run `/research` to start the co-scientist loop. It will recommend which step to take first based on your vault state -- typically `/generate` to produce initial hypotheses, then `/review`, then `/tournament` to rank them.
-
-```
-/research
-```
-
-You do not need to prepare anything for this step. The system reads your goals, claims, and literature notes and generates hypotheses grounded in that evidence.
 
 ---
 
@@ -153,7 +118,7 @@ See [Skills Reference](skills.md) for the full command list.
 
 ### Phase 3: Persist
 
-Before session end:
+To set up future work:
 - Write any new insights as atomic claims (route through inbox/ and /reduce).
 - Update relevant topic maps with new connections.
 - Update self/goals.md with current threads and progress.
@@ -161,31 +126,31 @@ Before session end:
 
 ---
 
-## Your First Claim
+## Claims
 
-Claims are atomic knowledge notes. Each captures exactly one insight, titled as a prose proposition. You do not create claims directly -- you bring material or ideas to Claude, and the pipeline creates them for you.
+Claims are atomic knowledge notes. Each captures exactly one insight, titled as a prose proposition. 
 
-### Step 1: Bring the insight to Claude
+### Step 1: Insight
 
 Two common starting points:
 
 **Option A: You have a quick insight to capture.**
-Describe the idea to Claude in plain language. Claude will ask clarifying questions if needed, then route the material through `inbox/` and extract a structured claim. You do not write files or run commands -- you describe what you want to preserve.
+Describe the idea to Claude in plain language. Claude will ask clarifying questions if needed, then route the material through `inbox/` and extract a structured claim.
 
 **Option B: You have a source document to process.**
 Drop the file in `inbox/` and tell Claude to process it, or run `/seed inbox/your-file.md` followed by `/ralph`. Claude reads the source, extracts every relevant claim, and creates them in `notes/` with full provenance.
 
-In both cases, content enters through `inbox/`, not `notes/` directly. Direct writes to `notes/` skip quality gates -- this routing is a hard constraint.
+content should always enter through `inbox/`. 
 
-### Step 2: Review what was created
+### Step 2: Review
 
-After extraction, Claude shows you what it created. Each claim has this shape:
+Each claim has this shape:
 
 1. **The title is a prose proposition** -- a complete, falsifiable thought a reader could agree or disagree with. Not a topic label.
 2. **The description adds context beyond the title** -- scope, mechanism, or implication in one sentence.
 3. **The body captures exactly one idea** -- if two distinct claims are bundled, they get split.
 
-### Step 3: Connect it
+### Step 3: Connect
 
 Tell Claude to find connections, or run `/reflect`. Claude does three things:
 - **Forward connections** -- what existing claims relate to this new one?
