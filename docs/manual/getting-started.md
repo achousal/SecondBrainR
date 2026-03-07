@@ -179,13 +179,11 @@ In both cases, content enters through `inbox/`, not `notes/` directly. Direct wr
 
 ### Step 2: Review what was created
 
-After extraction, Claude shows you what it created. Check three things:
+After extraction, Claude shows you what it created. Each claim has this shape:
 
-1. **Title as claim** -- Does the title work as a complete thought? A good claim title is falsifiable: a reader could agree or disagree with it.
-2. **Description quality** -- Does the description add information beyond the title -- scope, mechanism, or implication?
-3. **Specificity** -- Is this one idea, or are two claims bundled together?
-
-Correct anything that does not meet the bar before moving on.
+1. **The title is a prose proposition** -- a complete, falsifiable thought a reader could agree or disagree with. Not a topic label.
+2. **The description adds context beyond the title** -- scope, mechanism, or implication in one sentence.
+3. **The body captures exactly one idea** -- if two distinct claims are bundled, they get split.
 
 ### Step 3: Connect it
 
