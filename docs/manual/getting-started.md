@@ -24,12 +24,6 @@ Claude handles setup from here. You answer questions; it builds the infrastructu
 
 EngramR is a standalone knowledge vault, it should live in a separate directory from your existing projects. Clone it wherever is convenient, working through EngramR is encouraged for project development, especially in planning phases.
 
-```bash
-git clone https://github.com/achousal/EngramR.git ~/EngramR
-cd ~/EngramR
-claude
-```
-
 Your existing project structure is untouched. When you run `/onboard ~/projects/MyLab/`, EngramR scans that directory and creates reference notes inside the vault -- nothing in your lab directory is written or moved. It creates a symlink at `_dev/{project-tag}` pointing to your project, then transclude your existing `CLAUDE.md` into the project note. Your files stay where they are; the vault references them.
 
 #### Minimal project `CLAUDE.md`
