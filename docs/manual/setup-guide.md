@@ -1,92 +1,30 @@
 ---
-description: "Installation, environment configuration, dependency setup, and vault initialization"
+description: "Optional integrations and technical reference -- Obsidian, Slack, MCP servers, daemon, multi-vault"
 type: manual
 created: 2026-02-21
 ---
 
 # Setup Guide
 
-Step-by-step instructions for setting up a new EngramR vault.
+This is a technical reference for optional integrations and advanced configuration. If you are just starting out, you do not need this page -- clone the repo, open it with Claude Code, and follow the prompts.
+
+Come back here when you want to connect Obsidian, Slack, or MCP servers, run the research daemon, or manage multiple vaults.
 
 ---
 
-## Prerequisites
+## What Claude sets up automatically
 
-- **Python 3.11+** with [uv](https://docs.astral.sh/uv/) installed
-- **Git** installed and configured
-- **Claude Code** CLI installed
-- (Optional) **[Obsidian](https://obsidian.md/)** for vault browsing and graph visualization
-- (Optional) **R 4.x+** for statistical plots
-- (Optional) **tmux** for running the research daemon
+When you open the vault for the first time and run `/onboard` followed by `/init`, Claude handles:
 
-## Quick Start
+- Python dependency installation
+- Vault structure (notes/, inbox/, ops/, self/, _research/, projects/)
+- Configuration files (ops/config.yaml, ops/derivation.md)
+- Note templates and skill hooks
+- Initial knowledge graph seeding
 
-```bash
-# From the EngramR repo:
-cd _code
-uv run python scripts/init_vault.py ~/MyResearchVault --name "My Lab"
-```
+---
 
-This creates a fully structured vault at `~/MyResearchVault` with all templates, skills, hooks, config files, and the Python/R code library.
-
-## Step-by-Step
-
-### 1. Scaffold the vault
-
-```bash
-# Full setup (all skills):
-uv run python scripts/init_vault.py /path/to/vault --name "Lab Name"
-
-# Starter mode (core skills only, easier onboarding):
-uv run python scripts/init_vault.py /path/to/vault --name "Lab Name" --starter
-
-# Skip git init:
-uv run python scripts/init_vault.py /path/to/vault --no-git
-```
-
-The scaffolder creates:
-
-| Directory | Purpose |
-|-----------|---------|
-| `_code/` | Python + R library (note builder, validators, Elo, plotting) |
-| `_code/templates/` | Note templates (claim, hypothesis, literature, etc.) |
-| `.claude/skills/` | Claude Code skills for the co-scientist pipeline |
-| `.claude/hooks/` | Automation hooks (auto-commit, validation, session capture) |
-| `ops/` | Configuration, scripts, daemon runner |
-| `self/` | Agent identity and methodology |
-| `_code/styles/` | Plot theme and palette configuration |
-| `docs/` | Documentation |
-| `notes/` | Empty -- your knowledge graph grows here |
-| `inbox/` | Empty -- drop sources here for processing |
-| `_research/` | Empty -- hypotheses, tournaments, etc. created by skills |
-
-### 2. Configure environment variables
-
-```bash
-cd /path/to/vault
-cp .env.example .env
-```
-
-Edit `.env` with API keys for your domain. Which keys you need depends on your configured profile -- see [_code/README.md](../../_code/README.md#environment-variables) for the full environment variables table.
-
-> **Domain profiles:** After setup, select a domain profile in `ops/config.yaml` under `domain.name` to enable domain-specific search backends, data layers, and confounders. See `_code/profiles/` for available profiles.
-
-### 3. Install Python dependencies
-
-```bash
-cd /path/to/vault/_code
-uv sync
-```
-
-Verify the installation:
-
-```bash
-uv run pytest tests/ -v --cov=engram_r
-```
-
-All tests should pass with high coverage.
-
-### 4. (Optional) Open as an Obsidian vault
+## Optional: Obsidian
 
 If you use Obsidian for vault browsing:
 
@@ -95,23 +33,7 @@ If you use Obsidian for vault browsing:
 3. (Optional) Install the **Local REST API** community plugin for MCP integration
 4. (Recommended) Install **Dataview** for dynamic queries
 
-### 5. Start Claude Code
-
-```bash
-cd /path/to/vault
-claude
-```
-
-On first session, run two setup skills in sequence:
-
-```
-/onboard
-/init
-```
-
-`/onboard` bootstraps your lab integration: scans for projects, creates data inventory, links hypotheses to goals. `/init` then seeds your knowledge graph with orientation claims, confounders, and assumption inversions using the artifacts /onboard created.
-
-### 6. (Optional) Start the research daemon
+## Optional: Research daemon
 
 The daemon runs autonomous synthesis and maintenance in the background:
 
@@ -151,27 +73,6 @@ Key settings to tune:
 | `cooldowns_minutes.idle` | `30` | How often daemon polls when idle |
 | `thresholds.orphan_notes` | `10` | Orphan count that triggers /reflect |
 
-## Starter Skills
-
-If you used `--starter`, these core skills are installed:
-
-| Skill | What it does |
-|-------|-------------|
-| `/onboard` | Bootstrap lab integration |
-| `/init` | Seed foundational knowledge claims |
-| `/reduce` | Extract claims from inbox sources |
-| `/reflect` | Find connections between notes |
-| `/reweave` | Update old notes with new connections |
-| `/verify` | Quality-check notes (description + schema + links) |
-| `/validate` | Schema validation for frontmatter |
-| `/seed` | Queue a source file for processing with duplicate detection |
-| `/next` | Get the most valuable next action |
-| `/stats` | Show vault statistics |
-| `/graph` | Interactive graph analysis |
-| `/tasks` | View and manage the task stack |
-
-The full skill set adds the remaining skills for the co-scientist pipeline (hypothesis generation, tournaments, literature search, experimental design, etc.). Re-run the scaffolder without `--starter` to add them later.
-
 ## Multi-Vault Setup
 
 To manage multiple vaults (e.g., one per lab):
@@ -201,20 +102,15 @@ vaults:
 bash ops/scripts/daemon-all.sh
 ```
 
-### 7. MCP Servers
+## Optional: MCP Servers
 
-EngramR uses [MCP servers](https://modelcontextprotocol.io/) to connect Claude Code
-to external services. Servers are configured in `.mcp.json` at the project root.
+EngramR uses [MCP servers](https://modelcontextprotocol.io/) to connect Claude Code to external services. Servers are configured in `.mcp.json` at the project root.
 
-### Obsidian (optional)
+### Obsidian MCP
 
-The mcp-obsidian server gives Claude programmatic access to vault content --
-reading files, writing notes, searching, and listing directories -- through the
-Obsidian Local REST API. This is **not required** for normal operation (Claude
-Code reads/writes files directly); it is useful for Obsidian-specific features
-like search and graph queries.
+The mcp-obsidian server gives Claude programmatic access to vault content through the Obsidian Local REST API -- useful for Obsidian-specific search and graph queries. Not required for normal operation; Claude Code reads and writes files directly.
 
-Add to `.mcp.json` (or verify it was created by the scaffolder):
+Add to `.mcp.json`:
 
 ```json
 {
@@ -357,20 +253,12 @@ errors, no crashes.
 
 ## Verification
 
-After setup, verify everything works. See [_code/README.md](../../_code/README.md) for the full set of test, lint, and format commands.
-
-```bash
-cd _code && uv run pytest tests/ -v   # tests pass
-```
-
-Start Claude Code (`claude`) -- the session orient hook should print vault state. Run `/health` to check vault integrity. A fresh vault should report all green.
+Open the vault with `claude`. The session orient hook fires automatically and prints vault state. Run `/health` to check vault integrity -- a fresh vault should report all green.
 
 ## Troubleshooting
-
-**Tests fail with import errors** -- Run `uv sync` in the `_code/` directory to install dependencies.
 
 **Daemon won't start** -- Check that tmux is installed (`brew install tmux` on macOS).
 
 **Hooks don't fire** -- Verify `.claude/hooks/` exists and scripts are executable (`chmod +x .claude/hooks/*.sh`).
 
-**"Cannot find source vault"** -- Run init_vault.py from within the EngramR repo, or pass `--source /path/to/repo`.
+**Something went wrong during setup** -- Tell Claude what happened. It can diagnose and fix most setup issues through conversation.

@@ -1,30 +1,34 @@
 ---
-description: "First session guide -- creating claims, finding connections, understanding session rhythm"
+description: "First session guide -- onboarding, session rhythm, and your first claim"
 type: manual
 created: 2026-02-21
 ---
 
 # Getting Started
 
-This page walks through a first session: orienting to vault state, creating a claim, connecting it to existing knowledge, and persisting work before session end.
+Clone the repo and open it with Claude Code:
+
+```bash
+git clone https://github.com/achousal/EngramR.git
+cd EngramR
+claude
+```
+
+Claude handles setup from here. You answer questions; it builds the infrastructure.
 
 ---
 
-## First Time Setup
+## Your First Session
 
-Before your first working session, run two setup skills in sequence:
+### Step 1: Onboard your lab
 
-1. **`/onboard`** -- Scans your lab directory, registers projects, builds a data inventory, and creates research goals. Runs as a natural conversation: it scans first, then presents findings for your correction in 2-3 turns before generating artifacts. This builds the project infrastructure that everything else operates on.
+Run `/onboard`. Claude will ask you about your lab, your projects, your data, and your research goals -- a short interview of a few turns. Based on your answers it creates the project structure, data inventory, and research goals that everything else runs on. You review what it generates and correct anything before it is saved.
 
-2. **`/init`** -- Seeds your knowledge graph with foundational claims. Starts by walking you through composing your first claim together (the demo claim), then batch-generates the remaining orientation, methodology, confounder, and inversion claims. You review them grouped by role before they are wired into the graph.
+### Step 2: Seed your knowledge graph
 
-Both skills run as natural conversations in main context, delegating computation to focused sub-skills. After both complete, you have a structured four-layer knowledge foundation. The rest of this page covers your first working session.
+Run `/init`. Claude walks you through creating your first claim together (a short demo), then generates a set of foundational claims for your research area -- orientation, methodology, known confounders, and assumption inversions. You review them in groups before they are added to the graph.
 
----
-
-## Prerequisites
-
-Verify prerequisites from the [Setup Guide](setup-guide.md) are met (Python 3.11+, uv, Claude Code, dependencies installed, environment variables configured). The vault must be initialized (ops/config.yaml, ops/derivation.md, _code/templates/ present).
+After these two steps you have a working knowledge environment grounded in your actual research context.
 
 ---
 

@@ -74,44 +74,19 @@ reactor gives back.
 
 ## Getting started
 
-### Prerequisites
+Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code), clone the repo, and open it:
 
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code), Python 3.11+, [uv](https://docs.astral.sh/uv/), and `ripgrep` (`rg`). Optional: [Obsidian](https://obsidian.md/) (vault browser), R 4.x+ (statistical plots). See [Setup Guide](docs/manual/setup-guide.md) for detailed installation instructions.
+```bash
+git clone https://github.com/achousal/EngramR.git
+cd EngramR
+claude
+```
 
-### Setup
+Claude guides you through the rest. On first open, run `/onboard` -- it interviews you about your lab, projects, and research goals, then builds the infrastructure automatically. Follow with `/init` to seed your knowledge graph. Both feel like conversations, not configuration.
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/achousal/EngramR.git
-   ```
+Every session after that, Claude orients you automatically: active threads, inbox state, pending work. You focus on the research.
 
-2. Install the Python library:
-   ```bash
-   cd EngramR/_code
-   uv sync --all-extras
-   ```
-
-3. Configure environment variables (see [_code/README.md](_code/README.md#environment-variables) for the full table):
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Install the Ars Contexta plugin (knowledge processing layer):
-   ```
-   /plugin marketplace add agenticnotetaking/arscontexta
-   /plugin install arscontexta@agenticnotetaking
-   ```
-
-5. Verify everything works (see [Library Reference](_code/README.md) for full test and lint commands):
-   ```bash
-   uv run pytest tests/ -v
-   ```
-
-6. Start Claude Code in the vault directory. Run `/onboard` to set up your
-   lab, then `/init` to seed your knowledge graph.
-
-See the [Setup Guide](docs/manual/setup-guide.md) for detailed instructions
-including Obsidian, Slack, MCP servers, and daemon configuration.
+See the [Setup Guide](docs/manual/setup-guide.md) for optional integrations: Obsidian, Slack, MCP servers, and the research daemon.
 
 ---
 
@@ -129,6 +104,20 @@ EngramR/
   .claude/            # Skills and hooks for Claude Code
   docs/               # User manual and reference documentation
 ```
+
+## Organizing your research
+
+EngramR works best when the vault mirrors your research process rather than acting as a filing cabinet. A few practices that make a real difference:
+
+**Always route through inbox/.** Drop sources in `inbox/`, never write claims to `notes/` directly. The pipeline (`inbox/ -> /reduce -> /reflect -> /verify -> notes/`) applies quality gates that catch schema errors, orphan notes, and missing provenance. Bypassing it creates silent debt that compounds over time.
+
+**One well-scoped goal per `/init` run.** Each research goal spawns its own orientation, methodology, confounder, and inversion claims. Goals registered in `self/goals.md` drive hypothesis generation -- a tightly scoped goal produces more specific, falsifiable hypotheses than a broad one.
+
+**Use projects/ for lab and infrastructure context.** Project nodes created via `/onboard` or `/project` hold your data inventory, HPC constraints, collaborators, and instrument capabilities. The system ranks hypotheses by what the lab can realistically act on; it needs this context to do that well.
+
+**Let topic maps emerge, not be planned.** Create a topic map when five or more related claims accumulate without a navigation hub. Pre-emptive topic maps fragment the graph and break synthesis. The right time is when you notice yourself losing track of related claims, not before.
+
+**Process before capturing more.** When `inbox/` holds more than ten items, pause intake and run `/ralph` or `/reduce` before adding more sources. A growing inbox with no processing is collector's fallacy -- the vault only grows in value when sources are reduced to connected claims.
 
 ---
 
@@ -183,7 +172,7 @@ documentation with arguments and I/O details.
 | --- | --- |
 | [User Manual](docs/manual/manual.md) | Hub page linking all reference docs |
 | [Getting Started](docs/manual/getting-started.md) | First session walkthrough |
-| [Setup Guide](docs/manual/setup-guide.md) | Installation, env vars, Slack, MCP servers |
+| [Setup Guide](docs/manual/setup-guide.md) | Optional: Obsidian, Slack, MCP servers, daemon |
 | [Skills Reference](docs/manual/skills.md) | Full command reference with example session |
 | [Workflows](docs/manual/workflows.md) | Processing pipeline and session rhythm |
 | [Configuration](docs/manual/configuration.md) | ops/config.yaml, dimensions, domain profiles |
