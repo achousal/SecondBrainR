@@ -68,6 +68,7 @@ Adoption is not a cliff. It is a gradient. Every observation is a valuable contr
    the run. Results feed back into the graph. The leaderboard updates.
 
 ---
+
 ## Getting started
 
 Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code), clone the repo, and open it:
