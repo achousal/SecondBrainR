@@ -65,8 +65,7 @@ what they actually have -- datasets, instruments, domain-specific resources,
 constraints -- and the system ranks hypotheses not just by scientific merit
 but by what the lab can realistically act on.
 
-Adoption is not a cliff. It is a gradient. Send one observation and you have
-contributed. Browse the leaderboard and you understand the lab's priorities. Run
+Adoption is not a cliff. It is a gradient. Every observation is a valuable contribution. Browse the leaderboard and you understand the teams's priorities. Run
 an analysis and feed back results. The deeper the team engages, the more the
 reactor gives back.
 
