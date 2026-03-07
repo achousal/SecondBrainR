@@ -3,6 +3,7 @@ const tiers = [
   {
     title: "Solo researcher",
     trail: "researcher",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>',
     items: [
       "Personal knowledge graph of atomic claims",
       "Structured literature search and source extraction",
@@ -14,6 +15,7 @@ const tiers = [
   {
     title: "Research team",
     trail: "evaluator",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>',
     items: [
       "Slack integration -- observations from any team member",
       "Automatic cross-pollination of literature and bench data",
@@ -25,6 +27,8 @@ const tiers = [
   {
     title: "Cross-lab network",
     trail: "developer",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>',
+    advanced: true,
     items: [
       "Selective knowledge graph bridging between instances",
       "Cross-lab hypothesis tournaments on equal footing",
@@ -45,17 +49,25 @@ const tiers = [
       </p>
     </div>
 
-    <div class="grid md:grid-cols-3 gap-6">
-      {tiers.map((tier) => (
+    <div class="scaling-grid grid md:grid-cols-3 gap-6">
+      {tiers.map((tier, i) => (
         <button
           type="button"
           data-animate="fade-up"
           data-trail={tier.trail}
-          class="scaling-card rounded-lg p-6 border border-border bg-surface text-left transition-colors card-shadow cursor-pointer hover:border-accent-dim"
+          class:list={[
+            "scaling-card rounded-lg p-6 border bg-surface text-left transition-colors card-shadow cursor-pointer hover:border-accent-dim relative",
+            tier.advanced ? "border-dashed border-accent-dim" : "border-border",
+          ]}
         >
-          <h3 class="font-display text-lg font-semibold mb-4 text-text">
-            {tier.title}
-          </h3>
+          <div class="flex items-center gap-3 mb-4">
+            <svg class="w-5 h-5 text-accent-dim shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+              <Fragment set:html={tier.icon} />
+            </svg>
+            <h3 class="font-display text-lg font-semibold text-text">
+              {tier.title}
+            </h3>
+          </div>
           <ul class="space-y-2">
             {tier.items.map((item) => (
               <li class="flex items-start gap-2 text-sm text-text-muted leading-relaxed">
@@ -64,6 +76,10 @@ const tiers = [
               </li>
             ))}
           </ul>
+          {/* Connecting arrow (hidden on mobile) */}
+          {i < tiers.length - 1 && (
+            <span class="scaling-arrow hidden md:block" aria-hidden="true"></span>
+          )}
         </button>
       ))}
     </div>

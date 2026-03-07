@@ -4,6 +4,8 @@ interface Chip {
   color: "link" | "accent" | "accent-dim";
 }
 
+type EventType = "observation" | "tournament" | "default";
+
 interface Event {
   time: string;
   title: string;
@@ -11,6 +13,8 @@ interface Event {
   quote?: string;
   actor?: string;
   concepts?: Chip[];
+  role?: "tech" | "postdoc" | "reactor";
+  eventType?: EventType;
 }
 
 const events: Event[] = [
@@ -20,6 +24,8 @@ const events: Event[] = [
     content: "The tech notices something unexpected in her experiment. She sends a Slack message.",
     quote: "Seeing unexpected protein accumulation in the treated group at 24h. Wasn't part of the original hypothesis.",
     actor: "Lab technician",
+    role: "tech",
+    eventType: "observation",
   },
   {
     time: "9:03am",
@@ -30,6 +36,7 @@ const events: Event[] = [
       { label: "atomic claim", color: "link" },
       { label: "wiki-link", color: "link" },
     ],
+    role: "reactor",
   },
   {
     time: "9:40am",
@@ -37,6 +44,8 @@ const events: Event[] = [
     content: "The postdoc gets a notification: a new observation was linked to a literature note he submitted last week. He didn't know anyone in the lab was generating data in this area.",
     quote: "Her data fits the alternative pathway better. If that's the mechanism, we should see it in the longitudinal dataset we already have.",
     actor: "Postdoc",
+    role: "postdoc",
+    eventType: "observation",
   },
   {
     time: "9:45am",
@@ -47,6 +56,8 @@ const events: Event[] = [
       { label: "hypothesis", color: "accent" },
       { label: "evidence threshold", color: "accent" },
     ],
+    role: "reactor",
+    eventType: "tournament",
   },
   {
     time: "10:00am",
@@ -57,12 +68,15 @@ const events: Event[] = [
       { label: "tournament", color: "accent" },
       { label: "Elo", color: "accent" },
     ],
+    role: "reactor",
+    eventType: "tournament",
   },
   {
     time: "11:15am",
     title: "Experiment",
     content:
       "The postdoc executes the analysis. The hypothesis note contains the test, the parameters, and suggested experiments. Results: two of three predictions confirmed. One inconclusive. The system logs the experiment and flags the gap.",
+    role: "postdoc",
   },
   {
     time: "11:30am",
@@ -72,8 +86,22 @@ const events: Event[] = [
     concepts: [
       { label: "/meta-review", color: "accent-dim" },
     ],
+    role: "reactor",
+    eventType: "tournament",
   },
 ];
+
+const roleIcons: Record<string, string> = {
+  tech: '<path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>',
+  postdoc: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>',
+  reactor: '<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/>',
+};
+
+const eventBorderColors: Record<EventType, string> = {
+  observation: "border-l-link-dim",
+  tournament: "border-l-accent-dim",
+  default: "border-l-border",
+};
 
 const chipColors: Record<string, string> = {
   "link": "border-link-dim text-link",
@@ -91,35 +119,43 @@ const chipColors: Record<string, string> = {
       </p>
     </div>
 
-    <div class="space-y-0">
-      {events.map((event) => (
-        <div data-animate="fade-up" class="grid grid-cols-[5rem_1fr] md:grid-cols-[7rem_1fr] gap-4 md:gap-8">
-          <div class="pt-6">
-            <span class="font-mono text-sm text-accent font-medium">{event.time}</span>
-          </div>
-          <div class="border-l border-accent-dim pl-6 md:pl-8 pb-8 pt-6">
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-              <h3 class="text-sm font-medium text-text-muted uppercase tracking-wider">
-                {event.title}
-              </h3>
-              {event.concepts?.map((chip) => (
-                <span class:list={["vocab-chip", chipColors[chip.color]]}>
-                  {chip.label}
-                </span>
-              ))}
+    <div class="timeline-container space-y-0">
+      {events.map((event) => {
+        const borderClass = eventBorderColors[event.eventType || "default"];
+        return (
+          <div data-animate="fade-up" class="timeline-event grid grid-cols-[5rem_1fr] md:grid-cols-[7rem_1fr] gap-4 md:gap-8">
+            <div class="pt-6">
+              <span class="font-mono text-sm text-accent font-medium">{event.time}</span>
             </div>
-            <p class="text-text leading-relaxed mb-3">{event.content}</p>
-            {event.quote && (
-              <blockquote class="border-l-2 border-border pl-4 text-text-muted italic">
-                <p>"{event.quote}"</p>
-                {event.actor && (
-                  <cite class="block mt-1 text-sm not-italic text-accent-dim">-- {event.actor}</cite>
+            <div class:list={["border-l-2 pl-6 md:pl-8 pb-8 pt-6", borderClass]}>
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                {event.role && (
+                  <svg class="w-4 h-4 text-text-muted shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <Fragment set:html={roleIcons[event.role]} />
+                  </svg>
                 )}
-              </blockquote>
-            )}
+                <h3 class="text-sm font-medium text-text-muted uppercase tracking-wider">
+                  {event.title}
+                </h3>
+                {event.concepts?.map((chip) => (
+                  <span class:list={["vocab-chip", chipColors[chip.color]]}>
+                    {chip.label}
+                  </span>
+                ))}
+              </div>
+              <p class="text-text leading-relaxed mb-3">{event.content}</p>
+              {event.quote && (
+                <blockquote class="border-l-2 border-border pl-4 text-text-muted italic">
+                  <p>"{event.quote}"</p>
+                  {event.actor && (
+                    <cite class="block mt-1 text-sm not-italic text-accent-dim">-- {event.actor}</cite>
+                  )}
+                </blockquote>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
 
     <div data-animate="fade-up" class="mt-12 p-6 rounded-lg bg-surface border border-border card-shadow">
