@@ -2,11 +2,14 @@
 description: "Deep guide to introspective commands -- ask, architect, rethink, remember"
 type: manual
 created: 2026-02-21
+updated: 2026-03-07
 ---
 
 # Meta-Skills
 
 Meta-skills are introspective commands that operate on the system itself rather than on research content. They query methodology, modify configuration, capture friction, and triage accumulated signals. These commands are the mechanism by which the system evolves.
+
+**Prerequisites:** [Workflows](workflows.md).
 
 ---
 

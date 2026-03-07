@@ -2,12 +2,15 @@
 description: "Security and integrity -- write-time validation, tamper detection, PII filtering, escalation ceilings"
 type: manual
 created: 2026-03-01
+updated: 2026-03-07
 ---
 
 # Security and Integrity
 
 Three defense-in-depth layers protect vault integrity, agent behavior, and
 research data.
+
+**Prerequisites:** [Administration](administration.md).
 
 ---
 

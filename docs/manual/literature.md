@@ -2,6 +2,7 @@
 description: "Literature search backends, enrichment pipeline, and unified search interface"
 type: manual
 created: 2026-03-01
+updated: 2026-03-07
 ---
 
 # Literature Search
@@ -10,6 +11,8 @@ created: 2026-03-01
 notes with full provenance. Results are deduplicated by DOI, optionally
 enriched with citation counts and open-access PDF URLs, and sorted by citation
 count.
+
+**Prerequisites:** [Getting Started](getting-started.md).
 
 ---
 
@@ -70,5 +73,5 @@ See [Configuration](configuration.md) for full config reference.
 ## See Also
 
 - [Skills Reference](skills.md) -- `/literature` command details
-- [Setup Guide](setup-guide.md) -- environment variables for API keys
+- [Integrations](integrations.md) -- environment variables for API keys
 - [Configuration](configuration.md) -- search stack and enrichment settings

@@ -2,12 +2,15 @@
 description: "Administration -- daemon, hooks, decision engine, code section health, helper scripts"
 type: manual
 created: 2026-03-01
+updated: 2026-03-07
 ---
 
 # Administration
 
 Operational systems for autonomous processing, session lifecycle, and vault
 maintenance.
+
+**Prerequisites:** [Configuration](configuration.md).
 
 ---
 

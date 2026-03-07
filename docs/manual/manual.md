@@ -38,9 +38,6 @@ YAML frontmatter query patterns -- using ripgrep to treat the vault as a databas
 ### [Troubleshooting](troubleshooting.md)
 Diagnosis and resolution procedures for orphan claims, dangling links, stale content, methodology drift, inbox overflow, schema violations, and other common failure modes.
 
-### [Setup Guide](setup-guide.md)
-Installation, environment configuration, dependency setup, and vault initialization for new deployments.
-
 ### [Inter-Lab Collaboration](inter-lab.md)
 Patterns for federated vaults, cross-lab claim sharing, conflict resolution, and provenance preservation across research groups.
 

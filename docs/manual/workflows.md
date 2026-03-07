@@ -2,11 +2,14 @@
 description: "Processing pipeline, maintenance cycle, session rhythm, batch processing, and co-scientist loop"
 type: manual
 created: 2026-02-21
+updated: 2026-03-07
 ---
 
 # Workflows
 
 This page documents how the system's skills compose into repeatable work patterns: the processing pipeline, the co-scientist loop, the session rhythm, maintenance cycles, and batch processing strategies.
+
+**Prerequisites:** [Getting Started](getting-started.md), [Skills Reference](skills.md).
 
 ---
 

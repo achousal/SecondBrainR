@@ -2,6 +2,7 @@
 description: "Architecture deep-dive -- knowledge layer, hypothesis layer, Elo system, entity lifecycles"
 type: manual
 created: 2026-03-01
+updated: 2026-03-07
 ---
 
 # Architecture
@@ -9,6 +10,8 @@ created: 2026-03-01
 EngramR combines a **knowledge layer** that extracts, connects, and maintains
 a graph of atomic claims, and a **hypothesis layer** that generates, debates,
 ranks, and evolves testable hypotheses from that evidence.
+
+**Prerequisites:** None (standalone reference).
 
 ---
 

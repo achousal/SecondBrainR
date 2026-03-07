@@ -2,9 +2,14 @@
 description: "First session guide -- onboarding, session rhythm, and your first claim"
 type: manual
 created: 2026-02-21
+updated: 2026-03-07
 ---
 
 # Getting Started
+
+Your first session -- onboarding, session rhythm, and creating your first claim.
+
+**Prerequisites:** None (this is the starting point)
 
 Clone the repo and open it with Claude Code:
 
@@ -83,38 +88,23 @@ EngramR is a processing system. Its value comes from the rate at which raw mater
 
 ## Session Rhythm: Orient - Work - Persist
 
-Every session follows this three-phase cycle. It is enforced by hooks, not discipline. For the full session rhythm reference, see [Workflows](workflows.md).
+Every session follows three phases, enforced by hooks. See [Workflows](workflows.md) for the full reference.
 
-### Phase 1: Orient
+**Orient** -- The session-orient hook fires automatically and prints active threads, reminders, vault state, and maintenance signals.
 
-At session start, the session-orient hook fires automatically and prints:
+**Work** -- Execute tasks based on orient output:
 
-1. **Active threads** from self/goals.md -- what you are working on.
-2. **Reminders** from ops/reminders.md -- overdue time-bound commitments.
-3. **Vault state** -- claim count, inbox count, observation count, tension count.
-4. **Maintenance signals** -- condition-based triggers (inbox pressure, pending observations, pending tensions).
-
-### Phase 2: Work
-
-A few entry points depending on what the session is for:
-
-| Use case                           | Entry point                                                                                                                                                 |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Quick orientation                  | `/next` -- evaluates task queue, inbox pressure, pending observations, and active goals; recommends the single highest-value action                         |
-| Processing new papers or notes     | Drop files in `inbox/`, run `/seed --all`, then `/ralph` -- each item moves through extract -> reflect -> reweave -> verify with isolated context per phase |
-| Expanding literature coverage      | `/literature [topic]` -- searches PubMed, Semantic Scholar, and OpenAlex using your research goals; results are queued for `/ralph`                         |
-| Generating or advancing hypotheses | `/research` -- steps through the co-scientist loop (generate, review, tournament, meta-review) and recommends which step fits your current hypothesis pool  |
-| Scan for tensions                  | `/health` -- full integrity check for orphan claims, dangling links, schema violations, and stale content; returns a ranked fix list                        |
+| Use case | Entry point |
+| --- | --- |
+| Quick orientation | `/next` -- recommends the single highest-value action |
+| Processing new papers | Drop in `inbox/`, run `/seed --all`, then `/ralph` |
+| Expanding literature | `/literature [topic]` -- searches PubMed, Semantic Scholar, OpenAlex |
+| Advancing hypotheses | `/research` -- steps through the co-scientist loop |
+| Scanning for issues | `/health` -- full integrity check |
 
 See [Skills Reference](skills.md) for the full command list.
 
-### Phase 3: Persist
-
-To set up future work:
-- Write any new insights as atomic claims (route through inbox/ and /reduce).
-- Update relevant topic maps with new connections.
-- Update self/goals.md with current threads and progress.
-- The session-capture hook fires automatically and records a session summary to ops/sessions/.
+**Persist** -- Write new insights as claims (route through inbox/ and /reduce), update topic maps and self/goals.md. The session-capture hook fires automatically.
 
 ---
 

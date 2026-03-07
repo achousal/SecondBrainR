@@ -2,11 +2,14 @@
 description: "YAML frontmatter query patterns -- using ripgrep to treat the vault as a database"
 type: manual
 created: 2026-02-22
+updated: 2026-03-07
 ---
 
 # Querying Your Vault
 
 Your YAML frontmatter turns ripgrep into a lightweight graph database. Every YAML field you add becomes a queryable dimension. Notes are rows, fields are columns, wiki-links are foreign keys.
+
+**Prerequisites:** [Getting Started](getting-started.md).
 
 ---
 

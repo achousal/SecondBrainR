@@ -2,6 +2,7 @@
 description: "Plot system -- visual identity, statistical decision tree, plot builders, palettes, figure sizes"
 type: manual
 created: 2026-03-01
+updated: 2026-03-07
 ---
 
 # Plot System
@@ -9,6 +10,8 @@ created: 2026-03-01
 Publication-quality figures with consistent visual identity across Python and R.
 Both languages load the same configuration files and implement identical
 statistical decision trees.
+
+**Prerequisites:** None (standalone reference).
 
 ---
 

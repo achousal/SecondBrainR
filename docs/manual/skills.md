@@ -2,11 +2,14 @@
 description: "Complete command reference for all vault skills"
 type: manual
 created: 2026-02-21
+updated: 2026-03-07
 ---
 
 # Skills Reference
 
 All commands available in this vault, organized by layer and category. All skills use bare slash commands (e.g., `/reduce`, `/research`).
+
+**Prerequisites:** [Getting Started](getting-started.md).
 
 ---
 
@@ -680,6 +683,6 @@ The example below uses a clinical research question. The co-scientist system is 
 
 ## See Also
 
-- [Manual Hub](manual.md)
+- [Manual Hub](manual.md) -- documentation index and reading order
 - [Workflows](workflows.md) -- how skills compose into work patterns
 - [Meta-Skills](meta-skills.md) -- deep guide to introspective commands

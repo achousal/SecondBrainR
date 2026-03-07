@@ -2,10 +2,13 @@
 description: "Configuration reference -- ops/config.yaml structure, dimensions, processing modes, architect command"
 type: manual
 created: 2026-02-21
+updated: 2026-03-07
 ---
-l# Configuration
+# Configuration
 
 This page documents the system configuration: ops/config.yaml structure, dimension semantics, processing modes, and how to use /architect for structural changes.
+
+**Prerequisites:** [Getting Started](getting-started.md).
 
 ---
 

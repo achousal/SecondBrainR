@@ -51,14 +51,6 @@ EngramR/
   docs/               # User manual and reference documentation
 ```
 
-## Organizing your research
-
-**Always route through inbox/.** Drop sources in `inbox/`. The `/ralph` pipeline (`inbox/ -> /reduce -> /reflect -> /reweave -> /verify -> notes/`) applies quality gates that catch schema errors, orphan notes, and missing provenance. 
-
-**Process before capturing more.** When `inbox/` holds more than ten items, pause intake and run `/ralph` or `/reduce` before adding more sources. A growing inbox with no processing is collector's fallacy -- the vault only grows in value when sources are reduced to connected claims.
-
----
-
 ## Commands at a glance
 
 | Command          | What it does                                                       |
@@ -110,7 +102,6 @@ documentation with arguments and I/O details.
 | --- | --- |
 | [User Manual](docs/manual/manual.md) | Hub page linking all reference docs |
 | [Getting Started](docs/manual/getting-started.md) | First session -- onboarding, claims, session rhythm |
-| [Setup Guide](docs/manual/setup-guide.md) | Optional integrations -- Obsidian, Slack, daemon, multi-vault |
 | [Skills Reference](docs/manual/skills.md) | Full command reference with example session |
 | [Workflows](docs/manual/workflows.md) | Processing pipeline and session rhythm |
 | [Configuration](docs/manual/configuration.md) | ops/config.yaml, dimensions, domain profiles |

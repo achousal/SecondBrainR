@@ -2,11 +2,14 @@
 description: "Diagnosis and resolution for orphan claims, dangling links, stale content, methodology drift, inbox overflow"
 type: manual
 created: 2026-02-21
+updated: 2026-03-07
 ---
 
 # Troubleshooting
 
 This page documents common failure modes, their symptoms, root causes, and resolution procedures.
+
+**Prerequisites:** [Workflows](workflows.md).
 
 ---
 
