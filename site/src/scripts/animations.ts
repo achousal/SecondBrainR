@@ -49,28 +49,39 @@ function initHeroReveal(): void {
 }
 
 
-/** Cycle diagram: hover/focus updates description */
+/** Cycle diagram: hover/focus updates description + highlights HowItWorks cards */
 function initCycleDiagram(): void {
   const desc = document.getElementById("cycle-desc");
   if (!desc) return;
 
   const defaultText = "Hover or focus a node to see its role in the cycle.";
 
+  const cardMap: Record<string, string> = {
+    reduce: "knowledge-layer",
+    reflect: "knowledge-layer",
+    generate: "hypothesis-layer",
+    tournament: "hypothesis-layer",
+    evolve: "hypothesis-layer",
+    "meta-review": "hypothesis-layer",
+  };
+
   document.querySelectorAll<SVGGElement>(".cycle-node").forEach((node) => {
     const label = node.getAttribute("aria-label") || "";
+    const nodeId = node.dataset.nodeId || "";
+    const cardId = cardMap[nodeId];
 
-    node.addEventListener("mouseenter", () => {
-      desc.textContent = label;
-    });
-    node.addEventListener("focus", () => {
-      desc.textContent = label;
-    });
-    node.addEventListener("mouseleave", () => {
-      desc.textContent = defaultText;
-    });
-    node.addEventListener("blur", () => {
-      desc.textContent = defaultText;
-    });
+    function highlight(on: boolean): void {
+      desc!.textContent = on ? label : defaultText;
+      if (cardId) {
+        const card = document.getElementById(cardId);
+        card?.classList.toggle("how-card-highlight", on);
+      }
+    }
+
+    node.addEventListener("mouseenter", () => highlight(true));
+    node.addEventListener("focus", () => highlight(true));
+    node.addEventListener("mouseleave", () => highlight(false));
+    node.addEventListener("blur", () => highlight(false));
   });
 }
 
