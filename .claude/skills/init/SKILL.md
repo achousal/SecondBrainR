@@ -44,7 +44,6 @@ Parse `$ARGUMENTS`:
 | `--cycle` | Cycle mode -- read `reference/cycle-mode.md` and follow those instructions |
 | `--handoff` (appended) | Any mode + RALPH HANDOFF at end |
 | `--tutorial` (appended) | Forces tutorial mode (demo claim on goal 1, prompt after goal 2) |
-
 If `--cycle`, read `.claude/skills/init/reference/cycle-mode.md` and follow its instructions directly. The remainder of this file covers seed mode only.
 
 ---
@@ -161,6 +160,29 @@ separate Claude session, refine there, and paste the final versions back here.
 ```
 
 Wait for user response. Build SELECTED_GOALS list (ordered).
+
+### Falsification condition
+
+For each goal in SELECTED_GOALS, check its `falsification_condition` YAML field. If empty or missing, ask inline:
+
+```
+"{goal title}" -- What evidence or result would make you abandon this goal? (1-3 sentences)
+
+This should be a broad strategic judgment, not a narrow metric threshold.
+Think: "under what circumstances does this entire line of inquiry stop being
+worth pursuing?" -- not "what specific p-value would make one analysis fail."
+Your lab has budget, infrastructure, and many possible leads. The kill signal
+should reflect when the fundamental premise collapses, not when one approach
+needs adjustment. But it should be concrete enough that you could imagine
+actually saying "we're done here" -- not so broad that it only triggers when
+everything has already failed.
+
+I can suggest one if you'd like -- just say "suggest."
+```
+
+Read the lab profile (`projects/{lab_slug}/_index.md`) for `research_focus` to ground the suggestion in the lab's mission and exploratory capacity. Suggestions should be broad enough to allow pivoting between methods while narrow enough to be falsifiable -- the user should be able to imagine a realistic scenario where the condition triggers.
+
+Write the answer into the goal file's `falsification_condition:` field. If already populated, proceed silently. The falsification condition feeds into the init-generate sub-skill as inversion seed context.
 
 ### Budget recommendation
 
@@ -301,6 +323,7 @@ Mark this goal's seeding status as `partial` (not `complete`). Then fall through
 Write input data to a temp file:
 - SELECTED_GOALS = [this_goal] (single-element list)
 - CORE_QUESTIONS (for this goal)
+- FALSIFICATION_CONDITION (from goal file's `falsification_condition` field -- seeds inversions)
 - DEMO_CLAIM (if approved and this is the first goal -- counts as first orientation claim)
 - VAULT_STATE (from orient output)
 - VAULT_INFORMED flag

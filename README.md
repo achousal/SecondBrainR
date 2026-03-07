@@ -82,11 +82,7 @@ cd EngramR
 claude
 ```
 
-Claude guides you through the rest. On first open, run `/onboard` -- it interviews you about your lab, projects, and research goals, then builds the infrastructure automatically. Follow with `/init` to seed your knowledge graph. Both feel like conversations, not configuration.
-
-Every session after that, Claude orients you automatically: active threads, inbox state, pending work. You focus on the research.
-
-See the [Setup Guide](docs/manual/setup-guide.md) for optional integrations: Obsidian, Slack, MCP servers, and the research daemon.
+Claude guides you through the rest. See [Getting Started](docs/manual/getting-started.md) for the full first-session walkthrough.
 
 ---
 
@@ -109,13 +105,13 @@ EngramR/
 
 EngramR works best when the vault mirrors your research process rather than acting as a filing cabinet. A few practices that make a real difference:
 
-**Always route through inbox/.** Drop sources in `inbox/`, never write claims to `notes/` directly. The pipeline (`inbox/ -> /reduce -> /reflect -> /verify -> notes/`) applies quality gates that catch schema errors, orphan notes, and missing provenance. Bypassing it creates silent debt that compounds over time.
+**Always route through inbox/.** Drop sources in `inbox/`, never write claims to `notes/` directly. The pipeline (`inbox/ -> /reduce -> /reflect -> /verify -> notes/`) applies quality gates that catch schema errors, orphan notes, and missing provenance. 
 
 **One well-scoped goal per `/init` run.** Each research goal spawns its own orientation, methodology, confounder, and inversion claims. Goals registered in `self/goals.md` drive hypothesis generation -- a tightly scoped goal produces more specific, falsifiable hypotheses than a broad one.
 
-**Use projects/ for lab and infrastructure context.** Project nodes created via `/onboard` or `/project` hold your data inventory, HPC constraints, collaborators, and instrument capabilities. The system ranks hypotheses by what the lab can realistically act on; it needs this context to do that well.
+**Use projects/ for lab and infrastructure context.** Project nodes created via `/onboard` or `/project` hold your data inventory, HPC constraints, collaborators, and instrument capabilities. 
 
-**Let topic maps emerge, not be planned.** Create a topic map when five or more related claims accumulate without a navigation hub. Pre-emptive topic maps fragment the graph and break synthesis. The right time is when you notice yourself losing track of related claims, not before.
+**Let topic maps emerge.**  Create a topic map when five or more related claims accumulate without a navigation hub. 
 
 **Process before capturing more.** When `inbox/` holds more than ten items, pause intake and run `/ralph` or `/reduce` before adding more sources. A growing inbox with no processing is collector's fallacy -- the vault only grows in value when sources are reduced to connected claims.
 
@@ -171,8 +167,8 @@ documentation with arguments and I/O details.
 | Document | What it covers |
 | --- | --- |
 | [User Manual](docs/manual/manual.md) | Hub page linking all reference docs |
-| [Getting Started](docs/manual/getting-started.md) | First session walkthrough |
-| [Setup Guide](docs/manual/setup-guide.md) | Optional: Obsidian, Slack, MCP servers, daemon |
+| [Getting Started](docs/manual/getting-started.md) | First session -- onboarding, claims, session rhythm |
+| [Setup Guide](docs/manual/setup-guide.md) | Optional integrations -- Obsidian, Slack, daemon, multi-vault |
 | [Skills Reference](docs/manual/skills.md) | Full command reference with example session |
 | [Workflows](docs/manual/workflows.md) | Processing pipeline and session rhythm |
 | [Configuration](docs/manual/configuration.md) | ops/config.yaml, dimensions, domain profiles |

@@ -102,4 +102,4 @@ Before creating a goal file, verify no file with the same name exists in notes/.
 | Duplicate claim title | Ask user to rephrase, do NOT overwrite existing claims |
 | validate_write hook rejects (on orchestrator write) | Parse the error, fix the claim content, retry once |
 | Dangling wiki-link in claim body | Remove the link before writing, note the removal to user |
-| Empty user response to interview | Re-ask once with a worked example, then skip that phase with a note |
+| Empty user response to falsifiability question | Re-ask once with a worked example, then skip with a note |

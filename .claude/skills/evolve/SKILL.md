@@ -184,6 +184,35 @@ The evolved hypothesis must differ substantively from its parent(s). If the evol
 ### Gate 8: ID Uniqueness
 Verify the generated ID does not collide with any existing hypothesis ID. If collision: increment NNN.
 
+### Step 8: Convergence Check (after saving)
+
+After each evolved hypothesis is saved, run a convergence check:
+
+1. Parse both parent and child hypothesis notes using `parse_hypothesis_note()`.
+2. Call `compute_hypothesis_similarity(parent, child)` from `_code/src/engram_r/hypothesis_parser.py`.
+3. Read the convergence log at `_research/convergence-log.md` using `read_convergence_log()`.
+4. Determine the lineage root: trace back through `parents` frontmatter to the earliest ancestor. If the parent has no parents, it is the root.
+5. Call `get_lineage_streak(entries, lineage_root)` to get the current streak count.
+6. If similarity >= 0.90: new_streak = previous_streak + 1. Else: new_streak = 0.
+7. Append a `ConvergenceEntry` to the log via `append_convergence_entry()` with:
+   - `date`: today's ISO date
+   - `parent_id`: parent hypothesis ID
+   - `child_id`: evolved hypothesis ID
+   - `lineage_root`: root ancestor ID
+   - `similarity`: computed similarity score
+   - `streak`: new_streak
+   - `evolution_mode`: the mode used for this evolution
+8. Report similarity to the user:
+   ```
+   Similarity to parent: {similarity:.2f}
+   Convergence streak: {new_streak}/3
+   ```
+9. If new_streak >= 3, surface:
+   ```
+   Hypothesis has converged (3 consecutive cycles >= 0.90 similarity).
+   Consider promoting to experiment or identifying what new evidence would shift it.
+   ```
+
 ## Error Handling
 
 | Error | Action |
@@ -235,8 +264,13 @@ quality_gate_results:
   - gate: novelty-vs-parent -- {pass | fail: ids too similar to parent}
   - gate: id-uniqueness -- {pass}
 
+convergence:
+  similarity: {float}
+  streak: {int}/3
+  converged: {true | false}
+
 recommendations:
-  next_suggested: {tournament | review | generate} -- {why}
+  next_suggested: {tournament | review | generate | experiment (if converged)} -- {why}
 
 learnings:
   - {observation about evolution patterns or gap discovery} | NONE

@@ -70,16 +70,29 @@ Store any phase tips internally for use in Step 3 (the overview merges them into
 
 If the advisor fails or returns no phase tips, proceed silently.
 
-**0b. Abstract-Only Source Advisory**
+**0b. Content Depth Advisory**
 
-Count reduce-phase tasks whose extract task file has `content_depth: abstract` or `scope: abstract_only`. If any exist, display:
+Count reduce-phase tasks by `content_depth` from their queue entries or extract task files.
+
+**Stub sources (`content_depth: stub`):** If stub-scope tasks exist, display a warning and recommend batch-failing:
+
+```
+[Stub Source Warning] {N} source(s) are stubs (metadata only, no abstract or full text).
+These will produce zero claims. Recommend batch-failing before processing.
+  -> Batch-fail all stubs? (y/n)
+  -> To fetch content first: /learn {title} for each, then /seed again
+```
+
+If the user confirms, mark all stub tasks as failed with reason `"zero-claim extraction: stub source with no extractable content"` and exclude them from processing. If they decline, continue but flag each stub task as it comes up.
+
+**Abstract-only sources (`content_depth: abstract`):** Informational only:
 
 ```
 [Content Depth Advisory] {N} source(s) at abstract scope.
 Extraction will be limited to claims/evidence/questions (no methods or design patterns).
 ```
 
-This is informational only -- never block processing. Continue to Step 1.
+Continue to Step 1.
 
 ---
 

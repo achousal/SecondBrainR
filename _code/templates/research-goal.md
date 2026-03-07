@@ -11,6 +11,7 @@ title: "{{title}}"
 description: ""
 status: active
 linked_labs: []
+falsification_condition: ""
 constraints: []
 evaluation_criteria: []
 domain: ""

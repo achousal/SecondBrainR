@@ -159,7 +159,7 @@ print(json.dumps(result))
 ```
 
 - **Success** (abstract found): Apply enrichment to the source file, set `content_depth: abstract`, continue with `scope: abstract_only`.
-- **Failure** (no abstract): Log one line: `"Abstract fetch failed for {DOI}. Extracting from available metadata only."` Set `content_depth: stub`, continue with `scope: stub`.
+- **Failure** (no abstract): Log one line: `"Abstract fetch failed for {DOI}."` Set `content_depth: stub`.
 - **No interactive prompt.** Auto-enrichment is always silent.
 
 **After auto-enrichment (or if content_depth already set):**
@@ -170,10 +170,15 @@ print(json.dumps(result))
   (claims, evidence, open-questions only -- no methods or design patterns).
   ```
 
-- **`content_depth: stub`** -- inform and continue:
+- **`content_depth: stub`** -- **STOP. Do not queue.** Report and halt:
   ```
-  [Content Depth] Source is stub (no abstract). Extraction limited to title-level claim only.
+  [Content Depth] Source is stub (no abstract or full text). Cannot extract.
+  Skipped: {SOURCE_BASENAME}
+  To process: fetch full text or abstract first, then re-seed.
+    - /learn {title or DOI} -- fetch content via web search
+    - Manually paste abstract into the source file, then /seed again
   ```
+  If running in `--all` mode, increment `skipped_count` (track separately as `skipped_stubs`) and continue to the next file. Do NOT create a task file or queue entry.
 
 - **`content_depth: full_text`** or absent with no DOI -- normal processing, `scope: full` (unless overridden by `--methods-only`).
 
@@ -339,11 +344,17 @@ When `--all` is set:
 --=={ seed --all }==--
 
 Seeded: {seeded_count} files
-Skipped: {skipped_count} (duplicates)
+Skipped: {skipped_count} ({skipped_duplicates} duplicates, {skipped_stubs} stubs)
 Errors: {error_count}
 
 Files seeded:
   {list of seeded filenames}
+
+{if skipped_stubs > 0:}
+Stub sources skipped (no extractable content):
+  {list of stub filenames}
+  -> Use /learn {title} to fetch content, then /seed again
+{end if}
 
 Next: /ralph {seeded_count} to process all extractions
 ```
@@ -355,6 +366,7 @@ Next: /ralph {seeded_count} to process all extractions
 ## Critical Constraints
 
 **never:**
+- Queue a stub source (content_depth: stub) -- these produce zero claims and waste processing
 - Skip duplicate detection (prevents wasted processing)
 - Move a source that is not in inbox/ (living docs stay in place)
 - Reuse claim numbers from previous batches (globally unique is required)
