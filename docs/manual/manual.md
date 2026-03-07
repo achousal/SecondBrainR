@@ -50,7 +50,9 @@ From there, pick what applies:
 
 ## All Pages
 
-### Core
+### Core -- the 5 pages everyone reads
+
+These form a dependency chain. Read them roughly in order.
 
 - **[Getting Started](getting-started.md)** -- First session guide. Onboarding, session rhythm, creating and connecting claims.
 - **[Skills Reference](skills.md)** -- Complete command reference, grouped by category. Invocation syntax, arguments, vault I/O.
@@ -58,14 +60,18 @@ From there, pick what applies:
 - **[Architecture](architecture.md)** -- Knowledge layer, hypothesis layer, Elo rating system, entity lifecycles, federated Elo.
 - **[Configuration](configuration.md)** -- ops/config.yaml structure, dimension semantics, processing modes, domain profiles, /architect.
 
-### Reference
+### Reference -- standalone deep-dives
+
+No reading order between them. Pull one off the shelf when you need it.
 
 - **[Literature Search](literature.md)** -- Search backends (PubMed, arXiv, Semantic Scholar, OpenAlex), enrichment pipeline, unified interface.
 - **[Plot System](plotting.md)** -- Visual identity, statistical decision tree, 8 plot builders, semantic palettes, figure sizes.
 - **[Querying](querying.md)** -- YAML frontmatter query patterns using ripgrep. Field-level, cross-field, backlink, and audit queries.
 - **[Meta-Skills](meta-skills.md)** -- Introspective commands: /ask, /architect, /rethink, /remember. The self-evolution cycle.
 
-### Operations
+### Operations -- running the system in production
+
+These assume you have read the core tier.
 
 - **[Integrations](integrations.md)** -- Slack, Obsidian, MCP servers, research daemon, multi-vault. Setup and configuration.
 - **[Administration](administration.md)** -- Research loop daemon, hooks, decision engine, code section health, helper scripts.
