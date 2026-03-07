@@ -67,6 +67,7 @@ Adoption is not a cliff. It is a gradient. Every observation is a valuable contr
 5. The top hypothesis comes with a pre-specified analysis plan. `/experiment` logs
    the run. Results feed back into the graph. The leaderboard updates.
 
+---
 ## Getting started
 
 Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code), clone the repo, and open it:
