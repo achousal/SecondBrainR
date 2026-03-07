@@ -246,6 +246,7 @@ class VaultState:
     quarantine_count: int = 0
     queue_blocked: int = 0
     claim_count: int = 0
+    queue_first_clear: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -765,6 +766,7 @@ def scan_vault(vault_path: Path, config: DaemonConfig) -> VaultState:
     state.inbox_count = _count_files(inbox_dir)
     state.queue_backlog = _count_queue_pending(queue_file)
     state.queue_blocked = _count_queue_blocked(queue_file)
+    state.queue_first_clear = (vault_path / "ops" / ".queue-first-clear").is_file()
     state.orphan_count = _count_orphan_notes(vault_path)
     state.unmined_session_count = _count_unmined_sessions(sessions_dir, marker_dir)
 

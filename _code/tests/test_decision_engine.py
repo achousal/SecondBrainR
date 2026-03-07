@@ -42,9 +42,10 @@ def default_config():
 
 @pytest.fixture
 def clean_state():
-    """Vault with nothing to do (mature vault, has claims)."""
+    """Vault with nothing to do (mature vault, has claims, milestone already seen)."""
     return VaultState(
         claim_count=50,
+        queue_first_clear=True,
         goals=[
             GoalState(
                 goal_id="goal-test-analysis",
@@ -325,6 +326,7 @@ class TestRecommend:
         """Tier 3 when goals are cycle_complete."""
         state = VaultState(
             claim_count=30,
+            queue_first_clear=True,
             goals=[
                 GoalState(
                     goal_id="goal-test-analysis",
@@ -364,6 +366,43 @@ class TestRecommend:
         )
         rec = recommend(state, default_config)
         assert rec.category == "task_stack"
+
+    def test_milestone_first_clear_fires_when_flag_absent(self, default_config):
+        """milestone_first_clear fires when queue empty, claims exist, flag not set."""
+        state = VaultState(claim_count=20, queue_backlog=0, queue_first_clear=False)
+        rec = recommend(state, default_config)
+        assert rec.category == "milestone_first_clear"
+        assert rec.priority == "milestone"
+        assert "/health" in rec.action
+
+    def test_milestone_first_clear_suppressed_when_flag_set(self, default_config):
+        """milestone_first_clear does not fire when flag file already exists."""
+        state = VaultState(claim_count=20, queue_backlog=0, queue_first_clear=True)
+        rec = recommend(state, default_config)
+        assert rec.category != "milestone_first_clear"
+
+    def test_milestone_first_clear_suppressed_when_queue_nonempty(self, default_config):
+        """milestone_first_clear does not fire when queue still has pending tasks."""
+        state = VaultState(claim_count=20, queue_backlog=5, queue_first_clear=False)
+        rec = recommend(state, default_config)
+        assert rec.category != "milestone_first_clear"
+
+    def test_milestone_first_clear_suppressed_when_no_claims(self, default_config):
+        """milestone_first_clear does not fire on empty vault (handled by onboard)."""
+        state = VaultState(claim_count=0, queue_backlog=0, queue_first_clear=False)
+        rec = recommend(state, default_config)
+        assert rec.category == "empty_vault"
+
+    def test_milestone_loses_to_session_signals(self, default_config):
+        """Session-priority signals beat the milestone recommendation."""
+        state = VaultState(
+            claim_count=20,
+            queue_backlog=0,
+            queue_first_clear=False,
+            observation_count=15,  # triggers /rethink
+        )
+        rec = recommend(state, default_config)
+        assert rec.category != "milestone_first_clear"
 
     def test_clean_state(self, clean_state, default_config):
         rec = recommend(clean_state, default_config)
@@ -629,10 +668,35 @@ class TestCLI:
         notes_dir.mkdir()
         (notes_dir / "claim-a.md").write_text("---\ndescription: \"a\"\n---\n[[claim-b]]\n")
         (notes_dir / "claim-b.md").write_text("---\ndescription: \"b\"\n---\n[[claim-a]]\n")
+        # Set flag so milestone doesn't fire (mature vault, milestone already seen)
+        (tmp_path / "ops" / ".queue-first-clear").touch()
         exit_code = main([str(tmp_path)])
         assert exit_code == 2
         output = json.loads(capsys.readouterr().out)
         assert output["recommendation"]["priority"] == "clean"
+
+    def test_milestone_main_writes_flag(self, tmp_path, capsys):
+        """main() writes ops/.queue-first-clear when milestone fires."""
+        (tmp_path / "ops").mkdir(parents=True)
+        config = tmp_path / "ops" / "daemon-config.yaml"
+        config.write_text("goals_priority: []\nmetabolic:\n  enabled: false\n")
+        health_dir = tmp_path / "ops" / "health"
+        health_dir.mkdir(parents=True)
+        (health_dir / "2026-02-23-report.md").write_text(
+            "Summary: 0 FAIL, 0 WARN, 3 PASS\n"
+        )
+        notes_dir = tmp_path / "notes"
+        notes_dir.mkdir()
+        (notes_dir / "claim-a.md").write_text("---\ndescription: \"a\"\n---\n[[claim-b]]\n")
+        (notes_dir / "claim-b.md").write_text("---\ndescription: \"b\"\n---\n[[claim-a]]\n")
+        # No flag file -- milestone should fire and create it
+        flag = tmp_path / "ops" / ".queue-first-clear"
+        assert not flag.exists()
+        exit_code = main([str(tmp_path)])
+        output = json.loads(capsys.readouterr().out)
+        assert output["recommendation"]["category"] == "milestone_first_clear"
+        assert exit_code == 0
+        assert flag.exists(), "main() should have written the flag file"
 
     def test_recommendation_exit_0(self, tmp_path, capsys):
         """Exit 0 when there is work to do."""
@@ -760,3 +824,10 @@ class TestQueueBlockedSignal:
         summary = _build_state_summary(state)
         assert "queue_blocked" in summary
         assert summary["queue_blocked"] == 7
+
+    def test_state_summary_includes_queue_first_clear(self):
+        """_build_state_summary includes queue_first_clear key."""
+        state = VaultState(queue_first_clear=True)
+        summary = _build_state_summary(state)
+        assert "queue_first_clear" in summary
+        assert summary["queue_first_clear"] is True

@@ -57,11 +57,23 @@ You do not need to fill every section -- even just an Overview paragraph gives t
 ### What to bring to `/onboard`
 
 - **The path to your lab directory** (e.g., `~/projects/MyLab/`). The scan reads your existing project folders.
-- **A `CLAUDE.md` with project descriptions in each .** 
 - **Research directions.** Even informal descriptions are fine -- the interview will refine them into structured goals.
 ### What to bring to `/init` (after `/onboard`)
 
 - **3-5 key papers per research area.** PDFs or markdown preferred. These seed your first knowledge claims. Start with papers that represent your current thinking, not an aspirational reading list.
+
+### What to bring to `/literature` (after `/init`)
+
+- **API keys for literature databases.** `/onboard` walks you through this in Turn 3 -- if you skipped it, run `/literature --setup` before your first search. All sources require free registration only:
+  - PubMed/NCBI: register at ncbi.nlm.nih.gov and get an API key from your account settings
+  - Semantic Scholar: free API key at semanticscholar.org
+  - OpenAlex: free, just requires an email
+
+  Keys go in `_code/.env` (gitignored -- never committed). The `/onboard` and `/literature --setup` flows handle this interactively.
+
+### What to bring to `/generate` and `/research` (hypothesis generation)
+
+Nothing special. Both skills work from vault state -- your research goals, your claims, and your literature notes. The richer those are, the better the hypotheses. Running `/literature` before `/research` meaningfully improves output quality.
 
 ### What not to do
 
@@ -85,6 +97,29 @@ Run `/init`. Claude walks you through creating your first claim together (a shor
 
 After these two steps you have a working knowledge environment grounded in your actual research context.
 
+### Step 3: Build your literature base
+
+Add your 3-5 foundational papers to `inbox/`, then process them:
+
+```
+/seed --all
+/ralph
+```
+
+Then run `/literature` to automatically search PubMed, Semantic Scholar, and OpenAlex using your research goals as queries. Results are saved as structured literature notes and queued for processing. Run `/ralph` again to extract claims from them.
+
+This step requires API keys -- see "What to bring to `/literature`" above, or follow the prompts if you skipped setup during `/onboard`.
+
+### Step 4: Generate hypotheses
+
+Run `/research` to start the co-scientist loop. It will recommend which step to take first based on your vault state -- typically `/generate` to produce initial hypotheses, then `/review`, then `/tournament` to rank them.
+
+```
+/research
+```
+
+You do not need to prepare anything for this step. The system reads your goals, claims, and literature notes and generates hypotheses grounded in that evidence.
+
 ---
 
 ## Session Rhythm: Orient - Work - Persist
@@ -104,7 +139,17 @@ Read self/identity.md and self/methodology.md to remember who you are and how yo
 
 ### Phase 2: Work
 
-Do the actual task. This is where claims are created, connections found, hypotheses generated, literature searched. The processing pipeline and co-scientist skills are your primary tools.
+A few entry points depending on what the session is for:
+
+| Use case                           | Entry point                                                                                                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quick orientation                  | `/next` -- evaluates task queue, inbox pressure, pending observations, and active goals; recommends the single highest-value action                         |
+| Processing new papers or notes     | Drop files in `inbox/`, run `/seed --all`, then `/ralph` -- each item moves through extract -> reflect -> reweave -> verify with isolated context per phase |
+| Expanding literature coverage      | `/literature [topic]` -- searches PubMed, Semantic Scholar, and OpenAlex using your research goals; results are queued for `/ralph`                         |
+| Generating or advancing hypotheses | `/research` -- steps through the co-scientist loop (generate, review, tournament, meta-review) and recommends which step fits your current hypothesis pool  |
+| Scan for tensions                  | `/health` -- full integrity check for orphan claims, dangling links, schema violations, and stale content; returns a ranked fix list                        |
+
+See [Skills Reference](skills.md) for the full command list.
 
 ### Phase 3: Persist
 
@@ -118,54 +163,33 @@ Before session end:
 
 ## Your First Claim
 
-Claims are atomic knowledge notes. Each captures exactly one insight, titled as a prose proposition.
+Claims are atomic knowledge notes. Each captures exactly one insight, titled as a prose proposition. You do not create claims directly -- you bring material or ideas to Claude, and the pipeline creates them for you.
 
-### Step 1: Route Through the Pipeline
+### Step 1: Bring the insight to Claude
 
-Content enters through inbox/, not notes/ directly. This is a hard constraint -- direct writes to notes/ skip quality gates.
+Two common starting points:
 
-**Option A: Quick insight from conversation.**
-Write a short markdown file to inbox/, then extract:
+**Option A: You have a quick insight to capture.**
+Describe the idea to Claude in plain language. Claude will ask clarifying questions if needed, then route the material through `inbox/` and extract a structured claim. You do not write files or run commands -- you describe what you want to preserve.
 
-```bash
-# Write the insight to inbox/
-cat > inbox/early-warning-signals.md << 'EOF'
-Increased variance in repeated measurements precedes critical transitions.
-Supporting evidence from longitudinal studies and dynamical systems theory.
-EOF
-```
+**Option B: You have a source document to process.**
+Drop the file in `inbox/` and tell Claude to process it, or run `/seed inbox/your-file.md` followed by `/ralph`. Claude reads the source, extracts every relevant claim, and creates them in `notes/` with full provenance.
 
-Then extract the claim:
-```
-/reduce inbox/early-warning-signals.md
-```
+In both cases, content enters through `inbox/`, not `notes/` directly. Direct writes to `notes/` skip quality gates -- this routing is a hard constraint.
 
-**Option B: Process a full document.**
-Place the source material in inbox/ and extract:
+### Step 2: Review what was created
 
-```
-/reduce inbox/review-paper-on-critical-transitions.md
-```
+After extraction, Claude shows you what it created. Check three things:
 
-In both cases, /reduce reads the source, extracts claims, and creates them in notes/ with full provenance.
+1. **Title as claim** -- Does the title work as a complete thought? A good claim title is falsifiable: a reader could agree or disagree with it.
+2. **Description quality** -- Does the description add information beyond the title -- scope, mechanism, or implication?
+3. **Specificity** -- Is this one idea, or are two claims bundled together?
 
-### Step 2: Check the Output
+Correct anything that does not meet the bar before moving on.
 
-After creation, verify the claim meets quality standards:
+### Step 3: Connect it
 
-1. **Title as claim** -- Does the title work as prose when linked? "Since [[increased variance in repeated measurements precedes critical transitions]]" reads naturally.
-2. **Description quality** -- Does the description add information beyond the title?
-3. **Specificity** -- Could someone disagree with this claim? If not, it is too vague.
-
-### Step 3: Connect
-
-Run /reflect to find connections between the new claim and existing knowledge:
-
-```
-/reflect
-```
-
-This does three things:
+Tell Claude to find connections, or run `/reflect`. Claude does three things:
 - **Forward connections** -- what existing claims relate to this new one?
 - **Backward connections** -- what older claims need updating now that this exists?
 - **Topic map updates** -- adds the claim to at least one topic map.
@@ -222,11 +246,11 @@ Topics:
 
 ## Understanding Topic Maps
 
-Topic maps are navigation hubs that organize claims by topic. They are not folders -- they are attention managers.
+Topic maps are navigation hubs that organize claims by topic. 
 
 ### When to Create
 
-Create a topic map when 5+ related claims accumulate without navigation structure. Do not create one for fewer than 5 claims.
+Use `/reflect` after processing a batch of claims -- it detects when 5+ related claims have accumulated without navigation structure and creates or updates the appropriate map.
 
 ### Structure
 
@@ -245,25 +269,13 @@ Unresolved conflicts.
 Gaps, unexplored directions.
 ```
 
-The critical rule: Core Ideas entries must have context phrases. A bare link list is an address book, not a map.
+The critical rule: Core Ideas entries must have context phrases.
 
 ### Taxonomy
 
 - **Hub** -- entry point for the entire workspace. One per workspace.
 - **Domain topic map** -- entry point for a research area. Links to topic-level maps.
 - **Topic map** -- active workspace for a specific topic.
-
----
-
-## Quick Reference: First Session Checklist
-
-1. Read self/identity.md, self/methodology.md, self/goals.md.
-2. Check orient output for inbox pressure or maintenance signals.
-3. Create one claim via /reduce (write a quick insight to inbox/ first if needed).
-4. Run /reflect to connect the claim.
-5. Run /verify on the claim to check quality.
-6. Update self/goals.md with your current thread.
-7. Session-capture hook fires automatically at session end.
 
 ---
 

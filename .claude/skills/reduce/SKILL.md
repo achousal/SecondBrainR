@@ -1124,7 +1124,15 @@ Semantic neighbor: [if found, explain why DISTINCT not DUPLICATE]
 
 ### Enrichment Task Files (REQUIRED in handoff mode)
 
-For each ENRICHMENT detected, create a task file in `ops/queue/`:
+**ATOMICITY RULE: Verify target BEFORE creating the task file.**
+
+Before creating any enrichment task file, verify the target note exists on disk:
+```bash
+Glob: notes/[target title].md
+```
+If the target note is NOT found on disk: **do NOT create the task file**. Convert the enrichment candidate to a new claim task file instead (same structure as claim files above). This ensures every enrichment task file on disk has a corresponding queue entry — orphaned task files with no queue entry cannot be processed.
+
+For each ENRICHMENT where target note IS verified on disk, create a task file in `ops/queue/`:
 
 **Filename:** `{source}-EEE.md` where:
 - {source} is the source basename (same as claims)
@@ -1174,7 +1182,11 @@ Rationale: [why this enriches rather than duplicates]
 
 After creating task files, update `ops/queue/queue.json`:
 
-1. Mark the extract task as `"status": "done"` with completion timestamp
+1. Advance the extract task to done using the queue CLI (this correctly sets completed_phases and clears current_phase — do NOT use direct jq writes):
+```bash
+VAULT_PATH="$(pwd)"
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" advance EXTRACT_TASK_ID
+```
 2. For EACH claim, add ONE queue entry:
 
 ```json
@@ -1192,7 +1204,7 @@ After creating task files, update `ops/queue/queue.json`:
 }
 ```
 
-3. For EACH enrichment, add ONE queue entry. **Before writing the entry, verify the target note exists on disk** (Glob or Read). If the target cannot be found, do NOT create the enrichment entry — convert the candidate to a new claim instead.
+3. For EACH enrichment, add ONE queue entry. The target note was already verified before task file creation (see Enrichment Task Files section above) — write the entry now. **`completed_phases` MUST be an empty array `[]` for all new tasks. Never pre-populate it.** Pre-populating causes double-phase entries in completed_phases after the first advance.
 
 ```json
 {
@@ -1289,14 +1301,11 @@ Queue Updates:
 
 When running interactively (NOT via orchestrator), YOU must execute the queue updates. The orchestrator parses the handoff block and handles this automatically, but interactive sessions do not.
 
-**After completing extraction, update the queue:**
+**After completing extraction, advance the extract task using the CLI (never raw jq — direct jq writes leave current_phase and completed_phases in an inconsistent state):**
 
 ```bash
-# Get timestamp
-TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-# Mark extract task done (replace TASK_ID with actual task ID)
-jq '(.tasks[] | select(.id=="TASK_ID")).status = "done" | (.tasks[] | select(.id=="TASK_ID")).completed = "'"$TIMESTAMP"'"' ops/queue/queue.json > tmp.json && mv tmp.json ops/queue/queue.json
+VAULT_PATH="$(pwd)"
+cd _code && uv run python -m engram_r.queue_query "$VAULT_PATH" advance TASK_ID
 ```
 
 The handoff block's "Queue Updates" section is not just output — it is your own todo list when running interactively.

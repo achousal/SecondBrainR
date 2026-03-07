@@ -572,7 +572,26 @@ def recommend(
             category="maintenance",
         )
 
-    # 5. Tier 3 generative work
+    # 5. First-queue-clear milestone (fires once, before generative work)
+    if (
+        not state.queue_first_clear
+        and state.queue_backlog == 0
+        and state.claim_count > 0
+    ):
+        return Recommendation(
+            action="/health -- verify vault integrity after your first pipeline run",
+            rationale=(
+                "First queue backlog cleared. Claims have been extracted, "
+                "connected, and verified end-to-end. Run /health to check "
+                "vault integrity, then /reflect to deepen connections across "
+                "your new notes."
+            ),
+            priority="milestone",
+            category="milestone_first_clear",
+            after_that="/reflect -- find cross-note connections you may have missed",
+        )
+
+    # 6. Tier 3 generative work
     tier3 = build_tier3_entries(state, config)
     # Filter out task stack items (already handled above)
     tier3_gen = [e for e in tier3 if "from task stack" not in e]
@@ -590,7 +609,7 @@ def recommend(
             after_that=after,
         )
 
-    # 6. Clean state
+    # 7. Clean state
     return Recommendation(
         action="All signals healthy. Explore a new direction from goals.md "
         "or reweave older notes to deepen the graph.",
@@ -648,6 +667,7 @@ def _build_state_summary(state: VaultState) -> dict:
         "tensions": state.tension_count,
         "queue_backlog": state.queue_backlog,
         "queue_blocked": state.queue_blocked,
+        "queue_first_clear": state.queue_first_clear,
         "orphan_notes": state.orphan_count,
         "inbox": state.inbox_count,
         "unmined_sessions": state.unmined_session_count,
@@ -730,6 +750,12 @@ def main(argv: list[str] | None = None) -> int:
         effective_mode = "daemon" if daemon_running else "standalone"
 
     rec = recommend(state, config, mode=effective_mode, vault_path=vault_path)
+
+    # Write first-clear flag after showing milestone (prevents repeat)
+    if rec.category == "milestone_first_clear":
+        flag = vault_path / "ops" / ".queue-first-clear"
+        flag.parent.mkdir(parents=True, exist_ok=True)
+        flag.touch()
 
     # Build daemon context
     daemon_context: dict = {"running": daemon_running, "pid": daemon_pid}

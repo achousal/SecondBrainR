@@ -743,36 +743,14 @@ After printing the queue state, if `pending == 0`, check for the flag file:
 test -f ops/.queue-first-clear && echo "seen" || echo "new"
 ```
 
-If `new` (flag does not exist):
-
-1. Print the milestone tip block:
+If `new` (flag does not exist), print:
 
 ```
---=={ vault advisor }==--
-
-You cleared your first queue backlog. The pipeline ran end-to-end.
-
-What you have now:
-  - Atomic claims in notes/ extracted and connected from your sources
-  - Topic maps linking related claims across the graph
-  - Verified notes with schema and link health checked
-
-Recommended next steps:
-  /health          -- full vault health scan (schema, orphans, link integrity)
-  /next            -- surface the highest-value action right now
-  /reflect         -- find cross-batch connections you may have missed
-  /reweave         -- backward pass: older notes updated with new context
-  /generate        -- produce new hypotheses grounded in your claims
-  /stats           -- see vault growth and graph metrics
+First queue backlog cleared. The pipeline ran end-to-end.
+Run /next -- it has full vault context to recommend what to work on now.
 ```
 
-2. Create the flag file so this tip is not shown again:
-
-```bash
-touch ops/.queue-first-clear
-```
-
-If `seen` (flag exists), skip the milestone block entirely.
+If `seen` (flag exists), skip the message entirely.
 
 **Verification:** The "Subagents spawned" count MUST equal "Tasks processed." If it does not, the lead executed tasks inline — this is a process violation. Report it as an error.
 
@@ -871,7 +849,10 @@ Every subagent SHOULD return a RALPH HANDOFF block. If missing AND task file sec
 For extract tasks: if zero claims extracted, mark task **failed** via CLI with reason `"zero-claim extraction"`. Do NOT advance to done. Do NOT retry automatically.
 
 ### Gate 4: Task File Updated
-After each phase, the task file's corresponding section (Create, Reflect, Reweave, Verify) should be filled. If empty after subagent completes AND no handoff: mark task **failed** (see Gate 2). If empty but handoff present with work done: log warning, advance cautiously.
+After each phase, the task file's corresponding section (Create, Reflect, Reweave, Verify) MUST be filled.
+
+- If section empty AND no handoff: mark task **failed** (see Gate 2).
+- If section empty AND handoff IS present: do NOT silently advance. Check the actual notes/ target file to confirm the phase's work is present (e.g., that reflect links were added, that the note body was enriched). If the note shows evidence of work: log warning, advance. If the note shows NO evidence of work: mark task **failed** — the subagent reported success but did not complete the phase. Silent advancement without task file update is how incomplete claims enter the vault undetected.
 
 ### Gate 5: Idempotency
 Before dispatching a subagent, check if the task file's current phase section is already filled. If yes: skip dispatch, advance phase directly via CLI. Log as idempotency skip.
