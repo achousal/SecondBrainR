@@ -590,3 +590,37 @@ code, pre {
     animation: none;
   }
 }
+
+/* ---- HowItWorks: force details open on desktop ---- */
+
+@media (min-width: 768px) {
+  .how-cards details {
+    pointer-events: none;
+  }
+  .how-cards details > summary {
+    list-style: none;
+    cursor: default;
+  }
+  .how-cards details > summary::-webkit-details-marker {
+    display: none;
+  }
+  .how-cards details:not([open]) > *:not(summary) {
+    display: block;
+  }
+}
+
+/* ---- Scaling arrows ---- */
+
+.scaling-arrow {
+  position: absolute;
+  top: 50%;
+  right: -1.25rem;
+  transform: translateY(-50%);
+  color: var(--color-accent-dim);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.scaling-arrow::after {
+  content: "\2192";
+}
