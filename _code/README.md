@@ -144,6 +144,54 @@ YAML frontmatter tracks: id, status, elo, matches, wins, losses, generation, par
 
 Sections: Statement, Mechanism, Literature Grounding, Testable Predictions, Proposed Experiments, Assumptions, Limitations & Risks, Review History, Evolution History.
 
+## Federation API
+
+API reference for multi-lab and federation modules. For concepts and workflows,
+see [Inter-Lab Collaboration](../docs/manual/inter-lab.md).
+
+### note_builder
+| Function | Purpose |
+|----------|---------|
+| `build_lab_note(**kwargs)` | Produce lab entity note markdown |
+| `build_project_note(**kwargs)` | Produce project note markdown |
+
+### vault_registry
+| Function | Purpose |
+|----------|---------|
+| `load_registry()` | Parse `~/.config/engramr/vaults.yaml` |
+| `get_vault(name)` | Look up vault by name |
+| `get_default_vault()` | Get the default vault |
+| `get_vault_path(name=None)` | Resolve vault path (registry > env > None) |
+
+### claim_exchange
+| Function | Purpose |
+|----------|---------|
+| `export_claim(markdown, title, source_vault)` | Single claim export |
+| `export_claims(vault_path, source_vault, **filters)` | Bulk export with filters |
+| `export_to_yaml(claims)` | Serialize to YAML |
+| `load_exported_claims(yaml_str)` | Deserialize from YAML |
+| `import_claims(vault_path, claims, quarantine, overwrite)` | Write claims as notes |
+
+### hypothesis_exchange
+| Function | Purpose |
+|----------|---------|
+| `export_hypothesis(markdown, id, source_vault)` | Single hypothesis export |
+| `export_hypotheses(vault_path, source_vault, **filters)` | Bulk export with Elo filter |
+| `import_hypotheses(vault_path, hypotheses, overwrite)` | Write as foreign-hypothesis notes |
+
+### federation_config
+| Function | Purpose |
+|----------|---------|
+| `load_federation_config(path)` | Parse `ops/federation.yaml` (returns defaults if missing) |
+| `config.get_peer_trust(peer)` | Resolve trust level for a peer |
+| `config.can_import_from(peer)` | Check if import is allowed |
+| `config.should_quarantine(peer)` | Check if quarantine applies |
+
+### schema_validator
+| Function | Purpose |
+|----------|---------|
+| `validate_note(content, note_type)` | Validate `lab` and `project` schemas |
+
 ## Environment variables
 
 | Variable | Required | Purpose |

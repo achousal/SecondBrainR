@@ -15,35 +15,10 @@ Read the [vision document](docs/EngramR.md) for the design philosophy.
 
 ## Architecture
 
-EngramR combines a **knowledge layer** that extracts, connects, and maintains
-a graph of atomic claims, and a **hypothesis layer** that generates, debates,
-ranks, and evolves testable hypotheses from that evidence.
-
-The knowledge layer processes raw input through a quality pipeline
-(`inbox/ -> /reduce -> /reflect -> /reweave -> /verify -> notes/`).
-
-The hypothesis layer reads accumulated evidence, generates testable predictions
-with mechanism and falsification criteria, debates them pairwise, ranks by Elo,
-and injects meta-review feedback into the next generation cycle.
-Goals spawn hypotheses. Hypotheses spawn projects. Project results feed back
-into the hypothesis pool.
-
-See [Architecture](docs/manual/architecture.md) for the full deep-dive
-(Elo system, entity lifecycles, federated ratings).
-
----
-
-## Adoption
-
-EngramR starts blank -- no migrations needed. It runs alongside whatever the team
-already uses. Early on, the system captures and connects. Then it begins
-generating hypotheses. Over time, the knowledge graph grows dense enough that
-new observations land in a web of existing connections. Teams feed the reactor
-what they actually have -- datasets, instruments, domain-specific resources,
-constraints -- and the system ranks hypotheses not just by scientific merit
-but by what the lab can realistically act on.
-
-Adoption is not a cliff. It is a gradient. Every observation is a valuable contribution. Browse the leaderboard or use `/next` to understand priorities. Run an analysis and feed back results. The deeper the team engages, the more the reactor gives back.
+EngramR combines a **knowledge layer** (claim extraction, connection-finding,
+quality gates) and a **hypothesis layer** (generation, pairwise debate, Elo
+ranking, meta-review feedback). See [Architecture](docs/manual/architecture.md)
+for the full deep-dive.
 
 ---
 
