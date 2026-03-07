@@ -345,6 +345,9 @@ Run /reflect --handoff on: {TARGET}
 Use dual discovery: topic map exploration AND semantic search.
 Add inline links where genuine connections exist — including sibling claims listed above.
 Update relevant topic map with this claim.
+MANDATORY: After completing reflect work on the note, update this task file's
+## /reflect section with: discovery trace, connections added, topic map updates.
+The note update alone is NOT sufficient — the task file tracks pipeline state.
 ONE PHASE ONLY. Do NOT run reweave.
 ```
 
@@ -368,6 +371,9 @@ Run /reweave --handoff for: {TARGET}
 This is the BACKWARD pass. Find OLDER claims AND sibling claims
 that should reference this claim but don't.
 Add inline links FROM older claims TO this claim.
+MANDATORY: After completing reweave work, update this task file's
+## /reweave section with changes applied and backward links added.
+The note updates alone are NOT sufficient — the task file tracks pipeline state.
 ONE PHASE ONLY. Do NOT run verify.
 ```
 
@@ -383,6 +389,9 @@ Combined verification: recite (cold-read prediction test), validate (schema chec
 review (per-note health).
 IMPORTANT: Recite runs FIRST — read only title+description, predict content,
 THEN read full claim.
+MANDATORY: After completing verification, update this task file's
+## /verify section with recite, validate, and review results.
+The verification alone is NOT sufficient — the task file tracks pipeline state.
 Final phase for this claim. ONE PHASE ONLY.
 ```
 

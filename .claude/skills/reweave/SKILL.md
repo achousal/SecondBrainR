@@ -65,7 +65,7 @@ Parse immediately:
    - Rewrite prose if understanding is deeper now
 6. **Make the changes** — edit the claim with new connections (inline links with context), improved prose, sharper claim if needed
 7. **Update topic maps** — if the claim's topic membership changed, update relevant topic maps
-8. **If task file exists:** update the reweave section
+8. **MANDATORY: Update the task file's `## /reweave` section** with changes applied, backward links added, and any title sharpens or challenges. This is required for pipeline tracking -- the note updates alone are NOT sufficient.
 9. **Report** — structured summary of what changed and why
 10. If `--handoff` in target: output RALPH HANDOFF block
 

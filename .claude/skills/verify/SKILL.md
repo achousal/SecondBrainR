@@ -309,7 +309,7 @@ Recommended Actions:
 
 ### Step 6: Update task file and capture observations
 
-- If a task file is in context (pipeline execution): update the `## Verify` section with results
+- **MANDATORY: Update the task file's `## /verify` section** with recite, validate, and review results. This is required for pipeline tracking -- the verification alone is NOT sufficient.
 - Reflect on the process: friction? surprises? methodology insights? process gaps?
 - If any observations worth capturing: create atomic note in the observations directory per the observation capture pattern
 - If `--handoff` in target: output RALPH HANDOFF block (see below)

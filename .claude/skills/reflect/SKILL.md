@@ -46,7 +46,7 @@ Parse immediately:
 5. Evaluate each candidate: does a genuine connection exist? Can you articulate WHY?
 6. Add inline wiki-links where connections pass the articulation test
 7. Update relevant topic map(s) with this claim
-8. If task file in context: update the reflect section
+8. **MANDATORY: Update the task file's `## /reflect` section** with discovery trace, connections added, and topic map updates. This is required for pipeline tracking -- the note update alone is not sufficient.
 9. Report what was connected and why
 10. If `--handoff` in target: output RALPH HANDOFF block
 
