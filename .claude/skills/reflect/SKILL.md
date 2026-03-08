@@ -45,10 +45,11 @@ Parse immediately:
    - Run semantic search for conceptually related claims
 5. Evaluate each candidate: does a genuine connection exist? Can you articulate WHY?
 6. Add inline wiki-links where connections pass the articulation test
-7. Update relevant topic map(s) with this claim
-8. **MANDATORY: Update the task file's `## /reflect` section** with discovery trace, connections added, and topic map updates. This is required for pipeline tracking -- the note update alone is not sufficient.
-9. Report what was connected and why
-10. If `--handoff` in target: output RALPH HANDOFF block
+7. **CHECKPOINT: Update the task file's `## /reflect` section** with discovery trace and connections added so far. This is required for pipeline tracking -- the note update alone is not sufficient. Write this BEFORE topic map updates so that pipeline state is preserved even if subsequent steps exhaust the turn budget.
+8. Update relevant topic map(s) with this claim
+9. Update the task file's `## /reflect` section again with topic map updates (append to what was written in step 7)
+10. Report what was connected and why
+11. If `--handoff` in target: output RALPH HANDOFF block
 
 **START NOW.** Reference below explains methodology -- use to guide, not as output.
 
