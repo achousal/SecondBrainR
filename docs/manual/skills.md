@@ -13,6 +13,94 @@ All commands available in this vault, organized by layer and category. All skill
 
 ---
 
+## Quick Reference
+
+### Co-Scientist Loop
+
+| Command | Purpose | When to use |
+|---------|---------|-------------|
+| `/research` | Orchestrate the full loop | Entry point -- sets goals, presents menu |
+| `/generate` | Create hypotheses | Need new ideas grounded in literature |
+| `/review` | Evaluate hypotheses | Score and critique before ranking |
+| `/tournament` | Rank via pairwise debate | Compare hypotheses head-to-head (Elo) |
+| `/evolve` | Refine top hypotheses | Strengthen, combine, or simplify winners |
+| `/landscape` | Map hypothesis space | Find clusters, gaps, redundancies |
+| `/meta-review` | Extract patterns from debates | Feed improvements into next cycle |
+| `/literature` | Search and save papers | PubMed, arXiv, Semantic Scholar, OpenAlex |
+
+### Knowledge Processing Pipeline
+
+| Command | Purpose | When to use |
+|---------|---------|-------------|
+| `/seed` | Queue source for processing | New paper or material enters inbox/ |
+| `/ralph` | Run pipeline with fresh context | Batch-process queued tasks (extract -> create -> reflect -> reweave -> verify) |
+| `/reduce` | Extract claims from source | Single-source processing |
+| `/reflect` | Find connections, update MOCs | After new claims are created |
+| `/reweave` | Revisit old claims with new context | Backward pass -- update earlier notes |
+| `/enrich` | Add evidence to existing claims | New source supports an existing claim |
+| `/verify` | Quality-check a claim | Schema, description, link health |
+| `/validate` | Batch schema check | Audit all notes/ at once |
+| `/archive-batch` | Archive completed batches | Clean up after /ralph finishes |
+
+### Navigation and Status
+
+| Command | Purpose | When to use |
+|---------|---------|-------------|
+| `/next` | Best next action | "What should I do?" |
+| `/tasks` | View processing queue | Check pending work |
+| `/stats` | Vault metrics | Snapshot of health and growth |
+| `/graph` | Query knowledge graph | Find triangles, bridges, orphans |
+
+### Research Support
+
+| Command | Purpose | When to use |
+|---------|---------|-------------|
+| `/learn` | Research a topic via web | Grow knowledge graph from external sources |
+| `/experiment` | Log experiment metadata | Record parameters, results, artifacts |
+| `/eda` | Exploratory data analysis | Auto-redacted summaries and themed plots |
+| `/plot` | Publication-quality figures | Generate PDF figures with research theme |
+| `/project` | Manage research projects | Register, update, query projects |
+
+### Self-Evolution
+
+| Command | Purpose | When to use |
+|---------|---------|-------------|
+| `/remember` | Capture friction signals | Something surprising or broken |
+| `/rethink` | Review accumulated observations | 10+ observations or 5+ tensions |
+| `/refactor` | Restructure claims and MOCs | Split, merge, rename, reorganize |
+| `/dev` | Code section health checks | Tests, lint, coverage for _code/ |
+
+### System and Setup (arscontexta plugin)
+
+| Command | Purpose | When to use |
+|---------|---------|-------------|
+| `/setup` | Scaffold a new vault | First-time initialization |
+| `/onboard` | Bootstrap lab integration | Connect a lab's filesystem and projects |
+| `/init` | Seed foundational claims | After /onboard, before research |
+| `/profile` | Manage domain profiles | Create or switch research domains |
+| `/health` | Vault integrity diagnostics | Periodic maintenance |
+| `/architect` | System design changes | Modify configuration dimensions |
+| `/ask` | Query methodology knowledge base | "How should I..." questions |
+| `/recommend` | Architecture advice | Design decisions for your system |
+| `/upgrade` | Apply plugin updates | Check for methodology improvements |
+| `/add-domain` | Add research domain | Extend vault to new area |
+| `/reseed` | Re-derive from dimensions | After accumulated structural drift |
+| `/tutorial` | Interactive walkthrough | Learn by doing |
+| `/help` | Command discovery | "What can I do?" |
+| `/federation-sync` | Sync across vaults | Multi-vault collaboration |
+
+### Typical Workflows
+
+**First session:** `/onboard` -> `/init` -> `/seed` foundational papers -> `/ralph`
+
+**New paper:** `/seed` -> `/ralph` (or `/reduce` -> `/reflect` -> `/reweave` -> `/verify`)
+
+**New research question:** `/research` -> `/generate` -> `/review` -> `/tournament` -> `/meta-review` -> `/evolve`
+
+**Maintenance:** `/next` -> `/health` -> `/rethink` (if observations accumulated)
+
+---
+
 ## Co-Scientist Skills
 
 ### Tier 1: Supervisor
